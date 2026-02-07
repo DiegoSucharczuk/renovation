@@ -174,7 +174,7 @@ export default function RoomsPage() {
     // Don't auto-update if manually set to BLOCKED
     if (taskFormData.status === 'BLOCKED') return;
     
-    let newStatus = taskFormData.status;
+    let newStatus: string;
     
     // Calculate what status should be based on progress and dates
     if (taskFormData.progress >= 100) {
@@ -187,7 +187,7 @@ export default function RoomsPage() {
       } else {
         newStatus = 'NOT_STARTED';
       }
-    } else if (taskFormData.progress === 0) {
+    } else {
       newStatus = 'NOT_STARTED';
     }
     
@@ -195,7 +195,7 @@ export default function RoomsPage() {
     if (newStatus !== taskFormData.status) {
       setTaskFormData(prev => ({ ...prev, status: newStatus }));
     }
-  }, [taskFormData.progress, taskFormData.startDate, taskFormData.status, autoUpdateStatus, openTaskDialog]);
+  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -383,7 +383,16 @@ export default function RoomsPage() {
             autoUpdateStatus: false,
             updatedAt: new Date().toISOString(),
           });
-          handleCloseTaskDialog();
+          
+          // Update local state immediately
+          setTaskFormData({
+            status: 'NOT_STARTED',
+            progress: 0,
+            startDate: '',
+            endDate: '',
+          });
+          setAutoUpdateStatus(false);
+          
           await loadData();
         }
       } catch (error) {
