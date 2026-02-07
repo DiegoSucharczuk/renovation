@@ -177,16 +177,20 @@ export default function RoomsPage() {
     
     if (taskFormData.progress >= 100) {
       newStatus = 'DONE';
-    } else if (startDate && today >= startDate && taskFormData.progress > 0) {
-      newStatus = 'IN_PROGRESS';
-    } else if (!startDate || today < startDate) {
+    } else if (taskFormData.progress > 0) {
+      if (startDate && today >= startDate) {
+        newStatus = 'IN_PROGRESS';
+      } else if (!startDate) {
+        newStatus = 'IN_PROGRESS';
+      }
+    } else if (taskFormData.progress === 0) {
       newStatus = 'NOT_STARTED';
     }
     
     if (newStatus !== taskFormData.status) {
       setTaskFormData(prev => ({ ...prev, status: newStatus }));
     }
-  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog]);
+  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog, taskFormData.status]);
 
   useEffect(() => {
     if (!mounted) return;
