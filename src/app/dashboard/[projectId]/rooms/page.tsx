@@ -778,16 +778,6 @@ export default function RoomsPage() {
                 inputProps={{ min: 0, max: 100 }}
               />
 
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={autoUpdateStatus}
-                    onChange={(e) => setAutoUpdateStatus(e.target.checked)}
-                  />
-                }
-                label="עדכן סטטוס אוטומטי לפי אחוז התקדמות"
-              />
-
               <TextField
                 label="תאריך התחלה"
                 fullWidth
@@ -804,6 +794,16 @@ export default function RoomsPage() {
                 value={taskFormData.endDate}
                 onChange={(e) => setTaskFormData({ ...taskFormData, endDate: e.target.value })}
                 InputLabelProps={{ shrink: true }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autoUpdateStatus}
+                    onChange={(e) => setAutoUpdateStatus(e.target.checked)}
+                  />
+                }
+                label="עדכן סטטוס אוטומטי לפי אחוז התקדמות"
               />
             </Box>
           </DialogContent>
