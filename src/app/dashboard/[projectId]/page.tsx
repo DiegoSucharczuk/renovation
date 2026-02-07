@@ -807,7 +807,7 @@ export default function DashboardPage() {
             <Card>
               <CardContent>
                 <Typography variant="h5" fontWeight="bold" gutterBottom>
-                  התקדמות לפי חדרים
+                  משימות שהושלמו לפי חדרים
                 </Typography>
                 {roomsWithProgress.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
@@ -821,7 +821,7 @@ export default function DashboardPage() {
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                       <Typography variant="body1">{roomProgress.roomName}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {roomProgress.completedTasks}/{roomProgress.totalTasks} משימות
+                        {roomProgress.completedTasks}/{roomProgress.totalTasks} הושלמו
                       </Typography>
                     </Box>
                     <LinearProgress
