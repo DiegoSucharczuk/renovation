@@ -21,7 +21,7 @@ import {
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { doc, getDoc, collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,7 +68,7 @@ export default function DashboardPage() {
     
     try {
         // טעינת פרויקט
-        const projectDoc = await getDoc(doc(db, 'projects', projectId));
+        const projectDoc = await getDocFromServer(doc(db, 'projects', projectId));
         if (projectDoc.exists()) {
           setProject({
             id: projectDoc.id,
