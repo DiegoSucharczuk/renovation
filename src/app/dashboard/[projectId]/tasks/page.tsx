@@ -286,7 +286,6 @@ export default function TasksPage() {
                   <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>תיאור</strong></TableCell>
                   <TableCell sx={{ width: 120, borderLeft: 1, borderColor: 'divider', pr: 2 }}><strong>חדר</strong></TableCell>
                   <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>סטטוס</strong></TableCell>
-                  <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>התקדמות</strong></TableCell>
                   <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>פעולות</strong></TableCell>
                 </TableRow>
               </TableHead>
@@ -332,9 +331,6 @@ export default function TasksPage() {
                         <Typography sx={{ fontSize: 20, color: statusDisplay.color }}>
                           {statusDisplay.icon}
                         </Typography>
-                      </TableCell>
-                      <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>
-                        {task.progress || 0}%
                       </TableCell>
                       <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>
                         <Tooltip title="העלה למעלה">
