@@ -21,6 +21,8 @@ import {
   MenuItem,
   CircularProgress,
   Tooltip,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -144,6 +146,7 @@ export default function RoomsPage() {
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [openTaskDialog, setOpenTaskDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
+  const [autoUpdateStatus, setAutoUpdateStatus] = useState(true);
   const [taskFormData, setTaskFormData] = useState({
     status: 'NOT_STARTED',
     progress: 0,
@@ -340,8 +343,8 @@ export default function RoomsPage() {
       return;
     }
     
-    // Only auto-update if not manually set to BLOCKED
-    if (taskFormData.status !== 'BLOCKED') {
+    // Only auto-update if autoUpdateStatus is enabled and not manually set to BLOCKED
+    if (autoUpdateStatus && taskFormData.status !== 'BLOCKED') {
       if (taskFormData.progress >= 100) {
         finalStatus = 'DONE';
         finalProgress = 100;
@@ -716,6 +719,16 @@ export default function RoomsPage() {
                 value={taskFormData.progress}
                 onChange={(e) => setTaskFormData({ ...taskFormData, progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })}
                 inputProps={{ min: 0, max: 100 }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autoUpdateStatus}
+                    onChange={(e) => setAutoUpdateStatus(e.target.checked)}
+                  />
+                }
+                label="עדכן סטטוס אוטומטי לפי אחוז התקדמות"
               />
 
               <TextField
