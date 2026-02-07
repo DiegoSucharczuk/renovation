@@ -110,7 +110,7 @@ const taskCategoryIcons: Record<string, string> = {
   'אינסטלציה': '🚰',
   'נגרות': '🔨',
   'חלונות': '🪟',
-  'מיזוג אויר': '❄️',
+  'מיזוג אויר': '🌬️',
   'אריחים': '🏗️',
   'גבס': '🧱',
   'דלתות': '🚪',
@@ -359,6 +359,10 @@ export default function RoomsPage() {
         projectId,
         dueDate: taskFormData.endDate || null,
         updatedAt: new Date().toISOString(),
+        // Store dates in the task's tasks object structure
+        startDate: taskFormData.startDate || null,
+        endDate: taskFormData.endDate || null,
+        progress: finalProgress,
       };
 
       if (existingTask) {

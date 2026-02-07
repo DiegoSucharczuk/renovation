@@ -33,7 +33,6 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
 import { db } from '@/lib/firebase';
-import { getTaskCategories } from '@/lib/taskCategories';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import type { Project, Task, Room } from '@/types';
 
@@ -45,7 +44,6 @@ export default function TasksPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskCategories] = useState(getTaskCategories());
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -64,7 +62,7 @@ export default function TasksPage() {
     'אינסטלציה': '🚰',
     'נגרות': '🔨',
     'חלונות': '🪟',
-    'מיזוג אויר': '❄️',
+    'מיזוג אויר': '🌬️',
     'אריחים': '🏗️',
     'גבס': '🧱',
     'דלתות': '🚪',
@@ -98,7 +96,7 @@ export default function TasksPage() {
     { name: 'אינסטלציה', emoji: '🚰' },
     { name: 'נגרות', emoji: '🔨' },
     { name: 'חלונות', emoji: '🪟' },
-    { name: 'מיזוג אויר', emoji: '❄️' },
+    { name: 'מיזוג אויר', emoji: '🌬️' },
     { name: 'אריחים', emoji: '🏗️' },
     { name: 'גבס', emoji: '🧱' },
     { name: 'דלתות', emoji: '🚪' },
