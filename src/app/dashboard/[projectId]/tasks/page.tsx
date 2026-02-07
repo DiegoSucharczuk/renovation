@@ -135,16 +135,19 @@ export default function TasksPage() {
         // טעינת משימות
         const tasksQuery = query(collection(db, 'tasks'), where('projectId', '==', projectId));
         const tasksSnapshot = await getDocs(tasksQuery);
-        const tasksData = tasksSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-          startPlanned: doc.data().startPlanned?.toDate(),
-          endPlanned: doc.data().endPlanned?.toDate(),
-          startActual: doc.data().startActual?.toDate(),
-          endActual: doc.data().endActual?.toDate(),
-        } as unknown as Task));
+        const tasksData = tasksSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || new Date()),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt || new Date()),
+            startPlanned: data.startPlanned?.toDate ? data.startPlanned.toDate() : data.startPlanned,
+            endPlanned: data.endPlanned?.toDate ? data.endPlanned.toDate() : data.endPlanned,
+            startActual: data.startActual?.toDate ? data.startActual.toDate() : data.startActual,
+            endActual: data.endActual?.toDate ? data.endActual.toDate() : data.endActual,
+          } as unknown as Task;
+        });
         setTasks(tasksData);
         console.log('Loaded tasks:', tasksData.length, tasksData);
         console.log('Loading state before finally:', loading);
