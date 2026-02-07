@@ -185,7 +185,7 @@ export default function DashboardPage() {
   }
 
   // חישוב נתונים אמיתיים - לא כולל משימות לא רלוונטיות
-  const relevantTasks = tasks.filter(t => t.status !== 'NOT_RELEVANT');
+  const relevantTasks = tasks;
   const totalTasks = relevantTasks.length;
   const completedTasks = relevantTasks.filter(t => t.status === 'DONE').length;
   const inProgressTasks = relevantTasks.filter(t => t.status === 'IN_PROGRESS').length;

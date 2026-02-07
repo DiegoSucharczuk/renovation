@@ -526,9 +526,12 @@ export default function RoomsPage() {
     <DashboardLayout projectId={projectId}>
       <Box sx={{ pr: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
-          <Typography variant="h4">
-            {hebrewLabels.rooms} ({rooms.length})
-          </Typography>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Typography variant="h4">
+              {hebrewLabels.rooms}
+            </Typography>
+            <Chip label={rooms.length} color="primary" size="medium" />
+          </Box>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
