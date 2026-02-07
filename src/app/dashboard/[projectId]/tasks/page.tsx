@@ -164,9 +164,6 @@ export default function TasksPage() {
           category: formData.category,
           status: formData.status,
           roomId: formData.roomId || null,
-          progress: formData.progress,
-          startDate: formData.startDate || null,
-          dueDate: formData.dueDate || null,
           updatedAt: new Date(),
         });
         setTasks(tasks.map(t => 
@@ -184,9 +181,6 @@ export default function TasksPage() {
           status: formData.status,
           priority: 'MEDIUM',
           roomId: formData.roomId || null,
-          progress: formData.progress,
-          startDate: formData.startDate || null,
-          dueDate: formData.dueDate || null,
           budgetAllocated: 0,
           budgetActual: 0,
           assignedTo: [],
