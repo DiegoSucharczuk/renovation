@@ -139,7 +139,6 @@ export default function TasksPage() {
         category: task.category || '',
         status: task.status,
         roomId: task.roomId || '',
-        progress: task.progress || 0,
         startDate: task.startDate || '',
         dueDate: task.dueDate || '',
       });
