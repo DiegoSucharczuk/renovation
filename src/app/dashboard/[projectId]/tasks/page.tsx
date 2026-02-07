@@ -254,6 +254,7 @@ export default function TasksPage() {
     IN_PROGRESS: 'primary',
     WAITING: 'warning',
     DONE: 'success',
+    NOT_RELEVANT: 'default',
   };
 
   return (
