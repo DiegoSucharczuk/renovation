@@ -21,7 +21,7 @@ import {
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,7 +79,7 @@ export default function DashboardPage() {
 
         // טעינת חדרים
         const roomsQuery = query(collection(db, 'rooms'), where('projectId', '==', projectId));
-        const roomsSnapshot = await getDocs(roomsQuery);
+        const roomsSnapshot = await getDocsFromServer(roomsQuery);
         const roomsData = roomsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
         // טעינת משימות
         const tasksQuery = query(collection(db, 'tasks'), where('projectId', '==', projectId));
-        const tasksSnapshot = await getDocs(tasksQuery);
+        const tasksSnapshot = await getDocsFromServer(tasksQuery);
         const tasksData = tasksSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -101,7 +101,7 @@ export default function DashboardPage() {
 
         // טעינת ספקים
         const vendorsQuery = query(collection(db, 'vendors'), where('projectId', '==', projectId));
-        const vendorsSnapshot = await getDocs(vendorsQuery);
+        const vendorsSnapshot = await getDocsFromServer(vendorsQuery);
         const vendorsData = vendorsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
         // טעינת תשלומים
         const paymentsQuery = query(collection(db, 'payments'), where('projectId', '==', projectId));
-        const paymentsSnapshot = await getDocs(paymentsQuery);
+        const paymentsSnapshot = await getDocsFromServer(paymentsQuery);
         const paymentsData = paymentsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
