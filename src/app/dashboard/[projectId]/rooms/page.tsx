@@ -52,7 +52,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import type { Project, Room, Task } from '@/types';
 
 const roomIcons: any = {
@@ -170,8 +170,7 @@ export default function RoomsPage() {
       // Load rooms
       const roomsQuery = query(
         collection(db, 'rooms'),
-        where('projectId', '==', projectId),
-        orderBy('order', 'asc')
+        where('projectId', '==', projectId)
       );
       const roomsSnapshot = await getDocs(roomsQuery);
       const roomsData = roomsSnapshot.docs.map(doc => ({

@@ -56,8 +56,22 @@ export default function TasksPage() {
     roomId: '',
   });
 
-  // Icon mapping from value to emoji
-  const iconMap: any = {
+  // Task category icons
+  const taskCategoryIcons: Record<string, string> = {
+    'צביעה': '🎨',
+    'פרקט': '🪵',
+    'חשמל': '⚡',
+    'אינסטלציה': '🚰',
+    'נגרות': '🔨',
+    'חלונות': '🪟',
+    'מיזוג אויר': '❄️',
+    'אריחים': '🏗️',
+    'גבס': '🧱',
+    'דלתות': '🚪',
+  };
+
+  // Room icon mapping
+  const roomIconMap: any = {
     'kitchen': '👨‍🍳',
     'living': '🛋️',
     'family': '👨‍👩‍👧‍👦',
@@ -75,6 +89,23 @@ export default function TasksPage() {
     'entrance': '🚪',
     'makeup': '💄',
   };
+
+  // Available category icons for selection
+  const availableCategoryIcons = [
+    { name: 'צביעה', emoji: '🎨' },
+    { name: 'פרקט', emoji: '🪵' },
+    { name: 'חשמל', emoji: '⚡' },
+    { name: 'אינסטלציה', emoji: '🚰' },
+    { name: 'נגרות', emoji: '🔨' },
+    { name: 'חלונות', emoji: '🪟' },
+    { name: 'מיזוג אויר', emoji: '❄️' },
+    { name: 'אריחים', emoji: '🏗️' },
+    { name: 'גבס', emoji: '🧱' },
+    { name: 'דלתות', emoji: '🚪' },
+    { name: 'ריצוף', emoji: '⬛' },
+    { name: 'תקרה', emoji: '🔺' },
+    { name: 'אחר', emoji: '📝' },
+  ].sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
   useEffect(() => {
     if (!user) {
@@ -315,7 +346,12 @@ export default function TasksPage() {
                     return (
                     <TableRow key={task.id} hover>
                       <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>
-                        {task.category || '-'}
+                        <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                          {taskCategoryIcons[task.category || ''] && (
+                            <Typography sx={{ fontSize: 18 }}>{taskCategoryIcons[task.category || '']}</Typography>
+                          )}
+                          <Typography>{task.category || '-'}</Typography>
+                        </Box>
                       </TableCell>
                       <TableCell sx={{ borderLeft: 1, borderColor: 'divider' }}>
                         {task.description || '-'}
@@ -323,7 +359,7 @@ export default function TasksPage() {
                       <TableCell sx={{ width: 120, borderLeft: 1, borderColor: 'divider', pr: 2 }}>
                         {taskRoom ? (
                           <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
-                            {taskRoom.icon && `${iconMap[taskRoom.icon] || taskRoom.icon} `}{taskRoom.name}
+                            {taskRoom.icon && `${roomIconMap[taskRoom.icon] || taskRoom.icon} `}{taskRoom.name}
                           </Box>
                         ) : '-'}
                       </TableCell>
@@ -391,10 +427,10 @@ export default function TasksPage() {
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 helperText="בחר קטגוריה מהרשימה"
               >
-                {taskCategories.map((cat) => (
+                {availableCategoryIcons.map((cat) => (
                   <MenuItem key={cat.name} value={cat.name}>
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Typography>{cat.icon}</Typography>
+                      <Typography sx={{ fontSize: 18 }}>{cat.emoji}</Typography>
                       <Typography>{cat.name}</Typography>
                     </Box>
                   </MenuItem>
@@ -422,7 +458,7 @@ export default function TasksPage() {
                 <MenuItem value="">ללא חדר</MenuItem>
                 {rooms.map((room) => (
                   <MenuItem key={room.id} value={room.id}>
-                    {room.icon && `${iconMap[room.icon] || room.icon} `}{room.name}
+                    {room.icon && `${roomIconMap[room.icon] || room.icon} `}{room.name}
                   </MenuItem>
                 ))}
               </TextField>
