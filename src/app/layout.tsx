@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   title: "ניהול שיפוצים - Renovation Management",
   description: "מערכת לניהול פרויקטי שיפוצים",
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' }
+    ],
+    apple: '/favicon.svg',
   },
 };
 
