@@ -1,0 +1,1816 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import {
+  Box,
+  Button,
+  Card,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  CircularProgress,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Rating,
+  Divider,
+  Tooltip,
+  Collapse,
+  Avatar,
+  Grid,
+  CardContent,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PaymentIcon from '@mui/icons-material/Payment';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import UploadIcon from '@mui/icons-material/Upload';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import DashboardLayout from '@/components/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
+import { hebrewLabels } from '@/lib/labels';
+import { getTaskCategories } from '@/lib/taskCategories';
+import { Vendor, Payment } from '@/types/vendor';
+import type { Project } from '@/types';
+
+const paymentMethods = [
+  'מזומן',
+  'העברה בנקאית',
+  'צ׳ק',
+  'אשראי',
+  'ביט',
+  'פייבוקס'
+];
+
+const paymentStatuses = [
+  { value: 'שולם', color: 'success' as const },
+  { value: 'ממתין', color: 'warning' as const },
+  { value: 'מתוכנן', color: 'default' as const },
+];
+
+const mockVendors: Vendor[] = [
+  {
+    id: '1',
+    name: 'יוסי הצבע',
+    category: 'צביעה',
+    phone: '050-1234567',
+    email: 'yossi@example.com',
+    businessId: '123456789',
+    contractAmount: 35000,
+    rating: 5,
+    payments: [
+      {
+        id: '1',
+        date: '2026-01-15',
+        amount: 15000,
+        method: 'העברה בנקאית',
+        status: 'שולם',
+        description: 'מקדמה',
+      },
+      {
+        id: '2',
+        date: '2026-02-01',
+        amount: 10000,
+        method: 'צ׳ק',
+        status: 'שולם',
+        description: 'תשלום ביניים',
+      },
+      {
+        id: '3',
+        date: '2026-02-20',
+        amount: 10000,
+        method: 'העברה בנקאית',
+        status: 'מתוכנן',
+        description: 'תשלום סופי',
+      },
+    ],
+    createdAt: '2026-01-10',
+    updatedAt: '2026-02-01',
+  },
+  {
+    id: '2',
+    name: 'דוד החשמלאי',
+    category: 'חשמל',
+    phone: '052-9876543',
+    businessId: '987654321',
+    contractAmount: 28000,
+    rating: 4,
+    payments: [
+      {
+        id: '1',
+        date: '2026-01-20',
+        amount: 14000,
+        method: 'מזומן',
+        status: 'שולם',
+        description: 'מקדמה 50%',
+      },
+      {
+        id: '2',
+        date: '2026-02-15',
+        amount: 14000,
+        method: 'העברה בנקאית',
+        status: 'ממתין',
+        description: 'יתרת סיום',
+      },
+    ],
+    createdAt: '2026-01-15',
+    updatedAt: '2026-01-20',
+  },
+];
+
+export default function VendorsPage() {
+  const params = useParams();
+  const projectId = params.projectId as string;
+  const { user } = useAuth();
+  const router = useRouter();
+  const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+  const [taskCategories, setTaskCategories] = useState(getTaskCategories());
+  const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  
+  // Collapse state
+  const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
+  
+  // Files Dialog
+  const [openFilesDialog, setOpenFilesDialog] = useState(false);
+  const [selectedVendorForFiles, setSelectedVendorForFiles] = useState<Vendor | null>(null);
+  
+  // Single File Viewer Dialog
+  const [openFileViewerDialog, setOpenFileViewerDialog] = useState(false);
+  const [viewingFile, setViewingFile] = useState<{
+    type: 'invoice' | 'receipt' | 'contract';
+    url: string;
+    description?: string;
+    payment?: Payment;
+    vendor?: Vendor;
+  } | null>(null);
+  
+  // Vendor Dialog
+  const [openVendorDialog, setOpenVendorDialog] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [vendorFormData, setVendorFormData] = useState({
+    name: '',
+    category: '',
+    phone: '',
+    email: '',
+    address: '',
+    businessId: '',
+    contractAmount: '',
+    contactPerson: '',
+    whatsappNumber: '',
+    licenseNumber: '',
+    warrantyMonths: '',
+    insuranceCompany: '',
+    rating: 0,
+    notes: '',
+    recommendedBy: '',
+    bankName: '',
+    bankAccount: '',
+    bankBranch: '',
+    startDate: '',
+    endDate: '',
+    logoUrl: '',
+    contractFileUrl: '',
+  });
+
+  // Payments Dialog
+  const [openPaymentsDialog, setOpenPaymentsDialog] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [paymentFormData, setPaymentFormData] = useState({
+    date: '',
+    amount: '',
+    method: 'העברה בנקאית',
+    status: 'שולם',
+    description: '',
+    notes: '',
+    invoiceUrl: '',
+    invoiceDescription: '',
+    receiptUrl: '',
+    receiptDescription: '',
+  });
+
+  useEffect(() => {
+    setMounted(true);
+    setTaskCategories(getTaskCategories());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    // טעינת פרויקט מ-Firestore
+    const fetchProject = async () => {
+      try {
+        const projectDoc = await getDoc(doc(db, 'projects', projectId));
+        if (projectDoc.exists()) {
+          const projectData = {
+            id: projectDoc.id,
+            ...projectDoc.data(),
+            createdAt: projectDoc.data().createdAt?.toDate() || new Date(),
+          } as Project;
+          setProject(projectData);
+        }
+      } catch (error) {
+        console.error('Error fetching project:', error);
+      } finally {
+        setTimeout(() => setLoading(false), 500);
+      }
+    };
+
+    fetchProject();
+  }, [user, router, mounted, projectId]);
+
+  const handleOpenVendorDialog = (vendor?: Vendor) => {
+    if (vendor) {
+      setEditingVendor(vendor);
+      setVendorFormData({
+        name: vendor.name,
+        category: vendor.category,
+        phone: vendor.phone,
+        email: vendor.email || '',
+        address: vendor.address || '',
+        businessId: vendor.businessId || '',
+        contractAmount: vendor.contractAmount?.toString() || '',
+        contactPerson: vendor.contactPerson || '',
+        whatsappNumber: vendor.whatsappNumber || '',
+        licenseNumber: vendor.licenseNumber || '',
+        warrantyMonths: vendor.warrantyMonths?.toString() || '',
+        insuranceCompany: vendor.insuranceCompany || '',
+        rating: vendor.rating || 0,
+        notes: vendor.notes || '',
+        recommendedBy: vendor.recommendedBy || '',
+        bankName: vendor.bankName || '',
+        bankAccount: vendor.bankAccount || '',
+        bankBranch: vendor.bankBranch || '',
+        startDate: vendor.startDate || '',
+        endDate: vendor.endDate || '',
+        logoUrl: vendor.logoUrl || '',
+        contractFileUrl: vendor.contractFileUrl || '',
+      });
+    } else {
+      setEditingVendor(null);
+      setVendorFormData({
+        name: '',
+        category: '',
+        phone: '',
+        email: '',
+        address: '',
+        businessId: '',
+        contractAmount: '',
+        contactPerson: '',
+        whatsappNumber: '',
+        licenseNumber: '',
+        warrantyMonths: '',
+        insuranceCompany: '',
+        rating: 0,
+        notes: '',
+        recommendedBy: '',
+        bankName: '',
+        bankAccount: '',
+        bankBranch: '',
+        startDate: '',
+        endDate: '',
+        logoUrl: '',
+        contractFileUrl: '',
+      });
+    }
+    setOpenVendorDialog(true);
+  };
+
+  const handleCloseVendorDialog = () => {
+    setOpenVendorDialog(false);
+    setEditingVendor(null);
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // TODO: העלאה לשרת/Firebase Storage
+      // כרגע נשמור רק את שם הקובץ
+      const fakeUrl = `logos/${file.name}`;
+      setVendorFormData({ ...vendorFormData, logoUrl: fakeUrl });
+      alert(`הקובץ ${file.name} נשמר (בגרסה הסופית יועלה לשרת)`);
+    }
+  };
+
+  const handleContractUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // TODO: העלאה לשרת/Firebase Storage
+      const fakeUrl = `contracts/${file.name}`;
+      setVendorFormData({ ...vendorFormData, contractFileUrl: fakeUrl });
+      alert(`החוזה ${file.name} נשמר (בגרסה הסופית יועלה לשרת)`);
+    }
+  };
+
+  const handleReceiptUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // TODO: העלאה לשרת/Firebase Storage
+      const fakeUrl = `receipts/${file.name}`;
+      setPaymentFormData({ ...paymentFormData, receiptUrl: fakeUrl });
+      alert(`הקובץ ${file.name} נשמר (בגרסה הסופית יועלה לשרת)`);
+    }
+  };
+
+  const handleInvoiceUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // TODO: העלאה לשרת/Firebase Storage
+      const fakeUrl = `invoices/${file.name}`;
+      setPaymentFormData({ ...paymentFormData, invoiceUrl: fakeUrl });
+      alert(`החשבונית ${file.name} נשמרה (בגרסה הסופית יועלה לשרת)`);
+    }
+  };
+
+  const handleSaveVendor = () => {
+    if (editingVendor) {
+      setVendors(vendors.map(v => 
+        v.id === editingVendor.id 
+          ? {
+              ...v,
+              ...vendorFormData,
+              contractAmount: parseFloat(vendorFormData.contractAmount) || undefined,
+              warrantyMonths: parseInt(vendorFormData.warrantyMonths) || undefined,
+              updatedAt: new Date().toISOString(),
+            }
+          : v
+      ));
+    } else {
+      const newVendor: Vendor = {
+        id: Date.now().toString(),
+        name: vendorFormData.name,
+        category: vendorFormData.category,
+        phone: vendorFormData.phone,
+        email: vendorFormData.email || undefined,
+        address: vendorFormData.address || undefined,
+        businessId: vendorFormData.businessId || undefined,
+        logoUrl: vendorFormData.logoUrl || undefined,
+        contractFileUrl: vendorFormData.contractFileUrl || undefined,
+        contractAmount: parseFloat(vendorFormData.contractAmount) || undefined,
+        contactPerson: vendorFormData.contactPerson || undefined,
+        whatsappNumber: vendorFormData.whatsappNumber || undefined,
+        licenseNumber: vendorFormData.licenseNumber || undefined,
+        warrantyMonths: parseInt(vendorFormData.warrantyMonths) || undefined,
+        insuranceCompany: vendorFormData.insuranceCompany || undefined,
+        rating: vendorFormData.rating || undefined,
+        notes: vendorFormData.notes || undefined,
+        recommendedBy: vendorFormData.recommendedBy || undefined,
+        bankName: vendorFormData.bankName || undefined,
+        bankAccount: vendorFormData.bankAccount || undefined,
+        bankBranch: vendorFormData.bankBranch || undefined,
+        startDate: vendorFormData.startDate || undefined,
+        endDate: vendorFormData.endDate || undefined,
+        payments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setVendors([...vendors, newVendor]);
+    }
+    handleCloseVendorDialog();
+  };
+
+  const handleDeleteVendor = (vendorId: string) => {
+    if (window.confirm('האם אתה בטוח שברצונך למחוק ספק זה?')) {
+      setVendors(vendors.filter(v => v.id !== vendorId));
+    }
+  };
+
+  const handleOpenPaymentsDialog = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setOpenPaymentsDialog(true);
+  };
+
+  const handleClosePaymentsDialog = () => {
+    setOpenPaymentsDialog(false);
+    setSelectedVendor(null);
+  };
+
+  const handleOpenPaymentDialog = (payment?: Payment) => {
+    if (payment) {
+      setEditingPayment(payment);
+      setPaymentFormData({
+        date: payment.date,
+        amount: payment.amount.toString(),
+        method: payment.method,
+        status: payment.status,
+        description: payment.description || '',
+        notes: payment.notes || '',
+        invoiceUrl: payment.invoiceUrl || '',
+        invoiceDescription: payment.invoiceDescription || '',
+        receiptUrl: payment.receiptUrl || '',
+        receiptDescription: payment.receiptDescription || '',
+      });
+    } else {
+      setEditingPayment(null);
+      setPaymentFormData({
+        date: new Date().toISOString().split('T')[0],
+        amount: '',
+        method: 'העברה בנקאית',
+        status: 'שולם',
+        description: '',
+        notes: '',
+        invoiceUrl: '',
+        invoiceDescription: '',
+        receiptUrl: '',
+        receiptDescription: '',
+      });
+    }
+    setOpenPaymentDialog(true);
+  };
+
+  const handleClosePaymentDialog = () => {
+    setOpenPaymentDialog(false);
+    setEditingPayment(null);
+  };
+
+  const handleSavePayment = () => {
+    if (!selectedVendor) return;
+
+    const newPayment: Payment = {
+      id: editingPayment?.id || Date.now().toString(),
+      date: paymentFormData.date,
+      amount: parseFloat(paymentFormData.amount),
+      method: paymentFormData.method as Payment['method'],
+      status: paymentFormData.status as Payment['status'],
+      description: paymentFormData.description || undefined,
+      notes: paymentFormData.notes || undefined,
+      invoiceUrl: paymentFormData.invoiceUrl || undefined,
+      invoiceDescription: paymentFormData.invoiceDescription || undefined,
+      receiptUrl: paymentFormData.receiptUrl || undefined,
+      receiptDescription: paymentFormData.receiptDescription || undefined,
+    };
+
+    setVendors(vendors.map(v => {
+      if (v.id === selectedVendor.id) {
+        const updatedPayments = editingPayment
+          ? v.payments.map(p => p.id === editingPayment.id ? newPayment : p)
+          : [...v.payments, newPayment];
+        
+        const updatedVendor = {
+          ...v,
+          payments: updatedPayments,
+          updatedAt: new Date().toISOString(),
+        };
+        
+        setSelectedVendor(updatedVendor);
+        return updatedVendor;
+      }
+      return v;
+    }));
+
+    handleClosePaymentDialog();
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    if (!selectedVendor) return;
+    if (window.confirm('האם אתה בטוח שברצונך למחוק תשלום זה?')) {
+      setVendors(vendors.map(v => {
+        if (v.id === selectedVendor.id) {
+          const updatedVendor = {
+            ...v,
+            payments: v.payments.filter(p => p.id !== paymentId),
+            updatedAt: new Date().toISOString(),
+          };
+          setSelectedVendor(updatedVendor);
+          return updatedVendor;
+        }
+        return v;
+      }));
+    }
+  };
+
+  const getTotalPaid = (vendor: Vendor) => {
+    return vendor.payments
+      .filter(p => p.status === 'שולם')
+      .reduce((sum, p) => sum + p.amount, 0);
+  };
+
+  const getBalance = (vendor: Vendor) => {
+    if (!vendor.contractAmount) return null;
+    return vendor.contractAmount - getTotalPaid(vendor);
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('he-IL', {
+      style: 'currency',
+      currency: 'ILS',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  if (!mounted || loading) {
+    return (
+      <DashboardLayout projectId={projectId} project={project || undefined}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout projectId={projectId} project={project || undefined}>
+      <Box sx={{ pr: 3 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
+          <Typography variant="h4">
+            {hebrewLabels.vendors}
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenVendorDialog()}
+          >
+            {hebrewLabels.addVendor}
+          </Button>
+        </Box>
+
+        <Box sx={{ px: 3 }}>
+          <Card>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                    <TableCell sx={{ fontWeight: 'bold', width: 50 }}></TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>שם הספק</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>קטגוריה</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>טלפון</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>סה"כ חוזה</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>שולם</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>יתרה</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>קבצים</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>פעולות</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {vendors.map((vendor) => {
+                    const totalPaid = getTotalPaid(vendor);
+                    const balance = getBalance(vendor);
+                    const isExpanded = expandedVendorId === vendor.id;
+                    
+                    return (
+                      <React.Fragment key={vendor.id}>
+                        <TableRow 
+                          hover
+                          sx={{ cursor: 'pointer', backgroundColor: isExpanded ? '#f5f5f5' : 'inherit' }}
+                          onClick={() => setExpandedVendorId(isExpanded ? null : vendor.id)}
+                        >
+                          <TableCell>
+                            <IconButton size="small">
+                              {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            </IconButton>
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              {vendor.logoUrl && (
+                                <Avatar src={vendor.logoUrl} sx={{ width: 32, height: 32 }} />
+                              )}
+                              <Typography fontWeight={500}>{vendor.name}</Typography>
+                              {vendor.whatsappNumber && (
+                                <IconButton
+                                  size="small"
+                                  color="success"
+                                  href={`https://wa.me/${vendor.whatsappNumber.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <WhatsAppIcon fontSize="small" />
+                                </IconButton>
+                              )}
+                            </Box>
+                          </TableCell>
+                        <TableCell>
+                          <Chip label={vendor.category} size="small" />
+                        </TableCell>
+                        <TableCell>
+                          <Typography 
+                            component="a" 
+                            href={`tel:${vendor.phone}`}
+                            sx={{ textDecoration: 'none', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {vendor.phone}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {vendor.contractAmount ? formatCurrency(vendor.contractAmount) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Typography color="success.main" fontWeight={500}>
+                            {formatCurrency(totalPaid)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {balance !== null ? (
+                            <Typography 
+                              color={balance > 0 ? 'warning.main' : 'success.main'}
+                              fontWeight={500}
+                            >
+                              {formatCurrency(balance)}
+                            </Typography>
+                          ) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            const hasContract = !!vendor.contractFileUrl;
+                            const invoicesCount = vendor.payments.filter(p => p.invoiceUrl).length;
+                            const receiptsCount = vendor.payments.filter(p => p.receiptUrl).length;
+                            const totalCount = (hasContract ? 1 : 0) + invoicesCount + receiptsCount;
+                            
+                            if (totalCount === 0) {
+                              return <Typography variant="body2" color="text.secondary">—</Typography>;
+                            }
+                            
+                            const parts = [];
+                            if (hasContract) parts.push('חוזה');
+                            if (invoicesCount > 0) parts.push(`${invoicesCount} חשבוניות`);
+                            if (receiptsCount > 0) parts.push(`${receiptsCount} קבלות`);
+                            
+                            return (
+                              <Tooltip title="לחץ לצפייה בכל הקבצים">
+                                <Chip
+                                  label={parts.join(' + ')}
+                                  size="small"
+                                  color="primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                              setSelectedVendorForFiles(vendor);
+                              setOpenFilesDialog(true);
+                            }}
+                            sx={{ cursor: 'pointer' }}
+                            icon={<AttachFileIcon />}
+                          />
+                              </Tooltip>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell>
+                          <Box display="flex" gap={0.5} justifyContent="center">
+                            <Tooltip title={hebrewLabels.viewPayments}>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenPaymentsDialog(vendor);
+                                }}
+                              >
+                                <PaymentIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenVendorDialog(vendor);
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteVendor(vendor.id);
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Collapse Row עם פרטי הספק */}
+                      <TableRow>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
+                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                            <Box sx={{ p: 1.5, backgroundColor: '#fafafa' }}>
+                              <Card variant="outlined">
+                                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+                                    {/* לוגו + שם */}
+                                    {vendor.logoUrl && (
+                                      <Box display="flex" justifyContent="center" pb={1} borderBottom="1px solid #e0e0e0">
+                                        <Avatar 
+                                          src={vendor.logoUrl} 
+                                          sx={{ 
+                                            width: 80, 
+                                            height: 80,
+                                            border: '3px solid #e0e0e0'
+                                          }} 
+                                        />
+                                      </Box>
+                                    )}
+                                    
+                                    {/* פרטי קשר */}
+                                    <Box>
+                                      <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
+                                        פרטי קשר
+                                      </Typography>
+                                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5, rowGap: 0.5 }}>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>שם הספק</Typography>
+                                          <Typography variant="body2">{vendor.name}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>איש קשר</Typography>
+                                          <Typography variant="body2">{vendor.contactPerson || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>טלפון</Typography>
+                                          <Typography variant="body2">{vendor.phone}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>WhatsApp</Typography>
+                                          <Typography variant="body2">{vendor.whatsappNumber || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>אימייל</Typography>
+                                          <Typography variant="body2">{vendor.email || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>כתובת</Typography>
+                                          <Typography variant="body2">{vendor.address || '—'}</Typography>
+                                        </Box>
+                                      </Box>
+                                    </Box>
+
+                                    <Divider />
+
+                                    {/* פרטים עסקיים */}
+                                    <Box>
+                                      <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
+                                        פרטים עסקיים
+                                      </Typography>
+                                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5, rowGap: 0.5 }}>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>קטגוריה</Typography>
+                                          <Typography variant="body2">{vendor.category}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>ח.פ / ת.ז</Typography>
+                                          <Typography variant="body2">{vendor.businessId || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>מספר רישיון</Typography>
+                                          <Typography variant="body2">{vendor.licenseNumber || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>תקופת אחריות</Typography>
+                                          <Typography variant="body2">{vendor.warrantyMonths ? `${vendor.warrantyMonths} חודשים` : '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>חברת ביטוח</Typography>
+                                          <Typography variant="body2">{vendor.insuranceCompany || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>מקור המלצה</Typography>
+                                          <Typography variant="body2">{vendor.recommendedBy || '—'}</Typography>
+                                        </Box>
+                                      </Box>
+                                    </Box>
+
+                                    <Divider />
+
+                                    {/* פרטי בנק */}
+                                    <Box>
+                                      <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
+                                        פרטי בנק
+                                      </Typography>
+                                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5, rowGap: 0.5 }}>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>בנק</Typography>
+                                          <Typography variant="body2">{vendor.bankName || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>סניף</Typography>
+                                          <Typography variant="body2">{vendor.bankBranch || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>מספר חשבון</Typography>
+                                          <Typography variant="body2">{vendor.bankAccount || '—'}</Typography>
+                                        </Box>
+                                      </Box>
+                                    </Box>
+
+                                    <Divider />
+
+                                    {/* תאריכים */}
+                                    <Box>
+                                      <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
+                                        תאריכים
+                                      </Typography>
+                                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5, rowGap: 0.5 }}>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>תאריך התחלה</Typography>
+                                          <Typography variant="body2">{vendor.startDate || '—'}</Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="text.secondary" fontWeight={600}>תאריך סיום</Typography>
+                                          <Typography variant="body2">{vendor.endDate || '—'}</Typography>
+                                        </Box>
+                                      </Box>
+                                    </Box>
+
+                                    {/* חוזה */}
+                                    {vendor.contractFileUrl && (
+                                      <>
+                                        <Divider />
+                                        <Box>
+                                          <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
+                                            חוזה
+                                          </Typography>
+                                          <Chip
+                                            label={vendor.contractFileUrl.split('/').pop()}
+                                            icon={<AttachFileIcon />}
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => {
+                                              setViewingFile({
+                                                type: 'contract',
+                                                url: vendor.contractFileUrl!,
+                                                vendor: vendor
+                                              });
+                                              setOpenFileViewerDialog(true);
+                                            }}
+                                            sx={{ cursor: 'pointer' }}
+                                          />
+                                        </Box>
+                                      </>
+                                    )}
+
+                                    {/* הערות */}
+                                    {vendor.notes && (
+                                      <>
+                                        <Divider />
+                                        <Box>
+                                          <Typography variant="subtitle1" color="primary" sx={{ mb: 1, fontWeight: 700, fontSize: '1rem' }}>
+                                            הערות
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                                            {vendor.notes}
+                                          </Typography>
+                                        </Box>
+                                      </>
+                                    )}
+                                  </Box>
+                                </CardContent>
+                              </Card>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Card>
+        </Box>
+
+        {/* Vendor Dialog */}
+        <Dialog open={openVendorDialog} onClose={handleCloseVendorDialog} maxWidth="md" fullWidth>
+          <DialogTitle>
+            {editingVendor ? hebrewLabels.editVendor : hebrewLabels.addVendor}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Logo Upload */}
+              <Box>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  לוגו הספק
+                </Typography>
+                <Box display="flex" gap={2} alignItems="center">
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadIcon />}
+                    size="small"
+                  >
+                    העלה לוגו
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                    />
+                  </Button>
+                  {vendorFormData.logoUrl && (
+                    <Box display="flex" gap={1} alignItems="center">
+                      <Avatar src={vendorFormData.logoUrl} sx={{ width: 40, height: 40 }} />
+                      <Chip
+                        label={vendorFormData.logoUrl.split('/').pop()}
+                        onDelete={() => setVendorFormData({ ...vendorFormData, logoUrl: '' })}
+                        size="small"
+                      />
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              <Divider />
+
+              {/* Contract Upload */}
+              <Box>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  חוזה
+                </Typography>
+                <Box display="flex" gap={2} alignItems="center">
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<AttachFileIcon />}
+                    size="small"
+                  >
+                    העלה חוזה
+                    <input
+                      type="file"
+                      hidden
+                      accept=".pdf,.doc,.docx,image/*"
+                      onChange={handleContractUpload}
+                    />
+                  </Button>
+                  {vendorFormData.contractFileUrl && (
+                    <Chip
+                      label={vendorFormData.contractFileUrl.split('/').pop()}
+                      onDelete={() => setVendorFormData({ ...vendorFormData, contractFileUrl: '' })}
+                      size="small"
+                      icon={<AttachFileIcon />}
+                    />
+                  )}
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <TextField
+                label="שם הספק"
+                fullWidth
+                required
+                value={vendorFormData.name}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, name: e.target.value })}
+              />
+
+              <TextField
+                label="קטגוריה"
+                fullWidth
+                required
+                select
+                value={vendorFormData.category}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, category: e.target.value })}
+              >
+                {taskCategories.map((cat) => (
+                  <MenuItem key={cat.name} value={cat.name}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography>{cat.icon}</Typography>
+                      <Typography>{cat.name}</Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="טלפון"
+                  fullWidth
+                  required
+                  value={vendorFormData.phone}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, phone: e.target.value })}
+                />
+                <TextField
+                  label="WhatsApp"
+                  fullWidth
+                  value={vendorFormData.whatsappNumber}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, whatsappNumber: e.target.value })}
+                />
+              </Box>
+
+              <TextField
+                label="אימייל"
+                fullWidth
+                type="email"
+                value={vendorFormData.email}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, email: e.target.value })}
+              />
+
+              <TextField
+                label="כתובת"
+                fullWidth
+                value={vendorFormData.address}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, address: e.target.value })}
+              />
+
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="ח.פ / ת.ז"
+                  fullWidth
+                  value={vendorFormData.businessId}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, businessId: e.target.value })}
+                />
+                <TextField
+                  label="סכום חוזה"
+                  fullWidth
+                  type="number"
+                  value={vendorFormData.contractAmount}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, contractAmount: e.target.value })}
+                />
+              </Box>
+
+              <TextField
+                label="איש קשר"
+                fullWidth
+                value={vendorFormData.contactPerson}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, contactPerson: e.target.value })}
+              />
+
+              <Divider />
+
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="מספר רישיון"
+                  fullWidth
+                  value={vendorFormData.licenseNumber}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, licenseNumber: e.target.value })}
+                />
+                <TextField
+                  label="תקופת אחריות (חודשים)"
+                  fullWidth
+                  type="number"
+                  value={vendorFormData.warrantyMonths}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, warrantyMonths: e.target.value })}
+                />
+              </Box>
+
+              <TextField
+                label="חברת ביטוח"
+                fullWidth
+                value={vendorFormData.insuranceCompany}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, insuranceCompany: e.target.value })}
+              />
+
+              <Box>
+                <Typography component="legend" gutterBottom>דירוג</Typography>
+                <Rating
+                  value={vendorFormData.rating}
+                  onChange={(e, newValue) => setVendorFormData({ ...vendorFormData, rating: newValue || 0 })}
+                />
+              </Box>
+
+              <Divider />
+
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="בנק"
+                  fullWidth
+                  value={vendorFormData.bankName}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, bankName: e.target.value })}
+                />
+                <TextField
+                  label="סניף"
+                  fullWidth
+                  value={vendorFormData.bankBranch}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, bankBranch: e.target.value })}
+                />
+              </Box>
+
+              <TextField
+                label="מספר חשבון"
+                fullWidth
+                value={vendorFormData.bankAccount}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, bankAccount: e.target.value })}
+              />
+
+              <Divider />
+
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="תאריך התחלה"
+                  fullWidth
+                  type="date"
+                  value={vendorFormData.startDate}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, startDate: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="תאריך סיום"
+                  fullWidth
+                  type="date"
+                  value={vendorFormData.endDate}
+                  onChange={(e) => setVendorFormData({ ...vendorFormData, endDate: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+
+              <TextField
+                label="מקור המלצה"
+                fullWidth
+                value={vendorFormData.recommendedBy}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, recommendedBy: e.target.value })}
+              />
+
+              <TextField
+                label="הערות"
+                fullWidth
+                multiline
+                rows={3}
+                value={vendorFormData.notes}
+                onChange={(e) => setVendorFormData({ ...vendorFormData, notes: e.target.value })}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseVendorDialog}>ביטול</Button>
+            <Button
+              onClick={handleSaveVendor}
+              variant="contained"
+              disabled={!vendorFormData.name || !vendorFormData.category || !vendorFormData.phone}
+            >
+              שמור
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Payments Dialog */}
+        <Dialog open={openPaymentsDialog} onClose={handleClosePaymentsDialog} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">תשלומים - {selectedVendor?.name}</Typography>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenPaymentDialog()}
+              >
+                {hebrewLabels.addPayment}
+              </Button>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {selectedVendor && (
+              <>
+                {/* Summary */}
+                <Card sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5' }}>
+                  <Box display="flex" justifyContent="space-around">
+                    <Box textAlign="center">
+                      <Typography variant="caption" color="text.secondary">סכום חוזה</Typography>
+                      <Typography variant="h6" fontWeight="bold">
+                        {selectedVendor.contractAmount ? formatCurrency(selectedVendor.contractAmount) : '—'}
+                      </Typography>
+                    </Box>
+                    <Divider orientation="vertical" flexItem />
+                    <Box textAlign="center">
+                      <Typography variant="caption" color="text.secondary">שולם</Typography>
+                      <Typography variant="h6" fontWeight="bold" color="success.main">
+                        {formatCurrency(getTotalPaid(selectedVendor))}
+                      </Typography>
+                    </Box>
+                    <Divider orientation="vertical" flexItem />
+                    <Box textAlign="center">
+                      <Typography variant="caption" color="text.secondary">יתרה</Typography>
+                      <Typography variant="h6" fontWeight="bold" color="warning.main">
+                        {getBalance(selectedVendor) !== null ? formatCurrency(getBalance(selectedVendor)!) : '—'}
+                      </Typography>
+                    </Box>
+                    <Divider orientation="vertical" flexItem />
+                    <Box textAlign="center">
+                      <Typography variant="caption" color="text.secondary">מס' תשלומים</Typography>
+                      <Typography variant="h6" fontWeight="bold">
+                        {selectedVendor.payments.length}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Card>
+
+                {/* Payments Table */}
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>תאריך</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>סכום</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>אמצעי תשלום</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>סטטוס</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>תיאור</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>חשבונית</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>קבלה</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>פעולות</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedVendor.payments.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} align="center">
+                            <Typography color="text.secondary" py={3}>
+                              אין תשלומים עדיין
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        selectedVendor.payments.map((payment) => (
+                          <TableRow key={payment.id} hover>
+                            <TableCell>{payment.date}</TableCell>
+                            <TableCell>
+                              <Typography fontWeight={500}>
+                                {formatCurrency(payment.amount)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>{payment.method}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={payment.status}
+                                size="small"
+                                color={paymentStatuses.find(s => s.value === payment.status)?.color}
+                              />
+                            </TableCell>
+                            <TableCell>{payment.description || '—'}</TableCell>
+                            <TableCell align="center">
+                              {payment.invoiceUrl ? (
+                                <Tooltip title={payment.invoiceDescription || 'חשבונית'}>
+                                  <Chip
+                                    icon={<AttachFileIcon />}
+                                    label="חשבונית"
+                                    size="small"
+                                    color="error"
+                                    variant="outlined"
+                                    onClick={() => {
+                                      setViewingFile({
+                                        type: 'invoice',
+                                        url: payment.invoiceUrl!,
+                                        description: payment.invoiceDescription,
+                                        payment: payment
+                                      });
+                                      setOpenFileViewerDialog(true);
+                                    }}
+                                    sx={{ cursor: 'pointer' }}
+                                  />
+                                </Tooltip>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">—</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              {payment.receiptUrl ? (
+                                <Tooltip title={payment.receiptDescription || 'קבלה'}>
+                                  <Chip
+                                    icon={<AttachFileIcon />}
+                                    label="קבלה"
+                                    size="small"
+                                    color="success"
+                                    variant="outlined"
+                                    onClick={() => {
+                                      setViewingFile({
+                                        type: 'receipt',
+                                        url: payment.receiptUrl!,
+                                        description: payment.receiptDescription,
+                                        payment: payment
+                                      });
+                                      setOpenFileViewerDialog(true);
+                                    }}
+                                    sx={{ cursor: 'pointer' }}
+                                  />
+                                </Tooltip>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">—</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Box display="flex" gap={0.5} justifyContent="center">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleOpenPaymentDialog(payment)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeletePayment(payment.id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePaymentsDialog}>סגור</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Payment Dialog */}
+        <Dialog open={openPaymentDialog} onClose={handleClosePaymentDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            {editingPayment ? 'עריכת תשלום' : 'הוספת תשלום'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="תאריך"
+                fullWidth
+                required
+                type="date"
+                value={paymentFormData.date}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+
+              <TextField
+                label="סכום"
+                fullWidth
+                required
+                type="number"
+                value={paymentFormData.amount}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, amount: e.target.value })}
+              />
+
+              <TextField
+                label="אמצעי תשלום"
+                fullWidth
+                required
+                select
+                value={paymentFormData.method}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, method: e.target.value })}
+              >
+                {paymentMethods.map((method) => (
+                  <MenuItem key={method} value={method}>
+                    {method}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                label="סטטוס"
+                fullWidth
+                required
+                select
+                value={paymentFormData.status}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, status: e.target.value })}
+              >
+                {paymentStatuses.map((status) => (
+                  <MenuItem key={status.value} value={status.value}>
+                    {status.value}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                label="תיאור"
+                fullWidth
+                value={paymentFormData.description}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, description: e.target.value })}
+                placeholder="מקדמה, תשלום ביניים, תשלום סופי..."
+              />
+
+              {/* Invoice Upload */}
+              <Box>
+                <Typography variant="body2" color="text.secondary" gutterBottom fontWeight={600}>
+                  חשבונית
+                </Typography>
+                <Box display="flex" gap={2} alignItems="center" sx={{ mb: 1 }}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<AttachFileIcon />}
+                    size="small"
+                  >
+                    העלה חשבונית
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*,.pdf"
+                      onChange={handleInvoiceUpload}
+                    />
+                  </Button>
+                  {paymentFormData.invoiceUrl && (
+                    <Chip
+                      label={paymentFormData.invoiceUrl.split('/').pop()}
+                      onDelete={() => setPaymentFormData({ ...paymentFormData, invoiceUrl: '', invoiceDescription: '' })}
+                      size="small"
+                    />
+                  )}
+                </Box>
+                {paymentFormData.invoiceUrl && (
+                  <TextField
+                    label="תיאור החשבונית"
+                    fullWidth
+                    size="small"
+                    value={paymentFormData.invoiceDescription || ''}
+                    onChange={(e) => setPaymentFormData({ ...paymentFormData, invoiceDescription: e.target.value })}
+                    placeholder="למשל: חשבונית מס, הצעת מחיר..."
+                    helperText="תאר את סוג החשבונית"
+                  />
+                )}
+              </Box>
+
+              {/* Receipt Upload */}
+              <Box>
+                <Typography variant="body2" color="text.secondary" gutterBottom fontWeight={600}>
+                  קבלה
+                </Typography>
+                <Box display="flex" gap={2} alignItems="center" sx={{ mb: 1 }}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<AttachFileIcon />}
+                    size="small"
+                  >
+                    העלה קבלה
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*,.pdf"
+                      onChange={handleReceiptUpload}
+                    />
+                  </Button>
+                  {paymentFormData.receiptUrl && (
+                    <Chip
+                      label={paymentFormData.receiptUrl.split('/').pop()}
+                      onDelete={() => setPaymentFormData({ ...paymentFormData, receiptUrl: '', receiptDescription: '' })}
+                      size="small"
+                    />
+                  )}
+                </Box>
+                {paymentFormData.receiptUrl && (
+                  <TextField
+                    label="תיאור הקבלה"
+                    fullWidth
+                    size="small"
+                    value={paymentFormData.receiptDescription || ''}
+                    onChange={(e) => setPaymentFormData({ ...paymentFormData, receiptDescription: e.target.value })}
+                    placeholder="למשל: קבלה על מקדמה, אישור תשלום..."
+                    helperText="תאר את סוג הקבלה"
+                  />
+                )}
+              </Box>
+
+              <TextField
+                label="הערות"
+                fullWidth
+                multiline
+                rows={3}
+                value={paymentFormData.notes}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, notes: e.target.value })}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePaymentDialog}>ביטול</Button>
+            <Button
+              onClick={handleSavePayment}
+              variant="contained"
+              disabled={!paymentFormData.date || !paymentFormData.amount}
+            >
+              שמור
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+
+      {/* Files Dialog */}
+      <Dialog open={openFilesDialog} onClose={() => setOpenFilesDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">קבצים מצורפים - {selectedVendorForFiles?.name}</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedVendorForFiles && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* חוזה */}
+              {selectedVendorForFiles.contractFileUrl && (
+                <Box>
+                  <Typography variant="subtitle2" color="primary" gutterBottom fontWeight={600}>
+                    חוזה
+                  </Typography>
+                  <Card 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 1.5, 
+                      cursor: 'pointer',
+                      '&:hover': { bgcolor: '#f5f5f5' }
+                    }}
+                    onClick={() => {
+                      setViewingFile({
+                        type: 'contract',
+                        url: selectedVendorForFiles.contractFileUrl!,
+                        vendor: selectedVendorForFiles
+                      });
+                      setOpenFileViewerDialog(true);
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <AttachFileIcon color="primary" />
+                      <Typography variant="body2">
+                        {selectedVendorForFiles.contractFileUrl.split('/').pop()}
+                      </Typography>
+                    </Box>
+                  </Card>
+                </Box>
+              )}
+
+              {/* חשבוניות וקבלות */}
+              {selectedVendorForFiles.payments.some(p => p.invoiceUrl || p.receiptUrl) && (
+                <Box>
+                  <Typography variant="subtitle2" color="primary" gutterBottom fontWeight={600}>
+                    חשבוניות וקבלות תשלומים
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {selectedVendorForFiles.payments
+                      .filter(p => p.invoiceUrl || p.receiptUrl)
+                      .map((payment) => (
+                        <Card key={payment.id} variant="outlined" sx={{ p: 1.5, bgcolor: '#fafafa' }}>
+                          <Box display="flex" flexDirection="column" gap={1}>
+                            {/* כותרת התשלום */}
+                            <Box display="flex" justifyContent="space-between" alignItems="center" pb={1} borderBottom="1px solid #e0e0e0">
+                              <Typography variant="body2" fontWeight={700}>
+                                תשלום מתאריך {payment.date}
+                              </Typography>
+                              <Chip label={formatCurrency(payment.amount)} size="small" color="primary" />
+                            </Box>
+                            
+                            {/* חשבונית */}
+                            {payment.invoiceUrl && (
+                              <Box display="flex" alignItems="flex-start" gap={1}>
+                                <AttachFileIcon color="error" fontSize="small" sx={{ mt: 0.3 }} />
+                                <Box flex={1}>
+                                  <Typography variant="body2" fontWeight={600} color="error.main">
+                                    חשבונית: {payment.invoiceDescription || 'ללא תיאור'}
+                                  </Typography>
+                                  <Typography variant="caption" display="block" color="text.secondary">
+                                    {payment.invoiceUrl.split('/').pop()}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            )}
+                            
+                            {/* קבלה */}
+                            {payment.receiptUrl && (
+                              <Box display="flex" alignItems="flex-start" gap={1}>
+                                <AttachFileIcon color="success" fontSize="small" sx={{ mt: 0.3 }} />
+                                <Box flex={1}>
+                                  <Typography variant="body2" fontWeight={600} color="success.main">
+                                    קבלה: {payment.receiptDescription || 'ללא תיאור'}
+                                  </Typography>
+                                  <Typography variant="caption" display="block" color="text.secondary">
+                                    {payment.receiptUrl.split('/').pop()}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            )}
+                            
+                            {/* פרטים נוספים */}
+                            <Box display="flex" gap={2} pt={0.5}>
+                              <Typography variant="caption" color="text.secondary">
+                                {payment.method}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                •
+                              </Typography>
+                              <Chip label={payment.status} size="small" />
+                            </Box>
+                          </Box>
+                        </Card>
+                      ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* אם אין קבצים */}
+              {!selectedVendorForFiles.contractFileUrl && !selectedVendorForFiles.payments.some(p => p.invoiceUrl || p.receiptUrl) && (
+                <Box textAlign="center" py={3}>
+                  <Typography color="text.secondary">אין קבצים מצורפים</Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenFilesDialog(false)}>סגור</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Single File Viewer Dialog */}
+      <Dialog 
+        open={openFileViewerDialog} 
+        onClose={() => setOpenFileViewerDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">
+              {viewingFile?.type === 'invoice' ? '📄 חשבונית' : viewingFile?.type === 'receipt' ? '✅ קבלה' : '📋 חוזה'}
+            </Typography>
+            <IconButton onClick={() => setOpenFileViewerDialog(false)} size="small">
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {viewingFile && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* פרטי הקובץ */}
+              <Card sx={{ p: 2, bgcolor: viewingFile.type === 'invoice' ? '#fff5f5' : viewingFile.type === 'receipt' ? '#f1f8f4' : '#f0f7ff' }}>
+                <Box display="flex" flexDirection="column" gap={1.5}>
+                  {viewingFile.type === 'contract' ? (
+                    <>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">סוג המסמך</Typography>
+                        <Typography variant="h6" fontWeight={600} color="primary.main">
+                          חוזה עם הספק
+                        </Typography>
+                      </Box>
+                      
+                      <Divider />
+                      
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">שם הקובץ</Typography>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {viewingFile.url.split('/').pop()}
+                        </Typography>
+                      </Box>
+                      
+                      {viewingFile.vendor && (
+                        <>
+                          <Divider />
+                          
+                          <Box display="flex" gap={3}>
+                            <Box flex={1}>
+                              <Typography variant="caption" color="text.secondary">שם הספק</Typography>
+                              <Typography variant="body2" fontWeight={600}>
+                                {viewingFile.vendor.name}
+                              </Typography>
+                            </Box>
+                            <Box flex={1}>
+                              <Typography variant="caption" color="text.secondary">קטגוריה</Typography>
+                              <Typography variant="body2">
+                                {viewingFile.vendor.category}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          
+                          {viewingFile.vendor.contractAmount && (
+                            <>
+                              <Divider />
+                              <Box>
+                                <Typography variant="caption" color="text.secondary">סכום החוזה</Typography>
+                                <Typography variant="h6" fontWeight={700} color="primary">
+                                  {formatCurrency(viewingFile.vendor.contractAmount)}
+                                </Typography>
+                              </Box>
+                            </>
+                          )}
+                          
+                          {(viewingFile.vendor.startDate || viewingFile.vendor.endDate) && (
+                            <>
+                              <Divider />
+                              <Box display="flex" gap={3}>
+                                {viewingFile.vendor.startDate && (
+                                  <Box flex={1}>
+                                    <Typography variant="caption" color="text.secondary">תאריך התחלה</Typography>
+                                    <Typography variant="body2">
+                                      {viewingFile.vendor.startDate}
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {viewingFile.vendor.endDate && (
+                                  <Box flex={1}>
+                                    <Typography variant="caption" color="text.secondary">תאריך סיום</Typography>
+                                    <Typography variant="body2">
+                                      {viewingFile.vendor.endDate}
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">תיאור הקובץ</Typography>
+                        <Typography variant="h6" fontWeight={600} color={viewingFile.type === 'invoice' ? 'error.main' : 'success.main'}>
+                          {viewingFile.description || 'ללא תיאור'}
+                        </Typography>
+                      </Box>
+                      
+                      <Divider />
+                      
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">שם הקובץ</Typography>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {viewingFile.url.split('/').pop()}
+                        </Typography>
+                      </Box>
+                      
+                      {viewingFile.payment && (
+                        <>
+                          <Divider />
+                          
+                          <Box display="flex" gap={3}>
+                            <Box flex={1}>
+                              <Typography variant="caption" color="text.secondary">תאריך תשלום</Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {viewingFile.payment.date}
+                              </Typography>
+                            </Box>
+                            <Box flex={1}>
+                              <Typography variant="caption" color="text.secondary">סכום</Typography>
+                              <Typography variant="body2" fontWeight={600} color="primary">
+                                {formatCurrency(viewingFile.payment.amount)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          
+                          <Divider />
+                          
+                          <Box display="flex" gap={3}>
+                            <Box flex={1}>
+                              <Typography variant="caption" color="text.secondary">אמצעי תשלום</Typography>
+                              <Typography variant="body2">
+                                {viewingFile.payment.method}
+                              </Typography>
+                            </Box>
+                            <Box flex={1}>
+                              <Typography variant="caption" color="text.secondary">סטטוס</Typography>
+                              <Chip 
+                                label={viewingFile.payment.status} 
+                                size="small"
+                                color={paymentStatuses.find(s => s.value === viewingFile.payment!.status)?.color}
+                              />
+                            </Box>
+                          </Box>
+                          
+                          {viewingFile.payment.description && (
+                            <>
+                              <Divider />
+                              <Box>
+                                <Typography variant="caption" color="text.secondary">תיאור התשלום</Typography>
+                                <Typography variant="body2">
+                                  {viewingFile.payment.description}
+                                </Typography>
+                              </Box>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </Box>
+              </Card>
+
+              {/* תצוגה מקדימה של הקובץ */}
+              <Card sx={{ p: 2, bgcolor: '#fafafa', textAlign: 'center' }}>
+                <AttachFileIcon sx={{ fontSize: 60, color: 'action.disabled', mb: 2 }} />
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  תצוגה מקדימה של הקובץ תהיה זמינה לאחר אינטגרציה עם Firebase Storage
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  נכון לעכשיו: {viewingFile.url}
+                </Typography>
+              </Card>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenFileViewerDialog(false)}>סגור</Button>
+        </DialogActions>
+      </Dialog>
+    </DashboardLayout>
+  );
+}

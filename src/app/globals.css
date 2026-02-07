@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* כל הטולטיפים ב‑RTL */
+.MuiTooltip-tooltip {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.MuiTooltip-popper {
+  direction: rtl !important;
+}

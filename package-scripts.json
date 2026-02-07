@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "seed-demo": "ts-node scripts/seed-demo-data.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
+  }
+}
