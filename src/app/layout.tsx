@@ -8,10 +8,11 @@ export const metadata: Metadata = {
   description: "מערכת לניהול פרויקטי שיפוצים",
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico' }
+      { url: '/favicon.svg?v=2', type: 'image/svg+xml' },
+      { url: '/favicon.ico?v=2' }
     ],
-    apple: '/favicon.svg',
+    apple: '/favicon.svg?v=2',
+    shortcut: '/favicon.svg?v=2',
   },
 };
 
