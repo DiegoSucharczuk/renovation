@@ -147,10 +147,12 @@ export default function TasksPage() {
         } as unknown as Task));
         setTasks(tasksData);
         console.log('Loaded tasks:', tasksData.length, tasksData);
+        console.log('Loading state before finally:', loading);
       } catch (error) {
         console.error('Error fetching tasks:', error);
       } finally {
         setLoading(false);
+        console.log('Loading state set to false');
       }
     };
 
