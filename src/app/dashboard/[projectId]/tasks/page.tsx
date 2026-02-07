@@ -246,6 +246,7 @@ export default function TasksPage() {
     IN_PROGRESS: 'בביצוע',
     WAITING: 'ממתין',
     DONE: 'הושלם',
+    NOT_RELEVANT: 'לא רלוונטי',
   };
 
   const statusColors: Record<Task['status'], 'default' | 'primary' | 'warning' | 'success'> = {
