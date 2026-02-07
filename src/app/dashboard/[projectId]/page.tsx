@@ -80,23 +80,29 @@ export default function DashboardPage() {
         // טעינת חדרים
         const roomsQuery = query(collection(db, 'rooms'), where('projectId', '==', projectId));
         const roomsSnapshot = await getDocsFromServer(roomsQuery);
-        const roomsData = roomsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        } as unknown as Room));
+        const roomsData = roomsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || new Date()),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt || new Date()),
+          } as unknown as Room;
+        });
         setRooms(roomsData);
 
         // טעינת משימות
         const tasksQuery = query(collection(db, 'tasks'), where('projectId', '==', projectId));
         const tasksSnapshot = await getDocsFromServer(tasksQuery);
-        const tasksData = tasksSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        } as unknown as Task));
+        const tasksData = tasksSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || new Date()),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt || new Date()),
+          } as unknown as Task;
+        });
         setTasks(tasksData);
 
         // טעינת ספקים
