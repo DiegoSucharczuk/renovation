@@ -110,7 +110,7 @@ const taskCategoryIcons: Record<string, string> = {
   'אינסטלציה': '🚰',
   'נגרות': '🔨',
   'חלונות': '🪟',
-  'מיזוג אויר': '🌬️',
+  'מיזוג אויר': '❄️',
   'אריחים': '🏗️',
   'גבס': '🧱',
   'דלתות': '🚪',
@@ -122,6 +122,13 @@ const statusOptions = [
   { value: 'DONE', label: 'הושלם', color: 'success' },
   { value: 'BLOCKED', label: 'חסום', color: 'error' },
 ];
+
+// Format date from YYYY-MM-DD to DD/MM/YYYY
+const formatDate = (dateString: string) => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
 
 export default function RoomsPage() {
   const params = useParams();
@@ -565,12 +572,12 @@ export default function RoomsPage() {
                                 textAlign="center"
                                 sx={{ color: overdue ? '#d32f2f' : 'text.secondary', fontWeight: overdue ? 'bold' : 'normal' }}
                               >
-                                ⏰ {task.endDate}
+                                ⏰ {formatDate(task.endDate)}
                               </Typography>
                             )}
                             {task.startDate && (
                               <Typography variant="caption" display="block" color="text.secondary" textAlign="center" sx={{ fontSize: '0.65rem' }}>
-                                מ-{task.startDate}
+                                מ-{formatDate(task.startDate)}
                               </Typography>
                             )}
                           </Box>

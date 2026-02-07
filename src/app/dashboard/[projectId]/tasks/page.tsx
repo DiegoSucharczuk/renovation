@@ -62,7 +62,7 @@ export default function TasksPage() {
     'אינסטלציה': '🚰',
     'נגרות': '🔨',
     'חלונות': '🪟',
-    'מיזוג אויר': '🌬️',
+    'מיזוג אויר': '❄️',
     'אריחים': '🏗️',
     'גבס': '🧱',
     'דלתות': '🚪',
@@ -96,7 +96,7 @@ export default function TasksPage() {
     { name: 'אינסטלציה', emoji: '🚰' },
     { name: 'נגרות', emoji: '🔨' },
     { name: 'חלונות', emoji: '🪟' },
-    { name: 'מיזוג אויר', emoji: '🌬️' },
+    { name: 'מיזוג אויר', emoji: '❄️' },
     { name: 'אריחים', emoji: '🏗️' },
     { name: 'גבס', emoji: '🧱' },
     { name: 'דלתות', emoji: '🚪' },
@@ -146,7 +146,7 @@ export default function TasksPage() {
           endActual: doc.data().endActual?.toDate(),
         } as unknown as Task));
         setTasks(tasksData);
-        console.log('Loaded tasks:', tasksData.length);
+        console.log('Loaded tasks:', tasksData.length, tasksData);
       } catch (error) {
         console.error('Error fetching tasks:', error);
       } finally {
@@ -285,6 +285,16 @@ export default function TasksPage() {
     DONE: 'success',
     NOT_RELEVANT: 'default',
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout projectId={projectId}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout projectId={projectId} project={project || undefined}>
