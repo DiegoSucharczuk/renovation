@@ -627,7 +627,7 @@ export default function RoomsPage() {
                                 textAlign="center"
                                 sx={{ color: 'text.secondary' }}
                               >
-                                🗓️ {formatDate(task.startDate)}
+                                {formatDate(task.startDate)}
                               </Typography>
                             )}
                             {task.endDate && (
@@ -637,7 +637,7 @@ export default function RoomsPage() {
                                 textAlign="center"
                                 sx={{ color: overdue ? '#d32f2f' : 'text.secondary', fontWeight: overdue ? 'bold' : 'normal' }}
                               >
-                                ⏰ {formatDate(task.endDate)}
+                                {formatDate(task.endDate)}
                               </Typography>
                             )}
                           </Box>
