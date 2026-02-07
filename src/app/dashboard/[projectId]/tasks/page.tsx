@@ -168,7 +168,7 @@ export default function TasksPage() {
         });
         setTasks(tasks.map(t => 
           t.id === editingTask.id 
-            ? { ...t, description: formData.description, category: formData.category as Task['category'], status: formData.status, roomId: formData.roomId || null, title: formData.category || formData.description, updatedAt: new Date() }
+            ? { ...t, description: formData.description, category: formData.category as Task['category'], status: formData.status, roomId: formData.roomId || undefined, title: formData.category || formData.description, updatedAt: new Date() }
             : t
         ));
       } else {
