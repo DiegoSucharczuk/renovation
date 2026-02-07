@@ -326,7 +326,7 @@ export default function TasksPage() {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                  <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>קטגוריה</strong></TableCell>
+                  <TableCell sx={{ width: 140, textAlign: 'right', borderLeft: 1, borderColor: 'divider', pr: 2 }}><strong>קטגוריה</strong></TableCell>
                   <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>תיאור</strong></TableCell>
                   <TableCell sx={{ width: 120, borderLeft: 1, borderColor: 'divider', pr: 2 }}><strong>חדר</strong></TableCell>
                   <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>סטטוס</strong></TableCell>
@@ -358,8 +358,8 @@ export default function TasksPage() {
                     const statusDisplay = getStatusDisplay(task.status);
                     return (
                     <TableRow key={task.id} hover>
-                      <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>
-                        <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                      <TableCell sx={{ width: 140, borderLeft: 1, borderColor: 'divider', pr: 2 }}>
+                        <Box display="flex" alignItems="center" justifyContent="flex-start" gap={0.5}>
                           {taskCategoryIcons[task.category || ''] && (
                             <Typography sx={{ fontSize: 18 }}>{taskCategoryIcons[task.category || '']}</Typography>
                           )}

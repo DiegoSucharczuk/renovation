@@ -163,6 +163,31 @@ export default function RoomsPage() {
     setMounted(true);
   }, []);
 
+  // Auto-update status when progress changes
+  useEffect(() => {
+    if (!autoUpdateStatus || !openTaskDialog) return;
+    
+    const today = new Date();
+    const startDate = taskFormData.startDate ? new Date(taskFormData.startDate) : null;
+    
+    // Don't auto-update if manually set to BLOCKED
+    if (taskFormData.status === 'BLOCKED') return;
+    
+    let newStatus = taskFormData.status;
+    
+    if (taskFormData.progress >= 100) {
+      newStatus = 'DONE';
+    } else if (startDate && today >= startDate && taskFormData.progress > 0) {
+      newStatus = 'IN_PROGRESS';
+    } else if (!startDate || today < startDate) {
+      newStatus = 'NOT_STARTED';
+    }
+    
+    if (newStatus !== taskFormData.status) {
+      setTaskFormData(prev => ({ ...prev, status: newStatus }));
+    }
+  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog]);
+
   useEffect(() => {
     if (!mounted) return;
     
