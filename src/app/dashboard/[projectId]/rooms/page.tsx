@@ -165,10 +165,14 @@ export default function RoomsPage() {
 
   // Auto-update status when progress or dates change
   useEffect(() => {
+    // Only run auto-update if checkbox is checked
     if (!autoUpdateStatus || !openTaskDialog) return;
     
     const today = new Date();
     const startDate = taskFormData.startDate ? new Date(taskFormData.startDate) : null;
+    
+    // Don't auto-update if manually set to BLOCKED
+    if (taskFormData.status === 'BLOCKED') return;
     
     let newStatus = taskFormData.status;
     
@@ -187,11 +191,11 @@ export default function RoomsPage() {
       newStatus = 'NOT_STARTED';
     }
     
-    // Only update if status changed and not manually set to BLOCKED
-    if (newStatus !== taskFormData.status && taskFormData.status !== 'BLOCKED') {
+    // Update status if it changed
+    if (newStatus !== taskFormData.status) {
       setTaskFormData(prev => ({ ...prev, status: newStatus }));
     }
-  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog]);
+  }, [taskFormData.progress, taskFormData.startDate, taskFormData.status, autoUpdateStatus, openTaskDialog]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -361,23 +365,30 @@ export default function RoomsPage() {
     setAutoUpdateStatus(false);
   };
 
-  const handleDeleteTask = async () => {
+  const handleResetTask = async () => {
     if (!editingTask?.task) return;
     
-    if (window.confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
+    if (window.confirm('האם אתה בטוח שברצונך לאפס משימה זו? כל הנתונים (סטטוס, אחוזים, תאריכים) יימחקו.')) {
       try {
-        const taskToDelete = tasks.find(
+        const taskToReset = tasks.find(
           t => t.roomId === editingTask.roomId && t.category === editingTask.taskTypeName
         );
         
-        if (taskToDelete) {
-          await deleteDoc(doc(db, 'tasks', taskToDelete.id));
+        if (taskToReset) {
+          await updateDoc(doc(db, 'tasks', taskToReset.id), {
+            status: 'NOT_STARTED',
+            progress: 0,
+            startDate: null,
+            endDate: null,
+            autoUpdateStatus: false,
+            updatedAt: new Date().toISOString(),
+          });
           handleCloseTaskDialog();
           await loadData();
         }
       } catch (error) {
-        console.error('Error deleting task:', error);
-        alert('שגיאה במחיקת המשימה');
+        console.error('Error resetting task:', error);
+        alert('שגיאה באיפוס המשימה');
       }
     }
   };
@@ -811,11 +822,11 @@ export default function RoomsPage() {
             </Button>
             {editingTask?.task && (
               <Button
-                onClick={handleDeleteTask}
-                color="error"
+                onClick={handleResetTask}
+                color="warning"
                 sx={{ mr: 'auto' }}
               >
-                מחק משימה
+                אפס משימה
               </Button>
             )}
             <Button
