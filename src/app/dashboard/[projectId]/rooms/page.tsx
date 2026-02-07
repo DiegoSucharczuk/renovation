@@ -163,18 +163,16 @@ export default function RoomsPage() {
     setMounted(true);
   }, []);
 
-  // Auto-update status when progress changes
+  // Auto-update status when progress or dates change
   useEffect(() => {
     if (!autoUpdateStatus || !openTaskDialog) return;
     
     const today = new Date();
     const startDate = taskFormData.startDate ? new Date(taskFormData.startDate) : null;
     
-    // Don't auto-update if manually set to BLOCKED
-    if (taskFormData.status === 'BLOCKED') return;
-    
     let newStatus = taskFormData.status;
     
+    // Calculate what status should be based on progress and dates
     if (taskFormData.progress >= 100) {
       newStatus = 'DONE';
     } else if (taskFormData.progress > 0) {
@@ -182,15 +180,18 @@ export default function RoomsPage() {
         newStatus = 'IN_PROGRESS';
       } else if (!startDate) {
         newStatus = 'IN_PROGRESS';
+      } else {
+        newStatus = 'NOT_STARTED';
       }
     } else if (taskFormData.progress === 0) {
       newStatus = 'NOT_STARTED';
     }
     
-    if (newStatus !== taskFormData.status) {
+    // Only update if status changed and not manually set to BLOCKED
+    if (newStatus !== taskFormData.status && taskFormData.status !== 'BLOCKED') {
       setTaskFormData(prev => ({ ...prev, status: newStatus }));
     }
-  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog, taskFormData.status]);
+  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -335,6 +336,7 @@ export default function RoomsPage() {
         startDate: task.startDate || '',
         endDate: task.endDate || '',
       });
+      setAutoUpdateStatus(task.autoUpdateStatus || false);
     } else {
       setTaskFormData({
         status: 'NOT_STARTED',
@@ -342,6 +344,7 @@ export default function RoomsPage() {
         startDate: '',
         endDate: '',
       });
+      setAutoUpdateStatus(false);
     }
     setOpenTaskDialog(true);
   };
@@ -355,6 +358,28 @@ export default function RoomsPage() {
       startDate: '',
       endDate: '',
     });
+    setAutoUpdateStatus(false);
+  };
+
+  const handleDeleteTask = async () => {
+    if (!editingTask?.task) return;
+    
+    if (window.confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
+      try {
+        const taskToDelete = tasks.find(
+          t => t.roomId === editingTask.roomId && t.category === editingTask.taskTypeName
+        );
+        
+        if (taskToDelete) {
+          await deleteDoc(doc(db, 'tasks', taskToDelete.id));
+          handleCloseTaskDialog();
+          await loadData();
+        }
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        alert('שגיאה במחיקת המשימה');
+      }
+    }
   };
 
   const handleSaveTask = async () => {
@@ -402,6 +427,7 @@ export default function RoomsPage() {
         startDate: taskFormData.startDate || null,
         endDate: taskFormData.endDate || null,
         progress: finalProgress,
+        autoUpdateStatus: autoUpdateStatus,
       };
 
       if (existingTask) {
@@ -783,6 +809,15 @@ export default function RoomsPage() {
             <Button onClick={handleCloseTaskDialog}>
               ביטול
             </Button>
+            {editingTask?.task && (
+              <Button
+                onClick={handleDeleteTask}
+                color="error"
+                sx={{ mr: 'auto' }}
+              >
+                מחק משימה
+              </Button>
+            )}
             <Button
               onClick={handleSaveTask}
               variant="contained"
