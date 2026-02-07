@@ -332,7 +332,7 @@ export default function RoomsPage() {
         startDate: task.startDate || '',
         endDate: task.endDate || '',
       });
-      setAutoUpdateStatus(task.autoUpdateStatus || false);
+      setAutoUpdateStatus(task.autoUpdateStatus !== undefined ? task.autoUpdateStatus : true);
     } else {
       setTaskFormData({
         status: 'NOT_STARTED',
@@ -340,7 +340,7 @@ export default function RoomsPage() {
         startDate: '',
         endDate: '',
       });
-      setAutoUpdateStatus(false);
+      setAutoUpdateStatus(true);
     }
     setOpenTaskDialog(true);
   };
@@ -354,7 +354,7 @@ export default function RoomsPage() {
       startDate: '',
       endDate: '',
     });
-    setAutoUpdateStatus(false);
+    setAutoUpdateStatus(true);
   };
 
   const handleResetTask = async () => {
