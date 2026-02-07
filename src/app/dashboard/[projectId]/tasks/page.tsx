@@ -54,7 +54,6 @@ export default function TasksPage() {
     category: '',
     status: 'NOT_STARTED' as Task['status'],
     roomId: '',
-    progress: 0,
     startDate: '',
     dueDate: '',
   });
@@ -149,7 +148,6 @@ export default function TasksPage() {
         category: '',
         status: 'NOT_STARTED',
         roomId: '',
-        progress: 0,
         startDate: '',
         dueDate: '',
       });
