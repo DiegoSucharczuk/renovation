@@ -54,8 +54,6 @@ export default function TasksPage() {
     category: '',
     status: 'NOT_STARTED' as Task['status'],
     roomId: '',
-    startDate: '',
-    dueDate: '',
   });
 
   // Icon mapping from value to emoji
@@ -138,8 +136,6 @@ export default function TasksPage() {
         category: task.category || '',
         status: task.status,
         roomId: task.roomId || '',
-        startDate: task.startDate || '',
-        dueDate: task.dueDate || '',
       });
     } else {
       setEditingTask(null);
@@ -148,8 +144,6 @@ export default function TasksPage() {
         category: '',
         status: 'NOT_STARTED',
         roomId: '',
-        startDate: '',
-        dueDate: '',
       });
     }
     setOpenDialog(true);
