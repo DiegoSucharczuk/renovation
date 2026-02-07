@@ -6,6 +6,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 export const metadata: Metadata = {
   title: "ניהול שיפוצים - Renovation Management",
   description: "מערכת לניהול פרויקטי שיפוצים",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
