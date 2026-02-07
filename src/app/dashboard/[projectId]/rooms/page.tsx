@@ -54,7 +54,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocsFromServer } from 'firebase/firestore';
 import type { Project, Room, Task } from '@/types';
 
 const roomIcons: any = {
@@ -208,7 +208,7 @@ export default function RoomsPage() {
         collection(db, 'rooms'),
         where('projectId', '==', projectId)
       );
-      const roomsSnapshot = await getDocs(roomsQuery);
+      const roomsSnapshot = await getDocsFromServer(roomsQuery);
       const roomsData = roomsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -219,7 +219,7 @@ export default function RoomsPage() {
         collection(db, 'tasks'),
         where('projectId', '==', projectId)
       );
-      const tasksSnapshot = await getDocs(tasksQuery);
+      const tasksSnapshot = await getDocsFromServer(tasksQuery);
       const tasksData = tasksSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),

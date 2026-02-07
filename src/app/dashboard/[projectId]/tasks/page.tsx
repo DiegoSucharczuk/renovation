@@ -33,7 +33,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import type { Project, Task, Room } from '@/types';
 
 export default function TasksPage() {
@@ -114,7 +114,7 @@ export default function TasksPage() {
     const fetchData = async () => {
       try {
         // טעינת פרויקט
-        const projectDoc = await getDoc(doc(db, 'projects', projectId));
+        const projectDoc = await getDocFromServer(doc(db, 'projects', projectId));
         if (projectDoc.exists()) {
           setProject({
             id: projectDoc.id,
@@ -125,7 +125,7 @@ export default function TasksPage() {
 
         // טעינת חדרים
         const roomsQuery = query(collection(db, 'rooms'), where('projectId', '==', projectId));
-        const roomsSnapshot = await getDocs(roomsQuery);
+        const roomsSnapshot = await getDocsFromServer(roomsQuery);
         const roomsData = roomsSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -134,7 +134,7 @@ export default function TasksPage() {
 
         // טעינת משימות
         const tasksQuery = query(collection(db, 'tasks'), where('projectId', '==', projectId));
-        const tasksSnapshot = await getDocs(tasksQuery);
+        const tasksSnapshot = await getDocsFromServer(tasksQuery);
         const tasksData = tasksSnapshot.docs.map(doc => {
           const data = doc.data();
           return {

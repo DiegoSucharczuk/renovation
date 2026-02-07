@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Project, ProjectUser } from '@/types';
@@ -47,7 +47,7 @@ export default function ProjectsPage() {
           collection(db, 'projectUsers'),
           where('userId', '==', user.id)
         );
-        const projectUsersSnapshot = await getDocs(projectUsersQuery);
+        const projectUsersSnapshot = await getDocsFromServer(projectUsersQuery);
         const projectIds = projectUsersSnapshot.docs.map(doc => doc.data().projectId);
 
         if (projectIds.length === 0) {
@@ -57,7 +57,7 @@ export default function ProjectsPage() {
 
         // Get all projects for these projectIds
         const projectsQuery = query(collection(db, 'projects'));
-        const projectsSnapshot = await getDocs(projectsQuery);
+        const projectsSnapshot = await getDocsFromServer(projectsQuery);
         const projectsData = projectsSnapshot.docs
           .filter(doc => projectIds.includes(doc.id))
           .map(doc => ({

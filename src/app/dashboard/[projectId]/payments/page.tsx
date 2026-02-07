@@ -18,7 +18,7 @@ import {
   MenuItem,
   TextField,
 } from '@mui/material';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,7 +66,7 @@ export default function PaymentsPage() {
       setLoading(true);
 
       // Load project
-      const projectDoc = await getDoc(doc(db, 'projects', projectId));
+      const projectDoc = await getDocFromServer(doc(db, 'projects', projectId));
       if (projectDoc.exists()) {
         const projectData = {
           id: projectDoc.id,
@@ -81,7 +81,7 @@ export default function PaymentsPage() {
         collection(db, 'vendors'),
         where('projectId', '==', projectId)
       );
-      const vendorsSnapshot = await getDocs(vendorsQuery);
+      const vendorsSnapshot = await getDocsFromServer(vendorsQuery);
       const vendorsData = vendorsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -92,7 +92,7 @@ export default function PaymentsPage() {
         collection(db, 'payments'),
         where('projectId', '==', projectId)
       );
-      const paymentsSnapshot = await getDocs(paymentsQuery);
+      const paymentsSnapshot = await getDocsFromServer(paymentsQuery);
       const paymentsData = paymentsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),

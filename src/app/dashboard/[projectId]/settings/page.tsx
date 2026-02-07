@@ -43,7 +43,9 @@ import {
   getDoc, 
   getDocs, 
   query, 
-  where 
+  where,
+  getDocsFromServer,
+  getDocFromServer
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -137,7 +139,7 @@ export default function SettingsPage() {
       setLoading(true);
 
       // Load project
-      const projectDoc = await getDoc(doc(db, 'projects', projectId));
+      const projectDoc = await getDocFromServer(doc(db, 'projects', projectId));
       if (projectDoc.exists()) {
         setProject({
           id: projectDoc.id,
@@ -151,14 +153,14 @@ export default function SettingsPage() {
         collection(db, 'projectUsers'),
         where('projectId', '==', projectId)
       );
-      const membersSnapshot = await getDocs(membersQuery);
+      const membersSnapshot = await getDocsFromServer(membersQuery);
       
       const membersData: ProjectMember[] = [];
       
       // Add project owner first
       if (projectDoc.exists()) {
         const ownerId = projectDoc.data().ownerId;
-        const ownerDoc = await getDoc(doc(db, 'users', ownerId));
+        const ownerDoc = await getDocFromServer(doc(db, 'users', ownerId));
         if (ownerDoc.exists()) {
           const ownerData = ownerDoc.data();
           membersData.push({
@@ -180,7 +182,7 @@ export default function SettingsPage() {
         }
         
         // Fetch user details
-        const userDoc = await getDoc(doc(db, 'users', memberData.userId));
+        const userDoc = await getDocFromServer(doc(db, 'users', memberData.userId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
           membersData.push({
@@ -215,7 +217,7 @@ export default function SettingsPage() {
         collection(db, 'users'),
         where('email', '==', userEmail.toLowerCase())
       );
-      const usersSnapshot = await getDocs(usersQuery);
+      const usersSnapshot = await getDocsFromServer(usersQuery);
 
       if (usersSnapshot.empty) {
         setError('משתמש עם אימייל זה לא נמצא במערכת');

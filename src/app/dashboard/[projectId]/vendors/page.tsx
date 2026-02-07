@@ -39,7 +39,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import UploadIcon from '@mui/icons-material/Upload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -223,7 +223,7 @@ export default function VendorsPage() {
       setLoading(true);
       
       // Load project
-      const projectDoc = await getDoc(doc(db, 'projects', projectId));
+      const projectDoc = await getDocFromServer(doc(db, 'projects', projectId));
       if (projectDoc.exists()) {
         const projectData = {
           id: projectDoc.id,
@@ -238,7 +238,7 @@ export default function VendorsPage() {
         collection(db, 'vendors'),
         where('projectId', '==', projectId)
       );
-      const vendorsSnapshot = await getDocs(vendorsQuery);
+      const vendorsSnapshot = await getDocsFromServer(vendorsQuery);
       const vendorsData = vendorsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -249,7 +249,7 @@ export default function VendorsPage() {
         collection(db, 'payments'),
         where('projectId', '==', projectId)
       );
-      const paymentsSnapshot = await getDocs(paymentsQuery);
+      const paymentsSnapshot = await getDocsFromServer(paymentsQuery);
       const paymentsData = paymentsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ProjectRole, RolePermissions } from '@/types';
 import { getRolePermissions } from '@/lib/permissions';
@@ -19,7 +19,7 @@ export function useProjectRole(projectId: string | null, userId: string | null) 
 
       try {
         // בדיקה אם המשתמש הוא הבעלים של הפרויקט
-        const projectDoc = await getDocs(
+        const projectDoc = await getDocsFromServer(
           query(collection(db, 'projects'), where('__name__', '==', projectId))
         );
         
@@ -41,7 +41,7 @@ export function useProjectRole(projectId: string | null, userId: string | null) 
           where('userId', '==', userId)
         );
         
-        const projectUsersSnapshot = await getDocs(projectUsersQuery);
+        const projectUsersSnapshot = await getDocsFromServer(projectUsersQuery);
         
         if (!projectUsersSnapshot.empty) {
           const userRole = projectUsersSnapshot.docs[0].data().roleInProject as ProjectRole;
