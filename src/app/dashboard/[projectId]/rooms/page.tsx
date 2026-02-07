@@ -52,9 +52,8 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, orderBy } from 'firebase/firestore';
 import type { Project, Room, Task } from '@/types';
-import { getTaskCategories } from '@/lib/taskCategories';
 
 const roomIcons: any = {
   'מטבח': '👨‍🍳',
@@ -103,45 +102,19 @@ const iconMap: any = {
   'makeup': '💄',
 };
 
-const mockRoomsWithTasks = [
-  {
-    id: '1',
-    name: 'מטבח',
-    tasks: {
-      'צביעה': { status: 'DONE', progress: 100, startDate: '2026-01-15', endDate: '2026-01-20' },
-      'פרקט': { status: 'IN_PROGRESS', progress: 50, startDate: '2026-02-01', endDate: '2026-02-10' },
-      'חשמל': { status: 'DONE', progress: 100, startDate: '2026-01-10', endDate: '2026-01-18' },
-      'אינסטלציה': { status: 'BLOCKED', progress: 30, startDate: '2026-01-25', endDate: '2026-02-05' },
-    }
-  },
-  {
-    id: '2',
-    name: 'סלון',
-    tasks: {
-      'צביעה': { status: 'IN_PROGRESS', progress: 60, startDate: '2026-02-01', endDate: '2026-02-08' },
-      'פרקט': { status: 'NOT_STARTED', progress: 0, startDate: null, endDate: '2026-02-20' },
-      'חשמל': { status: 'DONE', progress: 100, startDate: '2026-01-12', endDate: '2026-01-20' },
-    }
-  },
-  {
-    id: '3',
-    name: 'חדר שינה ראשי',
-    tasks: {
-      'צביעה': { status: 'DONE', progress: 100, startDate: '2026-01-20', endDate: '2026-01-25' },
-      'פרקט': { status: 'DONE', progress: 100, startDate: '2026-01-26', endDate: '2026-02-02' },
-      'חשמל': { status: 'DONE', progress: 100, startDate: '2026-01-08', endDate: '2026-01-15' },
-      'נגרות': { status: 'DONE', progress: 100, startDate: '2026-02-03', endDate: '2026-02-06' },
-    }
-  },
-  {
-    id: '4',
-    name: 'חדר אמבטיה',
-    tasks: {
-      'אינסטלציה': { status: 'BLOCKED', progress: 30, startDate: '2026-01-28', endDate: '2026-02-05' },
-      'חשמל': { status: 'IN_PROGRESS', progress: 45, startDate: '2026-02-02', endDate: '2026-02-08' },
-    }
-  },
-];
+// Task category icons
+const taskCategoryIcons: Record<string, string> = {
+  'צביעה': '🎨',
+  'פרקט': '🪵',
+  'חשמל': '⚡',
+  'אינסטלציה': '🚰',
+  'נגרות': '🔨',
+  'חלונות': '🪟',
+  'מיזוג אויר': '❄️',
+  'אריחים': '🏗️',
+  'גבס': '🧱',
+  'דלתות': '🚪',
+};
 
 const statusOptions = [
   { value: 'NOT_STARTED', label: 'לא התחיל', color: 'default' },
@@ -155,19 +128,20 @@ export default function RoomsPage() {
   const projectId = params.projectId as string;
   const { user } = useAuth();
   const router = useRouter();
-  const [project, setProject] = useState<Project | null>(null);
   const [rooms, setRooms] = useState<any[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [taskCategories, setTaskCategories] = useState<any[]>([]);
+  const [taskCategories, setTaskCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRoom, setEditingRoom] = useState<any>(null);
   const [openTaskDialog, setOpenTaskDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [taskFormData, setTaskFormData] = useState({
-    description: '',
     status: 'NOT_STARTED',
-    autoUpdateStatus: true,
+    progress: 0,
+    startDate: '',
+    endDate: '',
   });
   const [formData, setFormData] = useState({
     name: '',
@@ -176,65 +150,61 @@ export default function RoomsPage() {
   });
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     if (!user) {
       router.push('/login');
       return;
     }
 
-    fetchData();
-  }, [user, router, projectId]);
+    loadData();
+  }, [user, router, mounted, projectId]);
 
-  const fetchData = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-
-      // טעינת פרויקט
-      const projectDoc = await getDoc(doc(db, 'projects', projectId));
-      if (projectDoc.exists()) {
-        setProject({
-          id: projectDoc.id,
-          ...projectDoc.data(),
-          createdAt: projectDoc.data().createdAt?.toDate() || new Date(),
-        } as Project);
-      }
-
-      // טעינת חדרים
-      const roomsQuery = query(collection(db, 'rooms'), where('projectId', '==', projectId));
+      // Load rooms
+      const roomsQuery = query(
+        collection(db, 'rooms'),
+        where('projectId', '==', projectId),
+        orderBy('order', 'asc')
+      );
       const roomsSnapshot = await getDocs(roomsQuery);
       const roomsData = roomsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
       }));
 
-      // טעינת משימות
-      const tasksQuery = query(collection(db, 'tasks'), where('projectId', '==', projectId));
+      // Load tasks
+      const tasksQuery = query(
+        collection(db, 'tasks'),
+        where('projectId', '==', projectId)
+      );
       const tasksSnapshot = await getDocs(tasksQuery);
       const tasksData = tasksSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
       })) as Task[];
 
       setTasks(tasksData);
 
-      // יצירת קטגוריות ייחודיות מהמשימות
-      const uniqueCategories = Array.from(new Set(tasksData.map(t => t.category)))
-        .sort((a, b) => a.localeCompare(b, 'he'))
-        .map(name => ({ name }));
-      setTaskCategories(uniqueCategories);
+      // Extract unique task categories
+      const categories = [...new Set(tasksData.map(t => t.category))].filter(Boolean);
+      setTaskCategories(categories as string[]);
 
-      // ארגון המשימות לפי חדרים וקטגוריות
+      // Build rooms with tasks matrix
       const roomsWithTasks = roomsData.map(room => {
-        const roomTasks: any = {};
-        uniqueCategories.forEach(category => {
-          const task = tasksData.find(t => t.roomId === room.id && t.category === category.name);
-          // רק אם המשימה קיימת ולא מסומנת כלא רלוונטית
-          if (task && task.status !== 'NOT_RELEVANT') {
-            roomTasks[category.name] = {
-              id: task.id,
-              status: task.status,
-              description: task.description || '',
+        const roomTasks: Record<string, any> = {};
+        categories.forEach(category => {
+          const task = tasksData.find(t => t.roomId === room.id && t.category === category);
+          if (task) {
+            roomTasks[category] = {
+              ...task,
+              status: task.status || 'NOT_STARTED',
             };
           }
         });
@@ -244,46 +214,21 @@ export default function RoomsPage() {
         };
       });
 
-      // מיון החדרים לפי א"ב עברי
-      roomsWithTasks.sort((a, b) => (a as any).name.localeCompare((b as any).name, 'he'));
-
       setRooms(roomsWithTasks);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get only categories that have tasks
-  const getActiveCategories = () => {
-    const activeCategoryNames = new Set<string>();
-    rooms.forEach(room => {
-      Object.keys(room.tasks || {}).forEach(category => {
-        activeCategoryNames.add(category);
-      });
-    });
-    // Return categories in the order they appear in taskCategories
-    return taskCategories.filter(cat => activeCategoryNames.has(cat.name));
-  };
-
-  // תמיד להציג את כל הקטגוריות, גם אם אין משימות
-  const activeCategories = taskCategories;
-
   const handleOpenDialog = (room?: any) => {
     if (room) {
       setEditingRoom(room);
-      // If icon is an emoji, find its value
-      let iconValue = room.icon || '';
-      if (iconValue && !availableIcons.find(i => i.value === iconValue)) {
-        // It's an emoji, find the value
-        const iconOption = availableIcons.find(i => i.emoji === iconValue);
-        iconValue = iconOption?.value || '';
-      }
       setFormData({
         name: room.name,
-        description: room.description || '',
-        icon: iconValue,
+        description: room.description,
+        icon: room.icon || '',
       });
     } else {
       setEditingRoom(null);
@@ -309,32 +254,19 @@ export default function RoomsPage() {
   const handleSaveRoom = async () => {
     try {
       if (editingRoom) {
-        // Update existing room - only include defined values
-        const updateData: any = {
-          name: formData.name,
-        };
-        if (formData.description) {
-          updateData.description = formData.description;
-        }
-        if (formData.icon) {
-          updateData.icon = formData.icon;
-        }
-        await updateDoc(doc(db, 'rooms', editingRoom.id), updateData);
+        // Update existing room
+        await updateDoc(doc(db, 'rooms', editingRoom.id), formData);
       } else {
         // Add new room
         await addDoc(collection(db, 'rooms'), {
+          ...formData,
           projectId,
-          name: formData.name,
-          description: formData.description || '',
-          icon: formData.icon || '',
-          type: 'OTHER',
-          status: 'NOT_STARTED',
-          isUsable: false,
-          createdAt: new Date(),
+          order: rooms.length,
+          createdAt: new Date().toISOString(),
         });
       }
-      await fetchData();
       handleCloseDialog();
+      await loadData();
     } catch (error) {
       console.error('Error saving room:', error);
       alert('שגיאה בשמירת החדר');
@@ -345,7 +277,10 @@ export default function RoomsPage() {
     if (window.confirm('האם אתה בטוח שברצונך למחוק חדר זה?')) {
       try {
         await deleteDoc(doc(db, 'rooms', roomId));
-        await fetchData();
+        // Also delete all tasks in this room
+        const roomTasks = tasks.filter(t => t.roomId === roomId);
+        await Promise.all(roomTasks.map(t => deleteDoc(doc(db, 'tasks', t.id))));
+        await loadData();
       } catch (error) {
         console.error('Error deleting room:', error);
         alert('שגיאה במחיקת החדר');
@@ -356,38 +291,19 @@ export default function RoomsPage() {
   const handleOpenTaskDialog = (roomId: string, taskTypeName: string, task?: any) => {
     setEditingTask({ roomId, taskTypeName, task });
     if (task) {
-      // Find the full task object from Firebase to get autoUpdateStatus
-      const fullTask = tasks.find(t => t.roomId === roomId && t.category === taskTypeName);
       setTaskFormData({
-        description: fullTask?.description || task.description || '',
         status: task.status || 'NOT_STARTED',
-
-        autoUpdateStatus: (fullTask as any)?.autoUpdateStatus !== undefined ? (fullTask as any).autoUpdateStatus : true,
+        progress: task.progress || 0,
+        startDate: task.startDate || '',
+        endDate: task.endDate || '',
       });
     } else {
-      // בדוק אם יש משימה מוסתרת
-      const hiddenTask = tasks.find(t => t.roomId === roomId && t.category === taskTypeName && t.status === 'NOT_RELEVANT');
-      if (hiddenTask) {
-        if (window.confirm('יש משימה מוסתרת בחדר זה. האם להחזיר אותה?')) {
-          setTaskFormData({
-            description: hiddenTask.description || '',
-            status: 'NOT_STARTED',
-            autoUpdateStatus: (hiddenTask as any)?.autoUpdateStatus !== undefined ? (hiddenTask as any).autoUpdateStatus : true,
-          });
-        } else {
-          setTaskFormData({
-            description: '',
-            status: 'NOT_STARTED',
-            autoUpdateStatus: true,
-          });
-        }
-      } else {
-        setTaskFormData({
-          description: '',
-          status: 'NOT_STARTED',
-          autoUpdateStatus: true,
-        });
-      }
+      setTaskFormData({
+        status: 'NOT_STARTED',
+        progress: 0,
+        startDate: '',
+        endDate: '',
+      });
     }
     setOpenTaskDialog(true);
   };
@@ -396,99 +312,95 @@ export default function RoomsPage() {
     setOpenTaskDialog(false);
     setEditingTask(null);
     setTaskFormData({
-      description: '',
       status: 'NOT_STARTED',
-      autoUpdateStatus: true,
+      progress: 0,
+      startDate: '',
+      endDate: '',
     });
   };
 
   const handleSaveTask = async () => {
     if (!editingTask) return;
 
-    const { roomId, taskTypeName, task: currentTask } = editingTask;
+    // Auto-calculate status based on dates and progress
+    let finalStatus = taskFormData.status;
+    let finalProgress = taskFormData.progress;
+    const today = new Date();
+    const startDate = taskFormData.startDate ? new Date(taskFormData.startDate) : null;
+    
+    // Validation: if status is DONE, progress must be 100%
+    if (taskFormData.status === 'DONE' && taskFormData.progress < 100) {
+      alert('לא ניתן לסמן משימה כהושלם אם האחוז ביצוע הוא פחות מ-100%');
+      return;
+    }
+    
+    // Only auto-update if not manually set to BLOCKED
+    if (taskFormData.status !== 'BLOCKED') {
+      if (taskFormData.progress >= 100) {
+        finalStatus = 'DONE';
+        finalProgress = 100;
+      } else if (startDate && today >= startDate && taskFormData.progress > 0) {
+        finalStatus = 'IN_PROGRESS';
+      } else if (!startDate || today < startDate) {
+        finalStatus = 'NOT_STARTED';
+      }
+    }
 
     try {
-      if (currentTask) {
-        // עדכון משימה קיימת
-        const taskDocRef = doc(db, 'tasks', currentTask.id);
-        await updateDoc(taskDocRef, {
-          status: taskFormData.status as Task['status'],
-          description: taskFormData.description,
-          updatedAt: new Date(),
-        });
+      // Check if task exists
+      const existingTask = tasks.find(
+        t => t.roomId === editingTask.roomId && t.category === editingTask.taskTypeName
+      );
 
-        // עדכון הסטייט המקומי
-        setTasks(prevTasks => prevTasks.map(t =>
-          t.id === currentTask.id
-            ? {
-                ...t,
-                status: taskFormData.status as Task['status'],
-                description: taskFormData.description,
-                updatedAt: new Date(),
-              }
-            : t
-        ));
+      const taskData = {
+        title: editingTask.taskTypeName,
+        category: editingTask.taskTypeName,
+        status: finalStatus,
+        roomId: editingTask.roomId,
+        projectId,
+        dueDate: taskFormData.endDate || null,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingTask) {
+        // Update existing task
+        await updateDoc(doc(db, 'tasks', existingTask.id), taskData);
       } else {
-        // יצירת משימה חדשה
-        const newTask = {
-          projectId,
-          roomId,
-          category: taskTypeName,
-          title: taskTypeName,
-          status: taskFormData.status as Task['status'],
-          description: taskFormData.description,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        const docRef = await addDoc(collection(db, 'tasks'), newTask);
-        
-        setTasks(prevTasks => [...prevTasks, {
-          ...newTask,
-          id: docRef.id,
-        } as Task]);
+        // Create new task
+        await addDoc(collection(db, 'tasks'), {
+          ...taskData,
+          createdAt: new Date().toISOString(),
+        });
       }
 
-      // רענון המסך
-      await fetchData();
       handleCloseTaskDialog();
+      await loadData();
     } catch (error) {
       console.error('Error saving task:', error);
       alert('שגיאה בשמירת המשימה');
     }
   };
 
-  const handleDeleteTask = async () => {
-    if (!editingTask) return;
-
-    if (!window.confirm('האם להסתיר משימה זו מהחדר? (התא יראה "-" אבל העמודה תישאר)')) {
-      return;
-    }
-
-    try {
-      // מצא את המשימה ב-Firestore
-      const existingTask = tasks.find(t => t.roomId === editingTask.roomId && t.category === editingTask.taskTypeName);
-      
-      if (existingTask) {
-        // סמן את המשימה כלא רלוונטית - תישאר ב-DB אבל לא תוצג
-        await updateDoc(doc(db, 'tasks', existingTask.id), {
-          status: 'NOT_RELEVANT',
-        });
-        await fetchData();
-      }
-      
-      handleCloseTaskDialog();
-    } catch (error) {
-      console.error('Error hiding task:', error);
-      alert('שגיאה בהסתרת המשימה');
-    }
-  };
-
   const handleMoveRoom = async (event: React.MouseEvent, index: number, direction: 'up' | 'down') => {
     event.stopPropagation();
-    // Note: Room ordering would require adding an 'order' field to Firestore
-    // For now, rooms are ordered by creation date
-    console.log('Room reordering not yet implemented with Firebase');
+    const newRooms = [...rooms];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex < 0 || targetIndex >= newRooms.length) return;
+    
+    [newRooms[index], newRooms[targetIndex]] = [newRooms[targetIndex], newRooms[index]];
+    
+    try {
+      // Update order in Firebase
+      await Promise.all(
+        newRooms.map((room, idx) => 
+          updateDoc(doc(db, 'rooms', room.id), { order: idx })
+        )
+      );
+      setRooms(newRooms);
+    } catch (error) {
+      console.error('Error moving room:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -520,7 +432,7 @@ export default function RoomsPage() {
     
     const icons: any = {
       'DONE': { icon: '✓', color: '#4caf50', label: 'הושלם' },
-      'IN_PROGRESS': { icon: '⬤', color: '#ff9800', label: 'בביצוע' },
+      'IN_PROGRESS': { icon: '●', color: '#FFD700', label: 'בביצוע' },
       'BLOCKED': { icon: '⚠', color: '#f44336', label: 'חסום' },
       'NOT_STARTED': { icon: '○', color: '#9e9e9e', label: 'לא התחיל' },
     };
@@ -535,9 +447,9 @@ export default function RoomsPage() {
     return today > endDate;
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
-      <DashboardLayout projectId={projectId} project={project || undefined}>
+      <DashboardLayout projectId={projectId}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress />
         </Box>
@@ -546,15 +458,12 @@ export default function RoomsPage() {
   }
 
   return (
-    <DashboardLayout projectId={projectId} project={project || undefined}>
+    <DashboardLayout projectId={projectId}>
       <Box sx={{ pr: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h4">
-              {hebrewLabels.rooms}
-            </Typography>
-            <Chip label={rooms.length} color="primary" size="medium" />
-          </Box>
+          <Typography variant="h4">
+            {hebrewLabels.rooms}
+          </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -573,11 +482,11 @@ export default function RoomsPage() {
                 <Box sx={{ width: '200px', p: 2, borderLeft: '1px solid #e0e0e0', textAlign: 'center' }}>
                   <Typography variant="subtitle2" fontWeight="bold">חדר</Typography>
                 </Box>
-                {activeCategories.map((taskType) => (
-                  <Box key={taskType.name} sx={{ flex: 1, p: 2, textAlign: 'center', borderLeft: '1px solid #e0e0e0', minWidth: '140px' }}>
+                {taskCategories.map((category) => (
+                  <Box key={category} sx={{ flex: 1, p: 2, textAlign: 'center', borderLeft: '1px solid #e0e0e0', minWidth: '140px' }}>
                     <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
-                      <Typography sx={{ fontSize: 18 }}>{taskType.icon}</Typography>
-                      <Typography variant="subtitle2" fontWeight="bold">{taskType.name}</Typography>
+                      <Typography sx={{ fontSize: 18 }}>{taskCategoryIcons[category] || '📝'}</Typography>
+                      <Typography variant="subtitle2" fontWeight="bold">{category}</Typography>
                     </Box>
                   </Box>
                 ))}
@@ -607,16 +516,15 @@ export default function RoomsPage() {
                   </Box>
 
                   {/* Task Status Cells */}
-                  {activeCategories.map((taskType) => {
-                    const task = room.tasks[taskType.name];
-                    const fullTask = task?.id ? tasks.find(t => t.id === task.id) : null;
+                  {taskCategories.map((category) => {
+                    const task = room.tasks[category];
                     const statusDisplay = getStatusDisplay(task);
                     const overdue = isOverdue(task);
 
                     return (
                       <Box 
-                        key={taskType.name}
-                        onClick={() => handleOpenTaskDialog(room.id, taskType.name, task)}
+                        key={category} 
+                        onClick={() => handleOpenTaskDialog(room.id, category, task)}
                         sx={{ 
                           flex: 1, 
                           p: 2, 
@@ -630,45 +538,39 @@ export default function RoomsPage() {
                         }}
                       >
                         {task ? (
-                          <Tooltip 
-                            title={fullTask?.description || task?.description || ''} 
-                            arrow
-                            placement="top"
-                          >
-                            <Box>
-                              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
-                                <Typography 
-                                  sx={{ 
-                                    fontSize: '18px', 
-                                    color: statusDisplay.color,
-                                    lineHeight: 1,
-                                  }}
-                                >
-                                  {statusDisplay.icon}
-                                </Typography>
-                                {task.progress > 0 && (
-                                  <Typography variant="caption" fontWeight="bold">
-                                    {task.progress}%
-                                  </Typography>
-                                )}
-                              </Box>
-                              {task.startDate && (
-                                <Typography variant="caption" display="block" color="text.secondary" textAlign="center">
-                                  {task.startDate}
-                                </Typography>
-                              )}
-                              {task.endDate && (
-                                <Typography 
-                                  variant="caption" 
-                                  display="block" 
-                                  textAlign="center"
-                                  sx={{ color: overdue ? '#d32f2f' : 'text.secondary', fontWeight: overdue ? 'bold' : 'normal' }}
-                                >
-                                  → {task.endDate}
+                          <Box>
+                            <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
+                              <Typography 
+                                sx={{ 
+                                  fontSize: '18px', 
+                                  color: statusDisplay.color,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {statusDisplay.icon}
+                              </Typography>
+                              {task.progress > 0 && (
+                                <Typography variant="caption" fontWeight="bold">
+                                  {task.progress}%
                                 </Typography>
                               )}
                             </Box>
-                          </Tooltip>
+                            {task.startDate && (
+                              <Typography variant="caption" display="block" color="text.secondary" textAlign="center">
+                                {task.startDate}
+                              </Typography>
+                            )}
+                            {task.endDate && (
+                              <Typography 
+                                variant="caption" 
+                                display="block" 
+                                textAlign="center"
+                                sx={{ color: overdue ? '#d32f2f' : 'text.secondary', fontWeight: overdue ? 'bold' : 'normal' }}
+                              >
+                                → {task.endDate}
+                              </Typography>
+                            )}
+                          </Box>
                         ) : (
                           <Typography variant="body2" color="text.disabled" textAlign="center">
                             —
@@ -784,13 +686,6 @@ export default function RoomsPage() {
           <DialogContent>
             <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
-                label="תיאור"
-                fullWidth
-                value={taskFormData.description}
-                onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
-                placeholder="לדוגמא: התקנת פרקט"
-              />
-              <TextField
                 label="סטטוס"
                 fullWidth
                 select
@@ -805,40 +700,43 @@ export default function RoomsPage() {
               </TextField>
 
               <TextField
-                label="תיאור"
+                label="אחוז התקדמות"
                 fullWidth
-                multiline
-                rows={3}
-                value={taskFormData.description}
-                onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
+                type="number"
+                value={taskFormData.progress}
+                onChange={(e) => setTaskFormData({ ...taskFormData, progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })}
+                inputProps={{ min: 0, max: 100 }}
+              />
+
+              <TextField
+                label="תאריך התחלה"
+                fullWidth
+                type="date"
+                value={taskFormData.startDate}
+                onChange={(e) => setTaskFormData({ ...taskFormData, startDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+
+              <TextField
+                label="תאריך סיום"
+                fullWidth
+                type="date"
+                value={taskFormData.endDate}
+                onChange={(e) => setTaskFormData({ ...taskFormData, endDate: e.target.value })}
+                InputLabelProps={{ shrink: true }}
               />
             </Box>
           </DialogContent>
           <DialogActions>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', px: 1 }}>
-              <Box>
-                {editingTask?.task && (
-                  <Button 
-                    onClick={handleDeleteTask}
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                  >
-                    מחק מהחדר
-                  </Button>
-                )}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button onClick={handleCloseTaskDialog}>
-                  ביטול
-                </Button>
-                <Button
-                  onClick={handleSaveTask}
-                  variant="contained"
-                >
-                  שמור
-                </Button>
-              </Box>
-            </Box>
+            <Button onClick={handleCloseTaskDialog}>
+              ביטול
+            </Button>
+            <Button
+              onClick={handleSaveTask}
+              variant="contained"
+            >
+              שמור
+            </Button>
           </DialogActions>
         </Dialog>
       </Box>
