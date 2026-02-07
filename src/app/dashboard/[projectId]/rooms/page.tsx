@@ -527,7 +527,7 @@ export default function RoomsPage() {
       <Box sx={{ pr: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
           <Typography variant="h4">
-            {hebrewLabels.rooms}
+            {hebrewLabels.rooms} ({rooms.length})
           </Typography>
           <Button
             variant="contained"
