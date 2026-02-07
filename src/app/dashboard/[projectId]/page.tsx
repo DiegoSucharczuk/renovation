@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Card,
@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const isInitialLoad = loading;
     if (!isInitialLoad) setRefreshing(true);
     
@@ -131,7 +131,7 @@ export default function DashboardPage() {
         setLoading(false);
         setRefreshing(false);
       }
-    };
+    }, [projectId, loading]);
 
   useEffect(() => {
     if (!user) {
@@ -152,7 +152,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [user, router, projectId]);
+  }, [user, router, fetchData]);
 
   // בדיקת טעינת הרשאות
   if (roleLoading || loading) {
