@@ -367,24 +367,11 @@ export default function RoomsPage() {
         );
         
         if (taskToReset) {
-          await updateDoc(doc(db, 'tasks', taskToReset.id), {
-            status: 'NOT_STARTED',
-            progress: 0,
-            startDate: null,
-            endDate: null,
-            autoUpdateStatus: false,
-            updatedAt: new Date().toISOString(),
-          });
+          // Delete the task completely from Firebase
+          await deleteDoc(doc(db, 'tasks', taskToReset.id));
           
-          // Update local state immediately
-          setTaskFormData({
-            status: 'NOT_STARTED',
-            progress: 0,
-            startDate: '',
-            endDate: '',
-          });
-          setAutoUpdateStatus(false);
-          
+          // Close dialog and reload data
+          handleCloseTaskDialog();
           await loadData();
         }
       } catch (error) {
