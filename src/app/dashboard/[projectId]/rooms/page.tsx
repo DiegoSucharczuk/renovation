@@ -397,11 +397,9 @@ export default function RoomsPage() {
   const handleSaveTask = async () => {
     if (!editingTask) return;
 
-    // Auto-calculate status based on dates and progress
+    // Use the status that was already calculated by useEffect
     let finalStatus = taskFormData.status;
     let finalProgress = taskFormData.progress;
-    const today = new Date();
-    const startDate = taskFormData.startDate ? new Date(taskFormData.startDate) : null;
     
     // Validation: if status is DONE, progress must be 100%
     if (taskFormData.status === 'DONE' && taskFormData.progress < 100) {
@@ -409,14 +407,14 @@ export default function RoomsPage() {
       return;
     }
     
-    // Only auto-update if autoUpdateStatus is enabled and not manually set to BLOCKED
-    if (autoUpdateStatus && taskFormData.status !== 'BLOCKED') {
+    // If auto-update is enabled, apply the same logic as useEffect
+    if (autoUpdateStatus) {
       if (taskFormData.progress >= 100) {
         finalStatus = 'DONE';
         finalProgress = 100;
-      } else if (startDate && today >= startDate && taskFormData.progress > 0) {
+      } else if (taskFormData.progress > 0) {
         finalStatus = 'IN_PROGRESS';
-      } else if (!startDate || today < startDate) {
+      } else {
         finalStatus = 'NOT_STARTED';
       }
     }
