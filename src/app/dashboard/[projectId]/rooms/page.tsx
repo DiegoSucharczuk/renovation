@@ -171,31 +171,23 @@ export default function RoomsPage() {
     const today = new Date();
     const startDate = taskFormData.startDate ? new Date(taskFormData.startDate) : null;
     
-    // Don't auto-update if manually set to BLOCKED
-    if (taskFormData.status === 'BLOCKED') return;
-    
     let newStatus: string;
     
     // Calculate what status should be based on progress and dates
+    // This OVERRIDES manual selection when checkbox is checked
     if (taskFormData.progress >= 100) {
       newStatus = 'DONE';
     } else if (taskFormData.progress > 0) {
-      if (startDate && today >= startDate) {
-        newStatus = 'IN_PROGRESS';
-      } else if (!startDate) {
-        newStatus = 'IN_PROGRESS';
-      } else {
-        newStatus = 'NOT_STARTED';
-      }
+      newStatus = 'IN_PROGRESS';
     } else {
       newStatus = 'NOT_STARTED';
     }
     
-    // Update status if it changed
+    // Always update status when auto-update is enabled (override manual selection)
     if (newStatus !== taskFormData.status) {
       setTaskFormData(prev => ({ ...prev, status: newStatus }));
     }
-  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog]);
+  }, [taskFormData.progress, taskFormData.startDate, autoUpdateStatus, openTaskDialog, taskFormData.status]);
 
   useEffect(() => {
     if (!mounted) return;
