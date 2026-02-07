@@ -633,6 +633,16 @@ export default function RoomsPage() {
                                 </Typography>
                               )}
                             </Box>
+                            {task.startDate && (
+                              <Typography 
+                                variant="caption" 
+                                display="block" 
+                                textAlign="center"
+                                sx={{ color: 'text.secondary' }}
+                              >
+                                🗓️ {formatDate(task.startDate)}
+                              </Typography>
+                            )}
                             {task.endDate && (
                               <Typography 
                                 variant="caption" 
@@ -641,11 +651,6 @@ export default function RoomsPage() {
                                 sx={{ color: overdue ? '#d32f2f' : 'text.secondary', fontWeight: overdue ? 'bold' : 'normal' }}
                               >
                                 ⏰ {formatDate(task.endDate)}
-                              </Typography>
-                            )}
-                            {task.startDate && (
-                              <Typography variant="caption" display="block" color="text.secondary" textAlign="center" sx={{ fontSize: '0.65rem' }}>
-                                מ-{formatDate(task.startDate)}
                               </Typography>
                             )}
                           </Box>
