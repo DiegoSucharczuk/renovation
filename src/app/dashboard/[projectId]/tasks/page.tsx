@@ -440,15 +440,6 @@ export default function TasksPage() {
                 <MenuItem value="WAITING">ממתין</MenuItem>
                 <MenuItem value="DONE">הושלם</MenuItem>
               </TextField>
-
-              <TextField
-                label="אחוז התקדמות"
-                fullWidth
-                type="number"
-                value={formData.progress}
-                onChange={(e) => setFormData({ ...formData, progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })}
-                inputProps={{ min: 0, max: 100 }}
-              />
             </Box>
           </DialogContent>
           <DialogActions>
