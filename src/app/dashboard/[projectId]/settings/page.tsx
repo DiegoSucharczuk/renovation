@@ -282,6 +282,9 @@ export default function SettingsPage() {
         setOpenAddDialog(false);
         setUserEmail('');
         setSelectedRole('VIEW_ONLY');
+        
+        // רענן את רשימת ההזמנות
+        await fetchPendingInvitations();
         return;
       }
 
