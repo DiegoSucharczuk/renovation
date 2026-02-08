@@ -325,7 +325,39 @@ export default function SettingsPage() {
     }
 
     try {
+      // מצא את המשתמש
+      const memberToDelete = members.find(m => m.id === memberId);
+      if (!memberToDelete) return;
+
+      const userId = memberToDelete.userId;
+
+      // מחק מהפרויקט הנוכחי
       await deleteDoc(doc(db, 'projectUsers', memberId));
+
+      // בדוק אם המשתמש שייך לפרויקטים אחרים
+      const userProjectsQuery = query(
+        collection(db, 'projectUsers'),
+        where('userId', '==', userId)
+      );
+      const userProjectsSnapshot = await getDocsFromServer(userProjectsQuery);
+
+      // בדוק אם המשתמש הוא בעלים של פרויקטים
+      const ownerProjectsQuery = query(
+        collection(db, 'projects'),
+        where('ownerId', '==', userId)
+      );
+      const ownerProjectsSnapshot = await getDocsFromServer(ownerProjectsQuery);
+
+      // אם המשתמש לא שייך לשום פרויקט אחר - מחק אותו לגמרי
+      if (userProjectsSnapshot.empty && ownerProjectsSnapshot.empty) {
+        // מחק מ-users collection
+        await deleteDoc(doc(db, 'users', userId));
+        
+        // הערה: מחיקה מ-Firebase Authentication צריכה להיעשות דרך Cloud Functions
+        // כי היא דורשת הרשאות admin
+        console.log('User deleted from database. Authentication cleanup needed via Cloud Function.');
+      }
+
       fetchData();
     } catch (error) {
       console.error('Error deleting member:', error);
