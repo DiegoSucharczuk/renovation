@@ -28,10 +28,16 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [invitationInfo, setInvitationInfo] = useState<any>(null);
   const [invitationHandled, setInvitationHandled] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get('invitation');
+
+  // Track if component is mounted (client-side only)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load invitation details if token exists
   useEffect(() => {
@@ -111,7 +117,10 @@ function RegisterForm() {
           
           // ניווט לפרויקט - משתמשים ב-window.location.href לעשות full page navigation
           console.log('Redirecting to project:', invitationInfo.projectId);
-          window.location.href = `/dashboard/${invitationInfo.projectId}`;
+          // השתמש ב-setTimeout כדי לוודא שהכל הסתיים לפני ה-redirect
+          setTimeout(() => {
+            window.location.href = `/dashboard/${invitationInfo.projectId}`;
+          }, 100);
           return;
         } else {
           console.log(`Attempt ${attempt}: User not found yet, waiting...`);
@@ -133,6 +142,8 @@ function RegisterForm() {
 
   // Redirect to projects page if user is already logged in (but not if we have an invitation)
   useEffect(() => {
+    if (!isMounted) return; // וודא שרץ רק אחרי mount
+    
     // אם יש invitation token, לא עושים כלום - handlePostRegistration ידאג לזה
     if (invitationToken) {
       console.log('Invitation token exists, skipping auto-redirect');
@@ -143,7 +154,7 @@ function RegisterForm() {
       console.log('User logged in and no invitation, redirecting to /projects');
       router.push('/projects');
     }
-  }, [user, router, invitationToken]);
+  }, [isMounted, user, router, invitationToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
