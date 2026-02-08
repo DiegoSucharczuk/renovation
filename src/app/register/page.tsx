@@ -67,7 +67,7 @@ function RegisterForm() {
   }, [invitationToken]);
 
   // פונקציה משותפת לטיפול בהזמנה אחרי הרשמה
-  const handlePostRegistration = async (userEmail: string) => {
+  const handlePostRegistration = async (userEmail: string, maxRetries = 5) => {
     console.log('handlePostRegistration called with email:', userEmail);
     console.log('invitationInfo:', invitationInfo);
     
@@ -77,48 +77,57 @@ function RegisterForm() {
       return;
     }
 
-    try {
-      console.log('Querying users collection for email:', userEmail);
-      const usersQuery = query(
-        collection(db, 'users'),
-        where('email', '==', userEmail.toLowerCase())
-      );
-      const usersSnapshot = await getDocsFromServer(usersQuery);
-      
-      if (!usersSnapshot.empty) {
-        const userId = usersSnapshot.docs[0].id;
-        console.log('User found, userId:', userId);
+    // נסה למצוא את המשתמש עד 5 פעמים עם המתנה ביניהם
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempt ${attempt}/${maxRetries}: Querying users collection for email:`, userEmail);
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('email', '==', userEmail.toLowerCase())
+        );
+        const usersSnapshot = await getDocsFromServer(usersQuery);
         
-        // הוספה לפרויקט
-        console.log('Adding user to projectUsers...');
-        await addDoc(collection(db, 'projectUsers'), {
-          projectId: invitationInfo.projectId,
-          userId: userId,
-          roleInProject: invitationInfo.roleInProject,
-          addedAt: new Date(),
-        });
-        console.log('User added to project successfully');
+        if (!usersSnapshot.empty) {
+          const userId = usersSnapshot.docs[0].id;
+          console.log('User found, userId:', userId);
+          
+          // הוספה לפרויקט
+          console.log('Adding user to projectUsers...');
+          await addDoc(collection(db, 'projectUsers'), {
+            projectId: invitationInfo.projectId,
+            userId: userId,
+            roleInProject: invitationInfo.roleInProject,
+            addedAt: new Date(),
+          });
+          console.log('User added to project successfully');
 
-        // מחיקת ההזמנה
-        console.log('Deleting invitation...');
-        await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
-        console.log('Invitation deleted');
-        
-        // סימון שטיפלנו בהזמנה
-        setInvitationHandled(true);
-        
-        // ניווט לפרויקט
-        console.log('Redirecting to project:', invitationInfo.projectId);
-        router.push(`/dashboard/${invitationInfo.projectId}`);
-        return;
-      } else {
-        console.log('User not found in users collection');
+          // מחיקת ההזמנה
+          console.log('Deleting invitation...');
+          await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
+          console.log('Invitation deleted');
+          
+          // סימון שטיפלנו בהזמנה
+          setInvitationHandled(true);
+          
+          // ניווט לפרויקט
+          console.log('Redirecting to project:', invitationInfo.projectId);
+          router.push(`/dashboard/${invitationInfo.projectId}`);
+          return;
+        } else {
+          console.log(`Attempt ${attempt}: User not found yet, waiting...`);
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      } catch (err) {
+        console.error(`Error on attempt ${attempt}:`, err);
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-    } catch (err) {
-      console.error('Error handling invitation:', err);
     }
 
-    console.log('Fallback: redirecting to /projects');
+    console.log('Max retries reached, fallback: redirecting to /projects');
     router.push('/projects');
   };
 
