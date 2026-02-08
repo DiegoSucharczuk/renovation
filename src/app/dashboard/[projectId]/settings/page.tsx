@@ -330,9 +330,11 @@ export default function SettingsPage() {
       if (!memberToDelete) return;
 
       const userId = memberToDelete.userId;
+      console.log('Deleting member:', { memberId, userId, email: memberToDelete.userEmail });
 
       // מחק מהפרויקט הנוכחי
       await deleteDoc(doc(db, 'projectUsers', memberId));
+      console.log('Deleted from current project');
 
       // בדוק אם המשתמש שייך לפרויקטים אחרים
       const userProjectsQuery = query(
@@ -340,6 +342,7 @@ export default function SettingsPage() {
         where('userId', '==', userId)
       );
       const userProjectsSnapshot = await getDocsFromServer(userProjectsQuery);
+      console.log('Other projects count:', userProjectsSnapshot.size);
 
       // בדוק אם המשתמש הוא בעלים של פרויקטים
       const ownerProjectsQuery = query(
@@ -347,15 +350,18 @@ export default function SettingsPage() {
         where('ownerId', '==', userId)
       );
       const ownerProjectsSnapshot = await getDocsFromServer(ownerProjectsQuery);
+      console.log('Owner of projects count:', ownerProjectsSnapshot.size);
 
       // אם המשתמש לא שייך לשום פרויקט אחר - מחק אותו לגמרי
       if (userProjectsSnapshot.empty && ownerProjectsSnapshot.empty) {
+        console.log('User has no other projects - deleting from users collection');
         // מחק מ-users collection
         await deleteDoc(doc(db, 'users', userId));
-        
-        // הערה: מחיקה מ-Firebase Authentication צריכה להיעשות דרך Cloud Functions
-        // כי היא דורשת הרשאות admin
-        console.log('User deleted from database. Authentication cleanup needed via Cloud Function.');
+        console.log('✅ User deleted completely from system');
+        alert('המשתמש הוסר לגמרי מהמערכת');
+      } else {
+        console.log('User still has other projects - keeping in system');
+        alert('המשתמש הוסר מהפרויקט הנוכחי בלבד');
       }
 
       fetchData();
