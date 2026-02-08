@@ -107,6 +107,8 @@ export default function SettingsPage() {
   const [selectedRole, setSelectedRole] = useState<ProjectRole>('VIEW_ONLY');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [invitationLink, setInvitationLink] = useState('');
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false);
   const [projectForm, setProjectForm] = useState({
     name: '',
     address: '',
@@ -220,7 +222,28 @@ export default function SettingsPage() {
       const usersSnapshot = await getDocsFromServer(usersQuery);
 
       if (usersSnapshot.empty) {
-        setError('משתמש עם אימייל זה לא נמצא במערכת');
+        // משתמש לא קיים - נצור הזמנה
+        const invitationToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        
+        await addDoc(collection(db, 'pendingInvitations'), {
+          email: userEmail.toLowerCase(),
+          projectId,
+          projectName: project?.name || '',
+          roleInProject: selectedRole,
+          invitedBy: user?.id,
+          invitedByName: user?.name || '',
+          token: invitationToken,
+          createdAt: new Date(),
+        });
+
+        // יצירת לינק הזמנה
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/register?invitation=${invitationToken}`;
+        setInvitationLink(link);
+        setShowInvitationDialog(true);
+        setOpenAddDialog(false);
+        setUserEmail('');
+        setSelectedRole('VIEW_ONLY');
         return;
       }
 
@@ -938,6 +961,53 @@ export default function SettingsPage() {
             <Button onClick={handleUpdateProject} variant="contained">
               שמור שינויים
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Invitation Link Dialog */}
+        <Dialog 
+          open={showInvitationDialog} 
+          onClose={() => setShowInvitationDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>הזמנה נשלחה בהצלחה! 🎉</DialogTitle>
+          <DialogContent>
+            <Alert severity="success" sx={{ mb: 2 }}>
+              משתמש זה עדיין לא רשום במערכת. נוצרה הזמנה עבורו.
+            </Alert>
+            <Typography variant="body2" gutterBottom sx={{ mb: 2 }}>
+              העתק את הלינק הבא ושלח למשתמש. כשיירשם באמצעות הלינק, הוא יתווסף אוטומטית לפרויקט עם התפקיד שנבחר.
+            </Typography>
+            <TextField
+              fullWidth
+              value={invitationLink}
+              multiline
+              rows={3}
+              InputProps={{
+                readOnly: true,
+              }}
+              sx={{ mb: 2, fontFamily: 'monospace' }}
+            />
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                navigator.clipboard.writeText(invitationLink);
+                setSuccessMessage('הלינק הועתק ללוח!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+              }}
+            >
+              📋 העתק לינק
+            </Button>
+            {successMessage && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {successMessage}
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowInvitationDialog(false)}>סגור</Button>
           </DialogActions>
         </Dialog>
       </Box>

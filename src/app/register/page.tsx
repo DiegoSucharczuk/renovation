@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Container,
   Paper,
@@ -16,16 +16,54 @@ import {
 import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
+import { collection, query, where, getDocs, getDocsFromServer, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [invitationInfo, setInvitationInfo] = useState<any>(null);
   const { signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const invitationToken = searchParams.get('invitation');
+
+  // Load invitation details if token exists
+  useEffect(() => {
+    const loadInvitation = async () => {
+      if (!invitationToken) return;
+
+      try {
+        const invitationsQuery = query(
+          collection(db, 'pendingInvitations'),
+          where('token', '==', invitationToken)
+        );
+        const invitationsSnapshot = await getDocsFromServer(invitationsQuery);
+
+        if (!invitationsSnapshot.empty) {
+          const invitationData = invitationsSnapshot.docs[0].data();
+          const invitation = {
+            id: invitationsSnapshot.docs[0].id,
+            email: invitationData.email || '',
+            projectId: invitationData.projectId || '',
+            projectName: invitationData.projectName || '',
+            roleInProject: invitationData.roleInProject || 'VIEW_ONLY',
+            invitedByName: invitationData.invitedByName || '',
+          };
+          setInvitationInfo(invitation);
+          setEmail(invitation.email); // מילוי אוטומטי של האימייל
+        }
+      } catch (err) {
+        console.error('Error loading invitation:', err);
+      }
+    };
+
+    loadInvitation();
+  }, [invitationToken]);
 
   // Redirect to projects page if user is already logged in
   useEffect(() => {
@@ -52,6 +90,35 @@ export default function RegisterPage() {
 
     try {
       await signUp(email, password, name);
+      
+      // אם יש הזמנה - הוסף את המשתמש לפרויקט ומחק את ההזמנה
+      if (invitationInfo) {
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('email', '==', email.toLowerCase())
+        );
+        const usersSnapshot = await getDocsFromServer(usersQuery);
+        
+        if (!usersSnapshot.empty) {
+          const userId = usersSnapshot.docs[0].id;
+          
+          // הוספה לפרויקט
+          await addDoc(collection(db, 'projectUsers'), {
+            projectId: invitationInfo.projectId,
+            userId: userId,
+            roleInProject: invitationInfo.roleInProject,
+            addedAt: new Date(),
+          });
+
+          // מחיקת ההזמנה
+          await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
+          
+          // ניווט לפרויקט
+          router.push(`/dashboard/${invitationInfo.projectId}`);
+          return;
+        }
+      }
+      
       router.push('/projects');
     } catch (err: any) {
       setError('שגיאה בהרשמה. אנא נסה שנית.');
@@ -83,6 +150,21 @@ export default function RegisterPage() {
           {hebrewLabels.register}
         </Typography>
         
+        {invitationInfo && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>
+              🎉 הוזמנת להצטרף לפרויקט!
+            </Typography>
+            <Typography variant="body2">
+              <strong>{invitationInfo.invitedByName}</strong> הזמין אותך להצטרף לפרויקט{' '}
+              <strong>{invitationInfo.projectName}</strong>
+            </Typography>
+            <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+              השלם את ההרשמה כדי להצטרף לפרויקט
+            </Typography>
+          </Alert>
+        )}
+        
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
@@ -108,6 +190,8 @@ export default function RegisterPage() {
             required
             margin="normal"
             autoComplete="email"
+            disabled={!!invitationInfo}
+            helperText={invitationInfo ? "אימייל מוגדר מראש מההזמנה" : ""}
           />
           
           <TextField
@@ -163,5 +247,13 @@ export default function RegisterPage() {
         </Box>
       </Paper>
     </Container>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div>טוען...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }
