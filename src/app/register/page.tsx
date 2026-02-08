@@ -109,9 +109,9 @@ function RegisterForm() {
           // סימון שטיפלנו בהזמנה
           setInvitationHandled(true);
           
-          // ניווט לפרויקט
+          // ניווט לפרויקט - משתמשים ב-window.location.href לעשות full page navigation
           console.log('Redirecting to project:', invitationInfo.projectId);
-          router.push(`/dashboard/${invitationInfo.projectId}`);
+          window.location.href = `/dashboard/${invitationInfo.projectId}`;
           return;
         } else {
           console.log(`Attempt ${attempt}: User not found yet, waiting...`);
@@ -128,15 +128,22 @@ function RegisterForm() {
     }
 
     console.log('Max retries reached, fallback: redirecting to /projects');
-    router.push('/projects');
+    window.location.href = '/projects';
   };
 
-  // Redirect to projects page if user is already logged in (but not if we have an invitation or already handled it)
+  // Redirect to projects page if user is already logged in (but not if we have an invitation)
   useEffect(() => {
-    if (user && !invitationToken && !invitationHandled) {
+    // אם יש invitation token, לא עושים כלום - handlePostRegistration ידאג לזה
+    if (invitationToken) {
+      console.log('Invitation token exists, skipping auto-redirect');
+      return;
+    }
+    
+    if (user) {
+      console.log('User logged in and no invitation, redirecting to /projects');
       router.push('/projects');
     }
-  }, [user, router, invitationToken, invitationHandled]);
+  }, [user, router, invitationToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
