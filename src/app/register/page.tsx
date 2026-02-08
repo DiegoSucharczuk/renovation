@@ -165,8 +165,8 @@ function RegisterForm() {
     try {
       const result = await signInWithGoogle();
       
-      // המתן לפני טיפול בהזמנה
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // המתן יותר זמן לפופאפ להיסגר לגמרי
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // קבל את האימייל של המשתמש מ-Google
       if (result?.user?.email) {
