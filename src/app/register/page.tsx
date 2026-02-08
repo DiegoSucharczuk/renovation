@@ -65,6 +65,45 @@ function RegisterForm() {
     loadInvitation();
   }, [invitationToken]);
 
+  // פונקציה משותפת לטיפול בהזמנה אחרי הרשמה
+  const handlePostRegistration = async (userEmail: string) => {
+    if (!invitationInfo) {
+      router.push('/projects');
+      return;
+    }
+
+    try {
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('email', '==', userEmail.toLowerCase())
+      );
+      const usersSnapshot = await getDocsFromServer(usersQuery);
+      
+      if (!usersSnapshot.empty) {
+        const userId = usersSnapshot.docs[0].id;
+        
+        // הוספה לפרויקט
+        await addDoc(collection(db, 'projectUsers'), {
+          projectId: invitationInfo.projectId,
+          userId: userId,
+          roleInProject: invitationInfo.roleInProject,
+          addedAt: new Date(),
+        });
+
+        // מחיקת ההזמנה
+        await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
+        
+        // ניווט לפרויקט
+        router.push(`/dashboard/${invitationInfo.projectId}`);
+        return;
+      }
+    } catch (err) {
+      console.error('Error handling invitation:', err);
+    }
+
+    router.push('/projects');
+  };
+
   // Redirect to projects page if user is already logged in
   useEffect(() => {
     if (user) {
@@ -91,35 +130,8 @@ function RegisterForm() {
     try {
       await signUp(email, password, name);
       
-      // אם יש הזמנה - הוסף את המשתמש לפרויקט ומחק את ההזמנה
-      if (invitationInfo) {
-        const usersQuery = query(
-          collection(db, 'users'),
-          where('email', '==', email.toLowerCase())
-        );
-        const usersSnapshot = await getDocsFromServer(usersQuery);
-        
-        if (!usersSnapshot.empty) {
-          const userId = usersSnapshot.docs[0].id;
-          
-          // הוספה לפרויקט
-          await addDoc(collection(db, 'projectUsers'), {
-            projectId: invitationInfo.projectId,
-            userId: userId,
-            roleInProject: invitationInfo.roleInProject,
-            addedAt: new Date(),
-          });
-
-          // מחיקת ההזמנה
-          await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
-          
-          // ניווט לפרויקט
-          router.push(`/dashboard/${invitationInfo.projectId}`);
-          return;
-        }
-      }
-      
-      router.push('/projects');
+      // טיפול בהזמנה אחרי הרשמה
+      await handlePostRegistration(email);
     } catch (err: any) {
       setError('שגיאה בהרשמה. אנא נסה שנית.');
       console.error(err);
@@ -133,9 +145,14 @@ function RegisterForm() {
     setLoading(true);
 
     try {
-      await signInWithGoogle();
-      // Don't redirect here - let the auth state change trigger the redirect
-      // The useEffect below will handle the navigation
+      const result = await signInWithGoogle();
+      
+      // קבל את האימייל של המשתמש מ-Google
+      if (result?.user?.email) {
+        await handlePostRegistration(result.user.email);
+      } else {
+        router.push('/projects');
+      }
     } catch (err: any) {
       setError('שגיאה בהרשמה עם Google. אנא נסה שנית.');
       console.error('Google sign-in error:', err);
