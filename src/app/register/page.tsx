@@ -67,12 +67,17 @@ function RegisterForm() {
 
   // פונקציה משותפת לטיפול בהזמנה אחרי הרשמה
   const handlePostRegistration = async (userEmail: string) => {
+    console.log('handlePostRegistration called with email:', userEmail);
+    console.log('invitationInfo:', invitationInfo);
+    
     if (!invitationInfo) {
+      console.log('No invitation, redirecting to /projects');
       router.push('/projects');
       return;
     }
 
     try {
+      console.log('Querying users collection for email:', userEmail);
       const usersQuery = query(
         collection(db, 'users'),
         where('email', '==', userEmail.toLowerCase())
@@ -81,35 +86,44 @@ function RegisterForm() {
       
       if (!usersSnapshot.empty) {
         const userId = usersSnapshot.docs[0].id;
+        console.log('User found, userId:', userId);
         
         // הוספה לפרויקט
+        console.log('Adding user to projectUsers...');
         await addDoc(collection(db, 'projectUsers'), {
           projectId: invitationInfo.projectId,
           userId: userId,
           roleInProject: invitationInfo.roleInProject,
           addedAt: new Date(),
         });
+        console.log('User added to project successfully');
 
         // מחיקת ההזמנה
+        console.log('Deleting invitation...');
         await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
+        console.log('Invitation deleted');
         
         // ניווט לפרויקט
+        console.log('Redirecting to project:', invitationInfo.projectId);
         router.push(`/dashboard/${invitationInfo.projectId}`);
         return;
+      } else {
+        console.log('User not found in users collection');
       }
     } catch (err) {
       console.error('Error handling invitation:', err);
     }
 
+    console.log('Fallback: redirecting to /projects');
     router.push('/projects');
   };
 
-  // Redirect to projects page if user is already logged in
+  // Redirect to projects page if user is already logged in (but not if we have an invitation)
   useEffect(() => {
-    if (user) {
+    if (user && !invitationToken) {
       router.push('/projects');
     }
-  }, [user, router]);
+  }, [user, router, invitationToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +161,9 @@ function RegisterForm() {
     try {
       const result = await signInWithGoogle();
       
+      // המתן לפני טיפול בהזמנה
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // קבל את האימייל של המשתמש מ-Google
       if (result?.user?.email) {
         await handlePostRegistration(result.user.email);
@@ -156,6 +173,7 @@ function RegisterForm() {
     } catch (err: any) {
       setError('שגיאה בהרשמה עם Google. אנא נסה שנית.');
       console.error('Google sign-in error:', err);
+    } finally {
       setLoading(false);
     }
   };
