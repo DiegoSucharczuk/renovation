@@ -27,6 +27,7 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [invitationInfo, setInvitationInfo] = useState<any>(null);
+  const [invitationHandled, setInvitationHandled] = useState(false);
   const { signUp, signInWithGoogle, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,6 +104,9 @@ function RegisterForm() {
         await deleteDoc(doc(db, 'pendingInvitations', invitationInfo.id));
         console.log('Invitation deleted');
         
+        // סימון שטיפלנו בהזמנה
+        setInvitationHandled(true);
+        
         // ניווט לפרויקט
         console.log('Redirecting to project:', invitationInfo.projectId);
         router.push(`/dashboard/${invitationInfo.projectId}`);
@@ -118,12 +122,12 @@ function RegisterForm() {
     router.push('/projects');
   };
 
-  // Redirect to projects page if user is already logged in (but not if we have an invitation)
+  // Redirect to projects page if user is already logged in (but not if we have an invitation or already handled it)
   useEffect(() => {
-    if (user && !invitationToken) {
+    if (user && !invitationToken && !invitationHandled) {
       router.push('/projects');
     }
-  }, [user, router, invitationToken]);
+  }, [user, router, invitationToken, invitationHandled]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
