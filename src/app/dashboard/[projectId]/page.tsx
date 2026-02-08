@@ -171,6 +171,17 @@ export default function DashboardPage() {
     );
   }
 
+  // אם אין firebaseUser, עדיין טוען
+  if (!firebaseUser) {
+    return (
+      <DashboardLayout projectId={projectId} project={project || undefined}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
+      </DashboardLayout>
+    );
+  }
+
   // בדיקת הרשאות
   if (!role || !permissions) {
     return (

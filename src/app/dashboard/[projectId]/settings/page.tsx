@@ -28,6 +28,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -60,6 +61,15 @@ interface ProjectMember {
   userName: string;
   userEmail: string;
   roleInProject: ProjectRole;
+}
+
+interface PendingInvitation {
+  id: string;
+  email: string;
+  roleInProject: ProjectRole;
+  token: string;
+  invitedByName: string;
+  createdAt: Date;
 }
 
 const roleLabels: Record<ProjectRole, string> = {
@@ -98,6 +108,7 @@ export default function SettingsPage() {
   
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -198,10 +209,37 @@ export default function SettingsPage() {
       }
 
       setMembers(membersData);
+      
+      // טען הזמנות ממתינות
+      await fetchPendingInvitations();
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingInvitations = async () => {
+    try {
+      const invitationsQuery = query(
+        collection(db, 'pendingInvitations'),
+        where('projectId', '==', projectId)
+      );
+      const invitationsSnapshot = await getDocsFromServer(invitationsQuery);
+      const invitationsData = invitationsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          email: data.email,
+          roleInProject: data.roleInProject,
+          token: data.token,
+          invitedByName: data.invitedByName,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+        } as PendingInvitation;
+      });
+      setPendingInvitations(invitationsData);
+    } catch (error) {
+      console.error('Error fetching pending invitations:', error);
     }
   };
 
@@ -368,6 +406,30 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Error deleting member:', error);
       alert('שגיאה בהסרת המשתמש');
+    }
+  };
+
+  const handleCopyInvitationLink = (token: string) => {
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/register?invitation=${token}`;
+    navigator.clipboard.writeText(link);
+    setSuccessMessage('הקישור הועתק ללוח');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!confirm('האם אתה בטוח שברצונך למחוק הזמנה זו?')) {
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'pendingInvitations', invitationId));
+      await fetchPendingInvitations();
+      setSuccessMessage('ההזמנה נמחקה בהצלחה');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error deleting invitation:', error);
+      alert('שגיאה במחיקת ההזמנה');
     }
   };
 
@@ -592,6 +654,71 @@ export default function SettingsPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* Pending Invitations */}
+            {pendingInvitations.length > 0 && (
+              <Box sx={{ mt: 4 }}>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  ⏳ הזמנות ממתינות
+                  <Chip label={pendingInvitations.length} size="small" color="warning" />
+                </Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>אימייל</TableCell>
+                        <TableCell>תפקיד</TableCell>
+                        <TableCell>הוזמן על ידי</TableCell>
+                        <TableCell>תאריך</TableCell>
+                        <TableCell align="left">פעולות</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {pendingInvitations.map((invitation) => (
+                        <TableRow key={invitation.id}>
+                          <TableCell>
+                            <Typography>{invitation.email}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={roleLabels[invitation.roleInProject]} 
+                              color={roleColors[invitation.roleInProject]}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{invitation.invitedByName}</TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {invitation.createdAt.toLocaleDateString('he-IL')}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="left">
+                            <Tooltip title="העתק קישור הזמנה">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleCopyInvitationLink(invitation.token)}
+                              >
+                                <PersonAddIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="מחק הזמנה">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteInvitation(invitation.id)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
 
             {/* Permissions Legend */}
             <Box sx={{ mt: 4, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
