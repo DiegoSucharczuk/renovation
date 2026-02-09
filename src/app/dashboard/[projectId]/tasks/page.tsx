@@ -50,7 +50,7 @@ export default function TasksPage() {
   const [formData, setFormData] = useState({
     description: '',
     category: '',
-    status: 'NOT_STARTED' as Task['status'],
+    status: 'NO_STATUS' as Task['status'],
     roomId: '',
   });
 
@@ -187,7 +187,7 @@ export default function TasksPage() {
       setFormData({
         description: '',
         category: '',
-        status: 'NOT_STARTED',
+        status: 'NO_STATUS',
         roomId: '',
       });
     }
@@ -360,13 +360,14 @@ export default function TasksPage() {
                     const taskRoom = task.roomId ? rooms.find(r => r.id === task.roomId) : null;
                     const getStatusDisplay = (status: string) => {
                       const icons: any = {
+                        'NO_STATUS': { icon: '—', color: '#bdbdbd' },
                         'DONE': { icon: '✓', color: '#4caf50' },
                         'IN_PROGRESS': { icon: '⬤', color: '#ff9800' },
                         'WAITING': { icon: '⏸', color: '#ffa726' },
                         'BLOCKED': { icon: '🚫', color: '#f44336' },
                         'NOT_STARTED': { icon: '○', color: '#9e9e9e' },
                       };
-                      return icons[status] || icons['NOT_STARTED'];
+                      return icons[status] || icons['NO_STATUS'];
                     };
                     const statusDisplay = getStatusDisplay(task.status);
                     return (
@@ -497,6 +498,7 @@ export default function TasksPage() {
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as Task['status'] })}
               >
+                <MenuItem value="NO_STATUS">ללא סטטוס</MenuItem>
                 <MenuItem value="NOT_STARTED">לא התחיל</MenuItem>
                 <MenuItem value="IN_PROGRESS">בביצוע</MenuItem>
                 <MenuItem value="WAITING">ממתין</MenuItem>
