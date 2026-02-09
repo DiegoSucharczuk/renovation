@@ -160,6 +160,7 @@ export default function VendorsPage() {
     file: File;
     type: 'logo' | 'contract' | 'invoice' | 'receipt';
   } | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   
   // Collapse state
   const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
@@ -713,7 +714,40 @@ export default function VendorsPage() {
 
     const { file, type } = pendingFileUpload;
 
+    setIsUploadingFile(true);
     try {
+      // Delete old file from Drive if exists
+      let oldFileId: string | null = null;
+      try {
+        if (type === 'logo' && vendorFormData.logoUrl) {
+          const oldFileData = parseFileData(vendorFormData.logoUrl);
+          if (oldFileData?.id) oldFileId = oldFileData.id;
+        } else if (type === 'contract' && vendorFormData.contractFileUrl) {
+          const oldFileData = parseFileData(vendorFormData.contractFileUrl);
+          if (oldFileData?.id) oldFileId = oldFileData.id;
+        } else if (type === 'invoice' && paymentFormData.invoiceUrl) {
+          const oldFileData = parseFileData(paymentFormData.invoiceUrl);
+          if (oldFileData?.id) oldFileId = oldFileData.id;
+        } else if (type === 'receipt' && paymentFormData.receiptUrl) {
+          const oldFileData = parseFileData(paymentFormData.receiptUrl);
+          if (oldFileData?.id) oldFileId = oldFileData.id;
+        }
+
+        if (oldFileId) {
+          await deleteFromDrive(oldFileId);
+          console.log('Old file deleted from Drive:', oldFileId);
+          // Remove old blob URL from cache
+          setImageBlobUrls(prev => {
+            const newUrls = { ...prev };
+            delete newUrls[oldFileId!];
+            return newUrls;
+          });
+        }
+      } catch (error) {
+        console.error('Error deleting old file from Drive:', error);
+        // Continue with upload even if deletion fails
+      }
+
       // Get project members' emails for sharing
       let memberEmails: string[] = [];
       if (project && projectId) {
@@ -784,6 +818,7 @@ export default function VendorsPage() {
       alert('שגיאה בהעלאת הקובץ ל-Google Drive');
     } finally {
       setPendingFileUpload(null);
+      setIsUploadingFile(false);
     }
   };
 
@@ -1577,13 +1612,13 @@ export default function VendorsPage() {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseVendorDialog}>ביטול</Button>
+            <Button onClick={handleCloseVendorDialog} disabled={isUploadingFile}>ביטול</Button>
             <Button
               onClick={handleSaveVendor}
               variant="contained"
-              disabled={!vendorFormData.name || !vendorFormData.category || !vendorFormData.phone}
+              disabled={!vendorFormData.name || !vendorFormData.category || !vendorFormData.phone || isUploadingFile}
             >
-              שמור
+              {isUploadingFile ? 'מעלה קובץ...' : 'שמור'}
             </Button>
           </DialogActions>
         </Dialog>
