@@ -69,9 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     
-    // Add Google Drive scope for file storage and viewing shared files
-    // Using drive.readonly instead of drive.file to allow viewing files shared by others
-    provider.addScope('https://www.googleapis.com/auth/drive.readonly');
+    // Add Google Drive scope for full access (create, read, update files)
+    // Using 'drive' scope to allow both uploading files and viewing files shared by others
+    // (drive.file only allows access to files created by the app, drive.readonly only allows reading)
+    provider.addScope('https://www.googleapis.com/auth/drive');
     
     // Force account selection every time (allows switching between accounts)
     provider.setCustomParameters({
