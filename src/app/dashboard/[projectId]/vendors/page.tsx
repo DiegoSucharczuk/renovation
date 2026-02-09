@@ -1015,7 +1015,7 @@ export default function VendorsPage() {
                                     {vendor.logoUrl && (
                                       <Box display="flex" justifyContent="center" pb={1} borderBottom="1px solid #e0e0e0">
                                         <Avatar 
-                                          src={vendor.logoUrl} 
+                                          src={parseFileData(vendor.logoUrl)?.downloadUrl || parseFileData(vendor.logoUrl)?.url || vendor.logoUrl} 
                                           sx={{ 
                                             width: 80, 
                                             height: 80,
@@ -2338,54 +2338,58 @@ export default function VendorsPage() {
 
               {/* תצוגה מקדימה של הקובץ */}
               <Card sx={{ p: 2, bgcolor: '#fafafa', textAlign: 'center' }}>
-                {viewingFile.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                  <Box>
-                    <img 
-                      src={viewingFile.url} 
-                      alt="File preview" 
-                      style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
-                    />
-                  </Box>
-                ) : viewingFile.url.match(/\.pdf$/i) ? (
-                  <Box>
-                    <iframe 
-                      src={viewingFile.url} 
-                      width="100%" 
-                      height="600px" 
-                      style={{ border: 'none' }}
-                      title="PDF Viewer"
-                    />
-                    <Button
-                      variant="contained"
-                      component="a"
-                      href={viewingFile.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={decodeURIComponent(viewingFile.url.split('/').pop()?.split('?')[0] || 'document.pdf')}
-                      sx={{ mt: 2 }}
-                    >
-                      פתח ב-Tab חדש
-                    </Button>
-                  </Box>
-                ) : (
-                  <Box>
-                    <AttachFileIcon sx={{ fontSize: 60, color: 'action.disabled', mb: 2 }} />
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      לא ניתן להציג תצוגה מקדימה של קובץ זה
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      component="a"
-                      href={viewingFile.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={decodeURIComponent(viewingFile.url.split('/').pop()?.split('?')[0] || 'file')}
-                      sx={{ mt: 2 }}
-                    >
-                      הורד קובץ
-                    </Button>
-                  </Box>
-                )}
+                {(() => {
+                  const fileData = parseFileData(viewingFile.url);
+                  const displayUrl = fileData?.downloadUrl || fileData?.url || viewingFile.url;
+                  return displayUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <Box>
+                      <img 
+                        src={displayUrl} 
+                        alt="File preview" 
+                        style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
+                      />
+                    </Box>
+                  ) : displayUrl.match(/\.pdf$/i) ? (
+                    <Box>
+                      <iframe 
+                        src={displayUrl} 
+                        width="100%" 
+                        height="600px" 
+                        style={{ border: 'none' }}
+                        title="PDF Viewer"
+                      />
+                      <Button
+                        variant="contained"
+                        component="a"
+                        href={displayUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={fileData?.name || decodeURIComponent(displayUrl.split('/').pop()?.split('?')[0] || 'document.pdf')}
+                        sx={{ mt: 2 }}
+                      >
+                        פתח ב-Tab חדש
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <AttachFileIcon sx={{ fontSize: 60, color: 'action.disabled', mb: 2 }} />
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        לא ניתן להציג תצוגה מקדימה של קובץ זה
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        component="a"
+                        href={displayUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={fileData?.name || decodeURIComponent(displayUrl.split('/').pop()?.split('?')[0] || 'file')}
+                        sx={{ mt: 2 }}
+                      >
+                        הורד קובץ
+                      </Button>
+                    </Box>
+                  );
+                })()}
               </Card>
             </Box>
           )}
