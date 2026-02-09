@@ -647,12 +647,14 @@ export default function VendorsPage() {
   const getStoragePathFromUrl = (url: string): string => {
     try {
       // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?{query}
-      const urlObj = new URL(url);
-      const pathMatch = urlObj.pathname.match(/\/o\/(.+)/);
-      if (pathMatch && pathMatch[1]) {
-        // Decode the path (Firebase encodes it) - split by '?' to remove query params
-        const encodedPath = pathMatch[1].split('?')[0];
-        return decodeURIComponent(encodedPath);
+      if (url.includes('firebasestorage.googleapis.com')) {
+        const urlObj = new URL(url);
+        // Extract the encoded path after /o/
+        const pathMatch = urlObj.pathname.match(/\/o\/(.+)/);
+        if (pathMatch && pathMatch[1]) {
+          // Decode twice: once for URL encoding, once for Firebase encoding
+          return decodeURIComponent(decodeURIComponent(pathMatch[1]));
+        }
       }
       // If not a Firebase URL, return as is
       return url;
@@ -2304,6 +2306,7 @@ export default function VendorsPage() {
                       href={viewingFile.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      download={decodeURIComponent(viewingFile.url.split('/').pop()?.split('?')[0] || 'document.pdf')}
                       sx={{ mt: 2 }}
                     >
                       פתח ב-Tab חדש
@@ -2321,7 +2324,7 @@ export default function VendorsPage() {
                       href={viewingFile.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      download
+                      download={decodeURIComponent(viewingFile.url.split('/').pop()?.split('?')[0] || 'file')}
                       sx={{ mt: 2 }}
                     >
                       הורד קובץ
