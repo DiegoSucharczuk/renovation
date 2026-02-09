@@ -1379,14 +1379,15 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<UploadIcon />}
                     size="small"
-                    disabled={!!vendorFormData.logoUrl}
+                    disabled={!!vendorFormData.logoUrl || isUploadingFile}
                   >
-                    העלה לוגו
+                    {isUploadingFile ? 'מעלה...' : 'העלה לוגו'}
                     <input
                       type="file"
                       hidden
                       accept="image/*"
                       onChange={handleLogoUpload}
+                      disabled={isUploadingFile}
                     />
                   </Button>
                   {vendorFormData.logoUrl && (() => {
@@ -1420,14 +1421,15 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
-                    disabled={!!vendorFormData.contractFileUrl}
+                    disabled={!!vendorFormData.contractFileUrl || isUploadingFile}
                   >
-                    העלה חוזה
+                    {isUploadingFile ? 'מעלה...' : 'העלה חוזה'}
                     <input
                       type="file"
                       hidden
                       accept=".pdf,.doc,.docx,image/*"
                       onChange={handleContractUpload}
+                      disabled={isUploadingFile}
                     />
                   </Button>
                   {vendorFormData.contractFileUrl && (
@@ -2088,14 +2090,15 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
-                    disabled={!!paymentFormData.invoiceUrl}
+                    disabled={!!paymentFormData.invoiceUrl || isUploadingFile}
                   >
-                    העלה חשבונית
+                    {isUploadingFile ? 'מעלה...' : 'העלה חשבונית'}
                     <input
                       type="file"
                       hidden
                       accept="image/*,.pdf"
                       onChange={handleInvoiceUpload}
+                      disabled={isUploadingFile}
                     />
                   </Button>
                   {paymentFormData.invoiceUrl && (
@@ -2130,14 +2133,15 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
-                    disabled={!!paymentFormData.receiptUrl}
+                    disabled={!!paymentFormData.receiptUrl || isUploadingFile}
                   >
-                    העלה קבלה
+                    {isUploadingFile ? 'מעלה...' : 'העלה קבלה'}
                     <input
                       type="file"
                       hidden
                       accept="image/*,.pdf"
                       onChange={handleReceiptUpload}
+                      disabled={isUploadingFile}
                     />
                   </Button>
                   {paymentFormData.receiptUrl && (
@@ -2172,17 +2176,18 @@ export default function VendorsPage() {
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleClosePaymentDialog}>ביטול</Button>
+            <Button onClick={handleClosePaymentDialog} disabled={isUploadingFile}>ביטול</Button>
             <Button
               onClick={handleSavePayment}
               variant="contained"
               disabled={
                 !paymentFormData.amount || 
                 (paymentFormData.status === 'שולם' && !paymentFormData.date) ||
-                (paymentFormData.status !== 'שולם' && !paymentFormData.estimatedDate)
+                (paymentFormData.status !== 'שולם' && !paymentFormData.estimatedDate) ||
+                isUploadingFile
               }
             >
-              שמור
+              {isUploadingFile ? 'מעלה קובץ...' : 'שמור'}
             </Button>
           </DialogActions>
         </Dialog>
