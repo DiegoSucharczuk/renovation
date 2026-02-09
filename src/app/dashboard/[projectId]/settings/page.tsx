@@ -258,7 +258,7 @@ export default function ProjectSettingsPage() {
         </Accordion>
 
         {/* Danger Zone: Delete Project */}
-        {(role === 'OWNER' || role === 'ADMIN') && (
+        {(role === 'OWNER' || role === 'ADMIN' || project?.ownerId === user?.id) && (
           <Box sx={{ mt: 4, p: 3, border: '2px solid #f44336', borderRadius: 2, backgroundColor: '#ffebee' }}>
             <Typography variant="h6" fontWeight="bold" color="error" gutterBottom>
               ⚠️ אזור סכנה
