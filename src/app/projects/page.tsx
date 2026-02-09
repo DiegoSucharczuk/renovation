@@ -15,11 +15,13 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutIcon from '@mui/icons-material/Logout';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Project, ProjectUser } from '@/types';
 import { hebrewLabels } from '@/lib/labels';
+import { isSuperAdmin } from '@/lib/adminConfig';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -97,6 +99,16 @@ export default function ProjectsPage() {
           {hebrewLabels.projects}
         </Typography>
         <Box display="flex" gap={2}>
+          {isSuperAdmin(user?.email) && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<AdminPanelSettingsIcon />}
+              onClick={() => router.push('/admin')}
+            >
+              ניהול מערכת
+            </Button>
+          )}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
