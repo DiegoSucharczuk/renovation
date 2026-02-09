@@ -22,7 +22,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import CloseIcon from '@mui/icons-material/Close';
 import MapIcon from '@mui/icons-material/Map';
-import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDocsFromServer, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Project, ProjectUser } from '@/types';
@@ -31,27 +31,25 @@ import { isSuperAdmin } from '@/lib/adminConfig';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectUserCounts, setProjectUserCounts] = useState<Record<string, number>>({});
+  const [projectActiveUsers, setProjectActiveUsers] = useState<Record<string, { active: number; pending: number }>>({});
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('');
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
   // Debug: בדיקה אם המשתמש הוא super admin
   useEffect(() => {
     if (user) {
       console.log('User email:', user.email);
+      console.log('User ID:', user.id);
       console.log('Is super admin:', isSuperAdmin(user.email));
     }
   }, [user]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
+    if (authLoading) return;
     
     if (!user) {
       router.push('/login');
@@ -59,7 +57,10 @@ export default function ProjectsPage() {
     }
 
     const fetchProjects = async () => {
+      setProjectsLoading(true);
       try {
+        console.log('Fetching projects for user:', user.id, user.email);
+        
         // Get all projectUsers for this user
         const projectUsersQuery = query(
           collection(db, 'projectUsers'),
@@ -67,35 +68,94 @@ export default function ProjectsPage() {
         );
         const projectUsersSnapshot = await getDocsFromServer(projectUsersQuery);
         const projectIds = projectUsersSnapshot.docs.map(doc => doc.data().projectId);
+        console.log('Found projectUser entries:', projectIds);
 
-        if (projectIds.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        // Get all projects for these projectIds
-        const projectsQuery = query(collection(db, 'projects'));
-        const projectsSnapshot = await getDocsFromServer(projectsQuery);
-        const projectsData = projectsSnapshot.docs
-          .filter(doc => projectIds.includes(doc.id))
-          .map(doc => ({
+        // Get all projects where user is owner
+        const ownedProjectsQuery = query(
+          collection(db, 'projects'),
+          where('ownerId', '==', user.id)
+        );
+        const ownedProjectsSnapshot = await getDocsFromServer(ownedProjectsQuery);
+        console.log('Found owned projects:', ownedProjectsSnapshot.docs.length);
+        
+        // Get all shared projects
+        const allProjectsData: Project[] = [];
+        
+        // Add owned projects
+        ownedProjectsSnapshot.docs.forEach(doc => {
+          allProjectsData.push({
             id: doc.id,
             ...doc.data(),
             createdAt: doc.data().createdAt?.toDate() || new Date(),
-          } as Project));
-
-        setProjects(projectsData);
+          } as Project);
+        });
+        
+        // Add shared projects (if not already included)
+        if (projectIds.length > 0) {
+          const sharedProjectsQuery = query(collection(db, 'projects'));
+          const sharedProjectsSnapshot = await getDocsFromServer(sharedProjectsQuery);
+          
+          sharedProjectsSnapshot.docs.forEach(doc => {
+            if (projectIds.includes(doc.id) && !allProjectsData.find(p => p.id === doc.id)) {
+              allProjectsData.push({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate() || new Date(),
+              } as Project);
+            }
+          });
+        }
+        
+        console.log('Total projects found:', allProjectsData.length);
+        setProjects(allProjectsData);
+        
+        // Fetch user counts and status for each project
+        const counts: Record<string, number> = {};
+        const activeUsers: Record<string, { active: number; pending: number }> = {};
+        
+        for (const project of allProjectsData) {
+          // Get all registered project users (active)
+          const usersQuery = query(
+            collection(db, 'projectUsers'),
+            where('projectId', '==', project.id)
+          );
+          const usersSnapshot = await getDocsFromServer(usersQuery);
+          const userIds = usersSnapshot.docs.map(doc => doc.data().userId);
+          
+          // Add owner to the list
+          if (project.ownerId && !userIds.includes(project.ownerId)) {
+            userIds.push(project.ownerId);
+          }
+          
+          // Active users = registered users
+          const activeCount = userIds.length;
+          
+          // Get pending invitations for this project
+          const pendingQuery = query(
+            collection(db, 'pendingInvitations'),
+            where('projectId', '==', project.id)
+          );
+          const pendingSnapshot = await getDocsFromServer(pendingQuery);
+          const pendingCount = pendingSnapshot.docs.length;
+          
+          counts[project.id] = activeCount + pendingCount;
+          activeUsers[project.id] = { active: activeCount, pending: pendingCount };
+        }
+        
+        setProjectUserCounts(counts);
+        setProjectActiveUsers(activeUsers);
       } catch (error) {
         console.error('Error fetching projects:', error);
       } finally {
-        setLoading(false);
+        setProjectsLoading(false);
       }
     };
 
     fetchProjects();
-  }, [user, router, mounted]);
+  }, [user, router, authLoading]);
 
-  if (!mounted || loading) {
+  // Show loading only while auth is loading, not while fetching projects
+  if (authLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress />
@@ -259,7 +319,7 @@ export default function ProjectsPage() {
                     </Typography>
                   </Box>
                   
-                  <Box display="flex" alignItems="center" gap={1}>
+                  <Box display="flex" alignItems="center" gap={1} mb={2}>
                     <Typography variant="body2" color="text.secondary">
                       📅 נוצר:
                     </Typography>
@@ -267,14 +327,38 @@ export default function ProjectsPage() {
                       {project.createdAt.toLocaleDateString('he-IL')}
                     </Typography>
                   </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="body2" color="text.secondary">
+                      👥 חברי צוות:
+                    </Typography>
+                    <Box display="flex" gap={1}>
+                      {projectActiveUsers[project.id]?.active > 0 && (
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#4caf50' }}>
+                          {projectActiveUsers[project.id].active} פעילים
+                        </Typography>
+                      )}
+                      {projectActiveUsers[project.id]?.pending > 0 && (
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#ff9800' }}>
+                          {projectActiveUsers[project.id]?.active > 0 && ', '}
+                          {projectActiveUsers[project.id].pending} ממתינים
+                        </Typography>
+                      )}
+                      {!projectActiveUsers[project.id] && (
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#667eea' }}>
+                          {projectUserCounts[project.id] || 1} פעילים
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
                 </CardContent>
               </CardActionArea>
             </Card>
           ))}
         </Box>
         
-        {/* Empty State */}
-        {projects.length === 0 && (
+        {/* Empty State - show only when not loading AND no projects */}
+        {!projectsLoading && projects.length === 0 && (
           <Box 
             sx={{ 
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -313,6 +397,23 @@ export default function ProjectsPage() {
             >
               יצירת פרויקט ראשון
             </Button>
+          </Box>
+        )}
+        
+        {/* Loading State - show only when loading AND no projects yet */}
+        {projectsLoading && projects.length === 0 && (
+          <Box 
+            display="flex" 
+            justifyContent="center" 
+            alignItems="center" 
+            sx={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 3,
+              p: 8,
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <CircularProgress />
           </Box>
         )}
       </Container>

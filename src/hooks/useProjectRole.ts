@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ProjectRole, RolePermissions } from '@/types';
@@ -6,9 +6,13 @@ import { getRolePermissions } from '@/lib/permissions';
 
 export function useProjectRole(projectId: string | null, userId: string | null) {
   const [role, setRole] = useState<ProjectRole | null>(null);
-  const [permissions, setPermissions] = useState<RolePermissions | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Memoize permissions to prevent unnecessary re-renders
+  const permissions = useMemo(() => {
+    return role ? getRolePermissions(role) : null;
+  }, [role]);
 
   useEffect(() => {
     async function fetchRole() {
@@ -27,7 +31,6 @@ export function useProjectRole(projectId: string | null, userId: string | null) 
           const projectData = projectDoc.docs[0].data();
           if (projectData.ownerId === userId) {
             setRole('OWNER');
-            setPermissions(getRolePermissions('OWNER'));
             setIsOwner(true);
             setLoading(false);
             return;
@@ -46,16 +49,13 @@ export function useProjectRole(projectId: string | null, userId: string | null) 
         if (!projectUsersSnapshot.empty) {
           const userRole = projectUsersSnapshot.docs[0].data().roleInProject as ProjectRole;
           setRole(userRole);
-          setPermissions(getRolePermissions(userRole));
         } else {
           // אין הרשאה לפרויקט
           setRole(null);
-          setPermissions(null);
         }
       } catch (error) {
         console.error('Error fetching user role:', error);
         setRole(null);
-        setPermissions(null);
       } finally {
         setLoading(false);
       }

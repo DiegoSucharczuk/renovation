@@ -654,39 +654,35 @@ export default function RoomsPage() {
                   })}
 
                   {/* Actions */}
-                  <Box sx={{ width: '140px', p: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 0.5, borderLeft: '1px solid #e0e0e0' }}>
-                    <Box display="flex" gap={0.5}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenDialog(room)}
-                        color="primary"
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteRoom(room.id)}
-                        color="error"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                    <Box display="flex" gap={0.5}>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMoveRoom(e, index, 'up')}
-                        disabled={index === 0}
-                      >
-                        <ArrowUpwardIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMoveRoom(e, index, 'down')}
-                        disabled={index === rooms.length - 1}
-                      >
-                        <ArrowDownwardIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
+                  <Box sx={{ width: 'auto', p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5, borderLeft: '1px solid #e0e0e0' }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenDialog(room)}
+                      color="primary"
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteRoom(room.id)}
+                      color="error"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleMoveRoom(e, index, 'up')}
+                      disabled={index === 0}
+                    >
+                      <ArrowUpwardIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleMoveRoom(e, index, 'down')}
+                      disabled={index === rooms.length - 1}
+                    >
+                      <ArrowDownwardIcon fontSize="small" />
+                    </IconButton>
                   </Box>
                 </Box>
               ))}

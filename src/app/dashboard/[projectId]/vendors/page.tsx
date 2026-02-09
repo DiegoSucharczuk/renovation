@@ -29,6 +29,8 @@ import {
   Avatar,
   Grid,
   CardContent,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -168,6 +170,9 @@ export default function VendorsPage() {
   // Files Dialog
   const [openFilesDialog, setOpenFilesDialog] = useState(false);
   const [selectedVendorForFiles, setSelectedVendorForFiles] = useState<Vendor | null>(null);
+  
+  // Token expiration notification
+  const [showTokenExpiredAlert, setShowTokenExpiredAlert] = useState(false);
   
   // Single File Viewer Dialog
   const [openFileViewerDialog, setOpenFileViewerDialog] = useState(false);
@@ -318,7 +323,11 @@ export default function VendorsPage() {
               const blobUrl = await fetchFileAsBlob(fileData.id);
               newBlobUrls[fileData.id] = blobUrl;
             }
-          } catch (error) {
+          } catch (error: any) {
+            if (error.code === 'TOKEN_EXPIRED') {
+              setShowTokenExpiredAlert(true);
+              return; // Stop trying to load more files
+            }
             console.error('Error loading vendor logo:', error);
           }
         }
@@ -2639,6 +2648,29 @@ export default function VendorsPage() {
           await performFileUpload();
         }}
       />
+      
+      {/* Token Expired Alert */}
+      <Snackbar 
+        open={showTokenExpiredAlert} 
+        autoHideDuration={10000} 
+        onClose={() => setShowTokenExpiredAlert(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowTokenExpiredAlert(false)} 
+          severity="warning" 
+          sx={{ width: '100%' }}
+          action={
+            <Button color="inherit" size="small" onClick={() => {
+              router.push('/login');
+            }}>
+              התחבר מחדש
+            </Button>
+          }
+        >
+          גישת Google Drive פגה תוקף. יש להתנתק ולהתחבר מחדש עם Google.
+        </Alert>
+      </Snackbar>
     </DashboardLayout>
   );
 }

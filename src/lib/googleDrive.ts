@@ -30,18 +30,23 @@ const getAccessToken = async (): Promise<string> => {
   }
 
   // If no valid token, user needs to sign in again
-  throw new Error('Drive access expired. Please sign out and sign in again with Google.');
+  const error = new Error('Drive access expired. Please sign out and sign in again with Google.');
+  (error as any).code = 'TOKEN_EXPIRED';
+  throw error;
 };
 
 // Set the OAuth Access Token (called after Google Sign-In)
 // Token is cached in memory only (not localStorage) for security
 // Expires after 50 minutes (Google tokens expire after 1 hour)
+// Note: Auto-refresh is not implemented because Google Drive tokens require user interaction
+// Users will need to re-authenticate when the token expires
 export const setDriveAccessToken = (token: string) => {
   cachedToken = {
     token,
     expiresAt: Date.now() + 50 * 60 * 1000 // 50 minutes
   };
   console.log('Drive access token cached securely (in-memory only, 50min TTL)');
+  console.log('Token will expire at:', new Date(Date.now() + 50 * 60 * 1000).toLocaleTimeString());
 };
 
 // Clear the OAuth Access Token (called on sign out)

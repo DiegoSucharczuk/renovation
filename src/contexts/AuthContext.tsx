@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/types';
 import { setDriveAccessToken } from '@/lib/googleDrive';
@@ -51,7 +51,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // Update lastLoginAt
+    await updateDoc(doc(db, 'users', userCredential.user.uid), {
+      lastLoginAt: new Date(),
+    });
   };
 
   const signUp = async (email: string, password: string, name: string) => {
@@ -63,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name,
       email,
       createdAt: new Date(),
+      lastLoginAt: new Date(),
     });
   };
 
@@ -97,6 +102,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: user.displayName || 'Google User',
         email: user.email || '',
         createdAt: new Date(),
+        lastLoginAt: new Date(),
+      });
+    } else {
+      // Update lastLoginAt for existing users
+      await updateDoc(doc(db, 'users', user.uid), {
+        lastLoginAt: new Date(),
       });
     }
     

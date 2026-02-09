@@ -29,7 +29,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useAuth } from '@/contexts/AuthContext';
 import { isSuperAdmin } from '@/lib/adminConfig';
-import { collection, getDocsFromServer, query, where } from 'firebase/firestore';
+import { collection, getDocsFromServer, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Project } from '@/types';
 
@@ -64,11 +64,15 @@ export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [projectUsers, setProjectUsers] = useState<any[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
     totalProjects: 0,
     activeProjects: 0,
     totalUsers: 0,
+    activeUsers: 0,
+    pendingUsers: 0,
+    activeProjectUsers: 0,
     totalVendors: 0,
     totalBudget: 0,
   });
@@ -84,8 +88,45 @@ export default function AdminPage() {
       return;
     }
 
+    // Update current user's lastLoginAt if needed
+    const updateCurrentUser = async () => {
+      try {
+        await updateDoc(doc(db, 'users', user.id), {
+          lastLoginAt: new Date(),
+        });
+        console.log('Current user lastLoginAt updated');
+      } catch (error) {
+        console.error('Error updating current user:', error);
+      }
+    };
+    
+    updateCurrentUser();
     fetchAllData();
   }, [user, router]);
+
+  const updateAllUsersLastLogin = async () => {
+    try {
+      const usersSnapshot = await getDocsFromServer(collection(db, 'users'));
+      let updated = 0;
+      
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        if (!userData.lastLoginAt) {
+          // Set lastLoginAt to createdAt for existing users
+          await updateDoc(doc(db, 'users', userDoc.id), {
+            lastLoginAt: userData.createdAt || new Date(),
+          });
+          updated++;
+        }
+      }
+      
+      alert(`עודכנו ${updated} משתמשים`);
+      fetchAllData();
+    } catch (error) {
+      console.error('Error updating users:', error);
+      alert('שגיאה בעדכון משתמשים');
+    }
+  };
 
   const fetchAllData = async () => {
     try {
@@ -106,6 +147,7 @@ export default function AdminPage() {
         id: doc.id,
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
+        lastLoginAt: doc.data().lastLoginAt?.toDate(),
       }));
       setUsers(usersData);
 
@@ -123,21 +165,74 @@ export default function AdminPage() {
       const projectUsersData = projectUsersSnapshot.docs.map(doc => doc.data());
       setProjectUsers(projectUsersData);
 
+      // Fetch all pending invitations
+      const pendingInvitationsSnapshot = await getDocsFromServer(collection(db, 'pendingInvitations'));
+      const pendingInvitationsData = pendingInvitationsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+      }));
+      setPendingInvitations(pendingInvitationsData);
+
       // Calculate stats
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Active projects are those updated in the last 30 days
       const activeProjects = projectsData.filter(p => {
         const projectData = p as any;
-        const updatedAt = projectData.updatedAt || p.createdAt;
+        const updatedAt = projectData.updatedAt ? projectData.updatedAt.toDate() : p.createdAt;
         return updatedAt >= thirtyDaysAgo;
+      });
+      
+      console.log('Admin stats calculation:', {
+        totalProjects: projectsData.length,
+        activeProjectsCount: activeProjects.length,
+        thirtyDaysAgo: thirtyDaysAgo.toISOString(),
+        projectsWithUpdates: projectsData.map(p => ({
+          id: p.id,
+          name: p.name,
+          createdAt: p.createdAt,
+          updatedAt: (p as any).updatedAt,
+        })),
       });
 
       const totalBudget = projectsData.reduce((sum, p) => sum + (p.budgetPlanned || 0), 0);
+
+      // Count unique users across all projects (active in projects)
+      const uniqueUserIds = new Set<string>();
+      projectUsersData.forEach(pu => uniqueUserIds.add(pu.userId));
+      // Add project owners
+      projectsData.forEach(p => {
+        if (p.ownerId) uniqueUserIds.add(p.ownerId);
+      });
+      const activeProjectUsersCount = uniqueUserIds.size;
+
+      // Active users = all registered users (in users collection)
+      // Pending users = invitations that haven't been accepted yet (in pendingInvitations collection)
+      const activeUsersCount = usersData.length;
+      const pendingUsersCount = pendingInvitationsData.length;
+      
+      console.log('User stats:', {
+        registered: usersData.length,
+        pendingInvitations: pendingInvitationsData.length,
+        users: usersData.map(u => ({
+          email: u.email,
+          createdAt: u.createdAt,
+        })),
+        invitations: pendingInvitationsData.map(inv => ({
+          email: inv.email,
+          createdAt: inv.createdAt,
+        }))
+      });
 
       setStats({
         totalProjects: projectsData.length,
         activeProjects: activeProjects.length,
         totalUsers: usersData.length,
+        activeUsers: activeUsersCount,
+        pendingUsers: pendingUsersCount,
+        activeProjectUsers: activeProjectUsersCount,
         totalVendors: vendorsData.length,
         totalBudget,
       });
@@ -217,14 +312,43 @@ export default function AdminPage() {
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                משתמשים במערכת
+                משתמשים רשומים
               </Typography>
               <Typography variant="h4" component="div">
-                {stats.totalUsers}
+                {stats.activeUsers}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                נרשמו למערכת
               </Typography>
             </CardContent>
           </Card>
           <Card sx={{ backgroundColor: '#fff3e0' }}>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                הזמנות ממתינות
+              </Typography>
+              <Typography variant="h4" component="div" color="warning.main">
+                {stats.pendingUsers}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                טרם התקבלו
+              </Typography>
+            </CardContent>
+          </Card>
+          <Card sx={{ backgroundColor: '#e3f2fd' }}>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom>
+                חברי צוות בפרויקטים
+              </Typography>
+              <Typography variant="h4" component="div" color="info.main">
+                {stats.activeProjectUsers}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                משוייכים לפרויקטים
+              </Typography>
+            </CardContent>
+          </Card>
+          <Card sx={{ backgroundColor: '#f3e5f5' }}>
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
                 תקציב כולל
