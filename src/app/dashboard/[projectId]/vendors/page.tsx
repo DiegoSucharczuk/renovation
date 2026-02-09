@@ -39,8 +39,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import UploadIcon from '@mui/icons-material/Upload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import CloseIcon from '@mui/icons-material/Close';
 import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
@@ -352,47 +354,6 @@ export default function VendorsPage() {
     setEditingVendor(null);
   };
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // TODO: העלאה לשרת/Firebase Storage
-      // כרגע נשמור רק את שם הקובץ
-      const fakeUrl = `logos/${file.name}`;
-      setVendorFormData({ ...vendorFormData, logoUrl: fakeUrl });
-      alert(`הקובץ ${file.name} נשמר (בגרסה הסופית יועלה לשרת)`);
-    }
-  };
-
-  const handleContractUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // TODO: העלאה לשרת/Firebase Storage
-      const fakeUrl = `contracts/${file.name}`;
-      setVendorFormData({ ...vendorFormData, contractFileUrl: fakeUrl });
-      alert(`החוזה ${file.name} נשמר (בגרסה הסופית יועלה לשרת)`);
-    }
-  };
-
-  const handleReceiptUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // TODO: העלאה לשרת/Firebase Storage
-      const fakeUrl = `receipts/${file.name}`;
-      setPaymentFormData({ ...paymentFormData, receiptUrl: fakeUrl });
-      alert(`הקובץ ${file.name} נשמר (בגרסה הסופית יועלה לשרת)`);
-    }
-  };
-
-  const handleInvoiceUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // TODO: העלאה לשרת/Firebase Storage
-      const fakeUrl = `invoices/${file.name}`;
-      setPaymentFormData({ ...paymentFormData, invoiceUrl: fakeUrl });
-      alert(`החשבונית ${file.name} נשמרה (בגרסה הסופית יועלה לשרת)`);
-    }
-  };
-
   const handleSaveVendor = async () => {
     try {
       if (editingVendor) {
@@ -613,6 +574,117 @@ export default function VendorsPage() {
   const getBalance = (vendor: Vendor) => {
     if (!vendor.contractAmount) return null;
     return vendor.contractAmount - getTotalPaid(vendor);
+  };
+
+  // File upload handlers
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file is an image
+    if (!file.type.startsWith('image/')) {
+      alert('יש להעלות קובץ תמונה בלבד');
+      return;
+    }
+
+    try {
+      const storageRef = ref(storage, `vendors/${projectId}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setVendorFormData({ ...vendorFormData, logoUrl: url });
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      alert('שגיאה בהעלאת הלוגו');
+    }
+  };
+
+  const handleContractUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const storageRef = ref(storage, `contracts/${projectId}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setVendorFormData({ ...vendorFormData, contractFileUrl: url });
+    } catch (error) {
+      console.error('Error uploading contract:', error);
+      alert('שגיאה בהעלאת החוזה');
+    }
+  };
+
+  const handleInvoiceUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const storageRef = ref(storage, `invoices/${projectId}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setPaymentFormData({ ...paymentFormData, invoiceUrl: url });
+    } catch (error) {
+      console.error('Error uploading invoice:', error);
+      alert('שגיאה בהעלאת החשבונית');
+    }
+  };
+
+  const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const storageRef = ref(storage, `receipts/${projectId}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setPaymentFormData({ ...paymentFormData, receiptUrl: url });
+    } catch (error) {
+      console.error('Error uploading receipt:', error);
+      alert('שגיאה בהעלאת הקבלה');
+    }
+  };
+
+  const handleDeleteFile = async (url: string, type: 'logo' | 'contract' | 'invoice' | 'receipt') => {
+    if (!confirm('האם אתה בטוח שברצונך למחוק קובץ זה?')) return;
+
+    try {
+      // Delete from storage
+      const fileRef = ref(storage, url);
+      await deleteObject(fileRef);
+
+      // Update form data or database based on context
+      if (type === 'logo') {
+        setVendorFormData({ ...vendorFormData, logoUrl: '' });
+        // If editing existing vendor, also update DB
+        if (editingVendor) {
+          await updateDoc(doc(db, 'vendors', editingVendor.id), { logoUrl: '' });
+          await fetchData();
+        }
+      } else if (type === 'contract') {
+        setVendorFormData({ ...vendorFormData, contractFileUrl: '' });
+        // If editing existing vendor, also update DB
+        if (editingVendor) {
+          await updateDoc(doc(db, 'vendors', editingVendor.id), { contractFileUrl: '' });
+          await fetchData();
+        }
+      } else if (type === 'invoice') {
+        setPaymentFormData({ ...paymentFormData, invoiceUrl: '', invoiceDescription: '' });
+        // If editing existing payment, also update DB
+        if (editingPayment) {
+          await updateDoc(doc(db, 'payments', editingPayment.id), { invoiceUrl: '', invoiceDescription: '' });
+          await fetchData();
+        }
+      } else if (type === 'receipt') {
+        setPaymentFormData({ ...paymentFormData, receiptUrl: '', receiptDescription: '' });
+        // If editing existing payment, also update DB
+        if (editingPayment) {
+          await updateDoc(doc(db, 'payments', editingPayment.id), { receiptUrl: '', receiptDescription: '' });
+          await fetchData();
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('שגיאה במחיקת הקובץ');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -1068,7 +1140,7 @@ export default function VendorsPage() {
                       <Avatar src={vendorFormData.logoUrl} sx={{ width: 40, height: 40 }} />
                       <Chip
                         label={vendorFormData.logoUrl.split('/').pop()}
-                        onDelete={() => setVendorFormData({ ...vendorFormData, logoUrl: '' })}
+                        onDelete={() => handleDeleteFile(vendorFormData.logoUrl, 'logo')}
                         size="small"
                       />
                     </Box>
@@ -1101,7 +1173,7 @@ export default function VendorsPage() {
                   {vendorFormData.contractFileUrl && (
                     <Chip
                       label={vendorFormData.contractFileUrl.split('/').pop()}
-                      onDelete={() => setVendorFormData({ ...vendorFormData, contractFileUrl: '' })}
+                      onDelete={() => handleDeleteFile(vendorFormData.contractFileUrl, 'contract')}
                       size="small"
                       icon={<AttachFileIcon />}
                     />
@@ -1768,7 +1840,7 @@ export default function VendorsPage() {
                   {paymentFormData.invoiceUrl && (
                     <Chip
                       label={paymentFormData.invoiceUrl.split('/').pop()}
-                      onDelete={() => setPaymentFormData({ ...paymentFormData, invoiceUrl: '', invoiceDescription: '' })}
+                      onDelete={() => handleDeleteFile(paymentFormData.invoiceUrl, 'invoice')}
                       size="small"
                     />
                   )}
@@ -1809,7 +1881,7 @@ export default function VendorsPage() {
                   {paymentFormData.receiptUrl && (
                     <Chip
                       label={paymentFormData.receiptUrl.split('/').pop()}
-                      onDelete={() => setPaymentFormData({ ...paymentFormData, receiptUrl: '', receiptDescription: '' })}
+                      onDelete={() => handleDeleteFile(paymentFormData.receiptUrl, 'receipt')}
                       size="small"
                     />
                   )}
@@ -1918,7 +1990,21 @@ export default function VendorsPage() {
                             
                             {/* חשבונית */}
                             {payment.invoiceUrl && (
-                              <Box display="flex" alignItems="flex-start" gap={1}>
+                              <Box 
+                                display="flex" 
+                                alignItems="flex-start" 
+                                gap={1}
+                                sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f0f0f0' }, p: 0.5, borderRadius: 1 }}
+                                onClick={() => {
+                                  setViewingFile({
+                                    type: 'invoice',
+                                    url: payment.invoiceUrl!,
+                                    description: payment.invoiceDescription,
+                                    payment
+                                  });
+                                  setOpenFileViewerDialog(true);
+                                }}
+                              >
                                 <AttachFileIcon color="error" fontSize="small" sx={{ mt: 0.3 }} />
                                 <Box flex={1}>
                                   <Typography variant="body2" fontWeight={600} color="error.main">
@@ -1933,7 +2019,21 @@ export default function VendorsPage() {
                             
                             {/* קבלה */}
                             {payment.receiptUrl && (
-                              <Box display="flex" alignItems="flex-start" gap={1}>
+                              <Box 
+                                display="flex" 
+                                alignItems="flex-start" 
+                                gap={1}
+                                sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f0f0f0' }, p: 0.5, borderRadius: 1 }}
+                                onClick={() => {
+                                  setViewingFile({
+                                    type: 'receipt',
+                                    url: payment.receiptUrl!,
+                                    description: payment.receiptDescription,
+                                    payment
+                                  });
+                                  setOpenFileViewerDialog(true);
+                                }}
+                              >
                                 <AttachFileIcon color="success" fontSize="small" sx={{ mt: 0.3 }} />
                                 <Box flex={1}>
                                   <Typography variant="body2" fontWeight={600} color="success.main">
@@ -2152,13 +2252,48 @@ export default function VendorsPage() {
 
               {/* תצוגה מקדימה של הקובץ */}
               <Card sx={{ p: 2, bgcolor: '#fafafa', textAlign: 'center' }}>
-                <AttachFileIcon sx={{ fontSize: 60, color: 'action.disabled', mb: 2 }} />
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  תצוגה מקדימה של הקובץ תהיה זמינה לאחר אינטגרציה עם Firebase Storage
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  נכון לעכשיו: {viewingFile.url}
-                </Typography>
+                {viewingFile.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <Box>
+                    <img 
+                      src={viewingFile.url} 
+                      alt="File preview" 
+                      style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
+                    />
+                  </Box>
+                ) : viewingFile.url.match(/\.pdf$/i) ? (
+                  <Box>
+                    <iframe 
+                      src={viewingFile.url} 
+                      width="100%" 
+                      height="600px" 
+                      style={{ border: 'none' }}
+                      title="PDF Viewer"
+                    />
+                    <Button
+                      variant="contained"
+                      href={viewingFile.url}
+                      target="_blank"
+                      sx={{ mt: 2 }}
+                    >
+                      פתח ב-Tab חדש
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box>
+                    <AttachFileIcon sx={{ fontSize: 60, color: 'action.disabled', mb: 2 }} />
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      לא ניתן להציג תצוגה מקדימה של קובץ זה
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      href={viewingFile.url}
+                      target="_blank"
+                      sx={{ mt: 2 }}
+                    >
+                      הורד קובץ
+                    </Button>
+                  </Box>
+                )}
               </Card>
             </Box>
           )}
