@@ -1432,14 +1432,17 @@ export default function VendorsPage() {
                       disabled={isUploadingFile}
                     />
                   </Button>
-                  {vendorFormData.contractFileUrl && (
-                    <Chip
-                      label={decodeURIComponent(vendorFormData.contractFileUrl.split('/').pop()?.split('?')[0] || 'חוזה')}
-                      onDelete={() => handleDeleteFile(vendorFormData.contractFileUrl, 'contract')}
-                      size="small"
-                      icon={<AttachFileIcon />}
-                    />
-                  )}
+                  {vendorFormData.contractFileUrl && (() => {
+                    const fileData = parseFileData(vendorFormData.contractFileUrl);
+                    return (
+                      <Chip
+                        label={fileData?.name || 'חוזה'}
+                        onDelete={() => handleDeleteFile(vendorFormData.contractFileUrl, 'contract')}
+                        size="small"
+                        icon={<AttachFileIcon />}
+                      />
+                    );
+                  })()}
                 </Box>
               </Box>
 
@@ -2101,13 +2104,16 @@ export default function VendorsPage() {
                       disabled={isUploadingFile}
                     />
                   </Button>
-                  {paymentFormData.invoiceUrl && (
-                    <Chip
-                      label={decodeURIComponent(paymentFormData.invoiceUrl.split('/').pop()?.split('?')[0] || 'חשבונית')}
-                      onDelete={() => handleDeleteFile(paymentFormData.invoiceUrl, 'invoice')}
-                      size="small"
-                    />
-                  )}
+                  {paymentFormData.invoiceUrl && (() => {
+                    const fileData = parseFileData(paymentFormData.invoiceUrl);
+                    return (
+                      <Chip
+                        label={fileData?.name || 'חשבונית'}
+                        onDelete={() => handleDeleteFile(paymentFormData.invoiceUrl, 'invoice')}
+                        size="small"
+                      />
+                    );
+                  })()}
                 </Box>
                 {paymentFormData.invoiceUrl && (
                   <TextField
@@ -2144,13 +2150,16 @@ export default function VendorsPage() {
                       disabled={isUploadingFile}
                     />
                   </Button>
-                  {paymentFormData.receiptUrl && (
-                    <Chip
-                      label={decodeURIComponent(paymentFormData.receiptUrl.split('/').pop()?.split('?')[0] || 'קבלה')}
-                      onDelete={() => handleDeleteFile(paymentFormData.receiptUrl, 'receipt')}
-                      size="small"
-                    />
-                  )}
+                  {paymentFormData.receiptUrl && (() => {
+                    const fileData = parseFileData(paymentFormData.receiptUrl);
+                    return (
+                      <Chip
+                        label={fileData?.name || 'קבלה'}
+                        onDelete={() => handleDeleteFile(paymentFormData.receiptUrl, 'receipt')}
+                        size="small"
+                      />
+                    );
+                  })()}
                 </Box>
                 {paymentFormData.receiptUrl && (
                   <TextField
