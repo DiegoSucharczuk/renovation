@@ -675,13 +675,25 @@ export default function VendorsPage() {
     if (!confirm('האם אתה בטוח שברצונך למחוק קובץ זה?')) return;
 
     try {
-      // Delete from storage - extract path from URL
-      const storagePath = getStoragePathFromUrl(url);
-      console.log('Original URL:', url);
-      console.log('Extracted path:', storagePath);
-      const fileRef = ref(storage, storagePath);
-      await deleteObject(fileRef);
-      console.log('File deleted successfully from storage');
+      // Check if this is a valid Firebase Storage URL
+      const isValidFirebaseUrl = url.includes('firebasestorage.googleapis.com');
+      
+      if (isValidFirebaseUrl) {
+        // Try to delete from storage - extract path from URL
+        try {
+          const storagePath = getStoragePathFromUrl(url);
+          console.log('Original URL:', url);
+          console.log('Extracted path:', storagePath);
+          const fileRef = ref(storage, storagePath);
+          await deleteObject(fileRef);
+          console.log('File deleted successfully from storage');
+        } catch (storageError) {
+          console.warn('Could not delete from storage (file might not exist):', storageError);
+          // Continue anyway to clean up DB
+        }
+      } else {
+        console.log('Skipping storage deletion - invalid URL format (old data):', url);
+      }
 
       // Update form data or database based on context
       if (type === 'logo') {
@@ -718,7 +730,7 @@ export default function VendorsPage() {
         }
       }
 
-      alert('הקובץ נמחק בהצלחה');
+      alert('הקובץ נמחק בהצלחה מהמערכת');
     } catch (error) {
       console.error('Error deleting file:', error);
       const errorMessage = (error as any).message || 'שגיאה לא ידועה';
