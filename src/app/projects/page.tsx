@@ -30,6 +30,14 @@ export default function ProjectsPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
 
+  // Debug: בדיקה אם המשתמש הוא super admin
+  useEffect(() => {
+    if (user) {
+      console.log('User email:', user.email);
+      console.log('Is super admin:', isSuperAdmin(user.email));
+    }
+  }, [user]);
+
   useEffect(() => {
     setMounted(true);
   }, []);

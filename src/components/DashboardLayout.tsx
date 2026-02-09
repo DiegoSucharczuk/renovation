@@ -16,6 +16,7 @@ import {
   ListItemIcon,
   ListItemText,
   Button,
+  Collapse,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -25,6 +26,9 @@ import PeopleIcon from '@mui/icons-material/People';
 import PaymentIcon from '@mui/icons-material/Payment';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
+import GroupIcon from '@mui/icons-material/Group';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
 import { hebrewLabels } from '@/lib/labels';
@@ -40,6 +44,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, projectId, project }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { signOut, user, firebaseUser } = useAuth();
   const { permissions } = useProjectRole(projectId, firebaseUser?.uid || null);
   const router = useRouter();
@@ -60,7 +65,6 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
     { text: hebrewLabels.tasks, icon: <TaskIcon />, path: `/dashboard/${projectId}/tasks` },
     { text: hebrewLabels.vendors, icon: <PeopleIcon />, path: `/dashboard/${projectId}/vendors` },
     { text: hebrewLabels.payments, icon: <PaymentIcon />, path: `/dashboard/${projectId}/payments`, hidden: !permissions?.canViewPayments },
-    { text: hebrewLabels.projectSettings, icon: <SettingsIcon />, path: `/dashboard/${projectId}/settings`, hidden: !permissions?.canManageUsers },
   ];
 
   const drawer = (
@@ -83,6 +87,39 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
             </ListItemButton>
           </ListItem>
         ))}
+        
+        {/* הגדרות עם תת-תפריט */}
+        {permissions?.canManageUsers && (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => setSettingsOpen(!settingsOpen)}>
+                <ListItemIcon><SettingsIcon /></ListItemIcon>
+                <ListItemText primary="הגדרות" />
+                {settingsOpen ? <ExpandLess /> : <ExpandMore />}
+              </ListItemButton>
+            </ListItem>
+            <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItemButton
+                  sx={{ pl: 4 }}
+                  selected={pathname === `/dashboard/${projectId}/settings`}
+                  onClick={() => router.push(`/dashboard/${projectId}/settings`)}
+                >
+                  <ListItemIcon><SettingsIcon /></ListItemIcon>
+                  <ListItemText primary="פרטי פרויקט" />
+                </ListItemButton>
+                <ListItemButton
+                  sx={{ pl: 4 }}
+                  selected={pathname === `/dashboard/${projectId}/settings/users`}
+                  onClick={() => router.push(`/dashboard/${projectId}/settings/users`)}
+                >
+                  <ListItemIcon><GroupIcon /></ListItemIcon>
+                  <ListItemText primary="ניהול משתמשים" />
+                </ListItemButton>
+              </List>
+            </Collapse>
+          </>
+        )}
       </List>
       <Divider />
       <List>
