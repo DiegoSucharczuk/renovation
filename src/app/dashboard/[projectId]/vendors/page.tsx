@@ -381,6 +381,17 @@ export default function VendorsPage() {
     };
   }, [vendors, payments]);
 
+  // Helper function to update project's updatedAt timestamp
+  const updateProjectTimestamp = async () => {
+    try {
+      await updateDoc(doc(db, 'projects', projectId), {
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      console.error('Error updating project timestamp:', error);
+    }
+  };
+
   const handleOpenVendorDialog = (vendor?: Vendor) => {
     if (vendor) {
       setEditingVendor(vendor);
@@ -502,6 +513,7 @@ export default function VendorsPage() {
           updatedAt: new Date(),
         });
       }
+      await updateProjectTimestamp();
       await fetchData();
       handleCloseVendorDialog();
     } catch (error) {
@@ -521,6 +533,7 @@ export default function VendorsPage() {
           await deleteDoc(doc(db, 'payments', payment.id));
         }
         
+        await updateProjectTimestamp();
         await fetchData();
       } catch (error) {
         console.error('Error deleting vendor:', error);
@@ -633,6 +646,7 @@ export default function VendorsPage() {
           updatedAt: new Date(),
         });
       }
+      await updateProjectTimestamp();
       await fetchData();
       handleClosePaymentDialog();
     } catch (error) {
@@ -646,6 +660,7 @@ export default function VendorsPage() {
     if (window.confirm('האם אתה בטוח שברצונך למחוק תשלום זה?')) {
       try {
         await deleteDoc(doc(db, 'payments', paymentId));
+        await updateProjectTimestamp();
         await fetchData();
       } catch (error) {
         console.error('Error deleting payment:', error);
@@ -813,6 +828,9 @@ export default function VendorsPage() {
 
       const sharedWith = memberEmails.length > 0 ? ` ושותף עם ${memberEmails.length} חברים` : '';
       alert(`הקובץ הועלה בהצלחה ל-Google Drive שלך${sharedWith}!`);
+      
+      // Update project timestamp
+      await updateProjectTimestamp();
     } catch (error) {
       console.error('Error uploading to Drive:', error);
       alert('שגיאה בהעלאת הקובץ ל-Google Drive');
