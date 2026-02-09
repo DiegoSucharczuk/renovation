@@ -643,19 +643,43 @@ export default function VendorsPage() {
     }
   };
 
+  // Extract storage path from full URL
+  const getStoragePathFromUrl = (url: string): string => {
+    try {
+      // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?{query}
+      const urlObj = new URL(url);
+      const pathMatch = urlObj.pathname.match(/\/o\/(.+)/);
+      if (pathMatch && pathMatch[1]) {
+        // Decode the path (Firebase encodes it) - split by '?' to remove query params
+        const encodedPath = pathMatch[1].split('?')[0];
+        return decodeURIComponent(encodedPath);
+      }
+      // If not a Firebase URL, return as is
+      return url;
+    } catch (error) {
+      console.error('Error parsing URL:', error);
+      return url;
+    }
+  };
+
   const handleDeleteFile = async (url: string, type: 'logo' | 'contract' | 'invoice' | 'receipt') => {
     if (!confirm('האם אתה בטוח שברצונך למחוק קובץ זה?')) return;
 
     try {
-      // Delete from storage
-      const fileRef = ref(storage, url);
+      // Delete from storage - extract path from URL
+      const storagePath = getStoragePathFromUrl(url);
+      console.log('Original URL:', url);
+      console.log('Extracted path:', storagePath);
+      const fileRef = ref(storage, storagePath);
       await deleteObject(fileRef);
+      console.log('File deleted successfully from storage');
 
       // Update form data or database based on context
       if (type === 'logo') {
         setVendorFormData({ ...vendorFormData, logoUrl: '' });
         // If editing existing vendor, also update DB
         if (editingVendor) {
+          console.log('Updating vendor in DB');
           await updateDoc(doc(db, 'vendors', editingVendor.id), { logoUrl: '' });
           await fetchData();
         }
@@ -663,6 +687,7 @@ export default function VendorsPage() {
         setVendorFormData({ ...vendorFormData, contractFileUrl: '' });
         // If editing existing vendor, also update DB
         if (editingVendor) {
+          console.log('Updating contract in DB');
           await updateDoc(doc(db, 'vendors', editingVendor.id), { contractFileUrl: '' });
           await fetchData();
         }
@@ -670,6 +695,7 @@ export default function VendorsPage() {
         setPaymentFormData({ ...paymentFormData, invoiceUrl: '', invoiceDescription: '' });
         // If editing existing payment, also update DB
         if (editingPayment) {
+          console.log('Updating invoice in DB');
           await updateDoc(doc(db, 'payments', editingPayment.id), { invoiceUrl: '', invoiceDescription: '' });
           await fetchData();
         }
@@ -677,13 +703,16 @@ export default function VendorsPage() {
         setPaymentFormData({ ...paymentFormData, receiptUrl: '', receiptDescription: '' });
         // If editing existing payment, also update DB
         if (editingPayment) {
+          console.log('Updating receipt in DB');
           await updateDoc(doc(db, 'payments', editingPayment.id), { receiptUrl: '', receiptDescription: '' });
           await fetchData();
         }
       }
+
+      alert('הקובץ נמחק בהצלחה');
     } catch (error) {
       console.error('Error deleting file:', error);
-      alert('שגיאה במחיקת הקובץ');
+      alert('שגיאה במחיקת הקובץ: ' + (error as Error).message);
     }
   };
 
@@ -2271,8 +2300,10 @@ export default function VendorsPage() {
                     />
                     <Button
                       variant="contained"
+                      component="a"
                       href={viewingFile.url}
                       target="_blank"
+                      rel="noopener noreferrer"
                       sx={{ mt: 2 }}
                     >
                       פתח ב-Tab חדש
@@ -2286,8 +2317,11 @@ export default function VendorsPage() {
                     </Typography>
                     <Button
                       variant="contained"
+                      component="a"
                       href={viewingFile.url}
                       target="_blank"
+                      rel="noopener noreferrer"
+                      download
                       sx={{ mt: 2 }}
                     >
                       הורד קובץ
