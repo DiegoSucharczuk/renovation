@@ -162,6 +162,17 @@ export default function TasksPage() {
     fetchData();
   }, [user, router, projectId]);
 
+  // Helper function to update project's updatedAt timestamp
+  const updateProjectTimestamp = async () => {
+    try {
+      await updateDoc(doc(db, 'projects', projectId), {
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      console.error('Error updating project timestamp:', error);
+    }
+  };
+
   const handleOpenDialog = (task?: Task) => {
     if (task) {
       setEditingTask(task);
@@ -225,6 +236,7 @@ export default function TasksPage() {
         const docRef = await addDoc(collection(db, 'tasks'), newTask);
         setTasks([...tasks, { id: docRef.id, ...newTask } as Task]);
       }
+      await updateProjectTimestamp();
       handleCloseDialog();
     } catch (error) {
       console.error('Error saving task:', error);
@@ -236,6 +248,7 @@ export default function TasksPage() {
     if (window.confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) {
       try {
         await deleteDoc(doc(db, 'tasks', taskId));
+        await updateProjectTimestamp();
         setTasks(tasks.filter(t => t.id !== taskId));
       } catch (error) {
         console.error('Error deleting task:', error);
