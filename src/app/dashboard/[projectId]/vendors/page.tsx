@@ -714,8 +714,23 @@ export default function VendorsPage() {
     const { file, type } = pendingFileUpload;
 
     try {
-      // Upload to user's Google Drive
-      const result = await uploadToDrive(file, 'שיפוץ-קבצים');
+      // Get project members' emails for sharing
+      let memberEmails: string[] = [];
+      if (project && projectId) {
+        try {
+          const usersSnapshot = await getDocs(
+            query(collection(db, 'projectUsers'), where('projectId', '==', projectId))
+          );
+          memberEmails = usersSnapshot.docs
+            .map(doc => doc.data().userEmail)
+            .filter(email => email && email !== user?.email); // Exclude current user
+        } catch (error) {
+          console.error('Error fetching project members:', error);
+        }
+      }
+
+      // Upload to user's Google Drive and share with project members
+      const result = await uploadToDrive(file, 'שיפוץ-קבצים', memberEmails);
       
       // Store the file data with both view and download links
       const fileData = {
@@ -736,7 +751,8 @@ export default function VendorsPage() {
         setPaymentFormData({ ...paymentFormData, receiptUrl: JSON.stringify(fileData) });
       }
 
-      alert('הקובץ הועלה בהצלחה ל-Google Drive שלך!');
+      const sharedWith = memberEmails.length > 0 ? ` ושותף עם ${memberEmails.length} חברים` : '';
+      alert(`הקובץ הועלה בהצלחה ל-Google Drive שלך${sharedWith}!`);
     } catch (error) {
       console.error('Error uploading to Drive:', error);
       alert('שגיאה בהעלאת הקובץ ל-Google Drive');

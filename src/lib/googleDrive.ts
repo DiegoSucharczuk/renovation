@@ -38,10 +38,11 @@ export const requestDriveAccess = async (): Promise<boolean> => {
   }
 };
 
-// Upload file to user's Google Drive
+// Upload file to user's Google Drive and share with project members
 export const uploadToDrive = async (
   file: File,
-  folder: string = 'שיפוץ-קבצים'
+  folder: string = 'שיפוץ-קבצים',
+  userEmails?: string[] // Optional: emails of users to share with
 ): Promise<{ id: string; webViewLink: string; webContentLink: string }> => {
   try {
     const user = auth.currentUser;
@@ -81,6 +82,12 @@ export const uploadToDrive = async (
     }
 
     const data = await response.json();
+    
+    // Share with project members if emails provided
+    if (userEmails && userEmails.length > 0) {
+      await shareFileWithUsers(data.id, userEmails, token);
+    }
+    
     return data;
   } catch (error) {
     console.error('Error uploading to Drive:', error);
@@ -214,6 +221,49 @@ export const fetchFileAsBlob = async (fileId: string): Promise<string> => {
     return URL.createObjectURL(blob);
   } catch (error) {
     console.error('Error fetching file as blob:', error);
+    throw error;
+  }
+};
+
+// Share file with multiple users
+export const shareFileWithUsers = async (
+  fileId: string,
+  userEmails: string[],
+  token?: string
+): Promise<void> => {
+  try {
+    const accessToken = token || await getAccessToken();
+    
+    // Share with each user
+    for (const email of userEmails) {
+      try {
+        const permission = {
+          type: 'user',
+          role: 'reader', // Can view but not edit
+          emailAddress: email,
+        };
+
+        const response = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(permission),
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`Failed to share with ${email}:`, response.statusText);
+        }
+      } catch (error) {
+        console.error(`Error sharing with ${email}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error('Error sharing file:', error);
     throw error;
   }
 };
