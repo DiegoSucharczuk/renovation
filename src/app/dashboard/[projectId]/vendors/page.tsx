@@ -758,6 +758,14 @@ export default function VendorsPage() {
         downloadUrl: result.webContentLink, // For downloading
       };
 
+      // Load blob URL immediately after upload
+      try {
+        const blobUrl = await fetchFileAsBlob(result.id);
+        setImageBlobUrls(prev => ({ ...prev, [result.id]: blobUrl }));
+      } catch (error) {
+        console.error('Error loading blob URL after upload:', error);
+      }
+
       // Update form data based on type
       if (type === 'logo') {
         setVendorFormData({ ...vendorFormData, logoUrl: JSON.stringify(fileData) });
