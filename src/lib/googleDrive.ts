@@ -3,16 +3,48 @@
 
 import { auth } from './firebase';
 
-// Store OAuth Access Token (in memory - not persisted)
+const DRIVE_TOKEN_KEY = 'drive_access_token';
+
+// Store OAuth Access Token (persisted in localStorage)
 let cachedAccessToken: string | null = null;
+
+// Load token from localStorage on module initialization
+if (typeof window !== 'undefined') {
+  const savedToken = localStorage.getItem(DRIVE_TOKEN_KEY);
+  if (savedToken) {
+    cachedAccessToken = savedToken;
+    console.log('Drive access token loaded from storage');
+  }
+}
 
 // Set the OAuth Access Token (called after Google Sign-In)
 export const setDriveAccessToken = (token: string) => {
   cachedAccessToken = token;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(DRIVE_TOKEN_KEY, token);
+  }
+  console.log('Drive access token stored successfully');
+};
+
+// Clear the OAuth Access Token (called on sign out)
+export const clearDriveAccessToken = () => {
+  cachedAccessToken = null;
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(DRIVE_TOKEN_KEY);
+  }
+  console.log('Drive access token cleared');
 };
 
 // Get the stored Access Token
 const getAccessToken = async (): Promise<string> => {
+  // Try to load from localStorage if not in memory
+  if (!cachedAccessToken && typeof window !== 'undefined') {
+    const savedToken = localStorage.getItem(DRIVE_TOKEN_KEY);
+    if (savedToken) {
+      cachedAccessToken = savedToken;
+    }
+  }
+  
   if (cachedAccessToken) {
     return cachedAccessToken;
   }
