@@ -212,19 +212,6 @@ export default function AdminPage() {
       // Pending users = invitations that haven't been accepted yet (in pendingInvitations collection)
       const activeUsersCount = usersData.length;
       const pendingUsersCount = pendingInvitationsData.length;
-      
-      console.log('User stats:', {
-        registered: usersData.length,
-        pendingInvitations: pendingInvitationsData.length,
-        users: usersData.map(u => ({
-          email: u.email,
-          createdAt: u.createdAt,
-        })),
-        invitations: pendingInvitationsData.map(inv => ({
-          email: inv.email,
-          createdAt: inv.createdAt,
-        }))
-      });
 
       setStats({
         totalProjects: projectsData.length,
@@ -285,85 +272,85 @@ export default function AdminPage() {
 
       <TabPanel value={tabValue} index={0}>
         <Typography variant="h6" gutterBottom>סטטיסטיקות כלליות</Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 2 }}>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 סה"כ פרויקטים
               </Typography>
-              <Typography variant="h4" component="div">
+              <Typography variant="h5" component="div">
                 {stats.totalProjects}
               </Typography>
             </CardContent>
           </Card>
           <Card sx={{ backgroundColor: '#e8f5e9' }}>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 פרויקטים פעילים
               </Typography>
-              <Typography variant="h4" component="div" color="success.main">
+              <Typography variant="h5" component="div" color="success.main">
                 {stats.activeProjects}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
                 עדכון ב-30 הימים האחרונים
               </Typography>
             </CardContent>
           </Card>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 משתמשים רשומים
               </Typography>
-              <Typography variant="h4" component="div">
+              <Typography variant="h5" component="div">
                 {stats.activeUsers}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
                 נרשמו למערכת
               </Typography>
             </CardContent>
           </Card>
           <Card sx={{ backgroundColor: '#fff3e0' }}>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 הזמנות ממתינות
               </Typography>
-              <Typography variant="h4" component="div" color="warning.main">
+              <Typography variant="h5" component="div" color="warning.main">
                 {stats.pendingUsers}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
                 טרם התקבלו
               </Typography>
             </CardContent>
           </Card>
           <Card sx={{ backgroundColor: '#e3f2fd' }}>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 חברי צוות בפרויקטים
               </Typography>
-              <Typography variant="h4" component="div" color="info.main">
+              <Typography variant="h5" component="div" color="info.main">
                 {stats.activeProjectUsers}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
                 משוייכים לפרויקטים
               </Typography>
             </CardContent>
           </Card>
           <Card sx={{ backgroundColor: '#f3e5f5' }}>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 תקציב כולל
               </Typography>
-              <Typography variant="h4" component="div" color="warning.main">
+              <Typography variant="h5" component="div" color="warning.main">
                 ₪{stats.totalBudget.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
           <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 ספקים וקבלנים
               </Typography>
-              <Typography variant="h4" component="div">
+              <Typography variant="h5" component="div">
                 {stats.totalVendors}
               </Typography>
             </CardContent>
@@ -456,7 +443,7 @@ export default function AdminPage() {
 
       <TabPanel value={tabValue} index={2}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h6">כל המשתמשים</Typography>
+          <Typography variant="h6">כל המשתמשים והזמנות</Typography>
           <TextField
             size="small"
             placeholder="חיפוש משתמש..."
@@ -475,13 +462,15 @@ export default function AdminPage() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>סטטוס</TableCell>
                 <TableCell>שם</TableCell>
                 <TableCell>אימייל</TableCell>
-                <TableCell>תאריך הצטרפות</TableCell>
+                <TableCell>תאריך</TableCell>
                 <TableCell>פרויקטים</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
+              {/* Registered Users */}
               {users
                 .filter(u => 
                   searchTerm === '' || 
@@ -500,6 +489,13 @@ export default function AdminPage() {
                   
                   return (
                     <TableRow key={user.id}>
+                      <TableCell>
+                        <Chip 
+                          label="פעיל" 
+                          color="success"
+                          size="small"
+                        />
+                      </TableCell>
                       <TableCell>
                         <Typography fontWeight="medium">{user.name || 'לא ידוע'}</Typography>
                       </TableCell>
@@ -531,10 +527,54 @@ export default function AdminPage() {
                     </TableRow>
                   );
                 })}
+              
+              {/* Pending Invitations */}
+              {pendingInvitations
+                .filter(inv => 
+                  searchTerm === '' || 
+                  inv.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((invitation) => {
+                  // מצא את שם הפרויקט
+                  const project = projects.find(p => p.id === invitation.projectId);
+                  
+                  return (
+                    <TableRow key={invitation.id} sx={{ bgcolor: '#fff3e0' }}>
+                      <TableCell>
+                        <Chip 
+                          label="ממתין" 
+                          color="warning"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography fontWeight="medium" color="text.secondary">
+                          טרם נרשם
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{invitation.email}</TableCell>
+                      <TableCell>
+                        <Typography variant="caption">
+                          {invitation.createdAt?.toLocaleDateString('he-IL')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {project && (
+                          <Chip 
+                            label={project.name} 
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         </TableContainer>
-        {users.length === 0 && (
+        {users.length === 0 && pendingInvitations.length === 0 && (
           <Box textAlign="center" py={4}>
             <Typography color="text.secondary">אין משתמשים במערכת</Typography>
           </Box>
