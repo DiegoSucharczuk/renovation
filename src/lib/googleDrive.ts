@@ -3,6 +3,24 @@
 
 import { auth } from './firebase';
 
+// Store OAuth Access Token (in memory - not persisted)
+let cachedAccessToken: string | null = null;
+
+// Set the OAuth Access Token (called after Google Sign-In)
+export const setDriveAccessToken = (token: string) => {
+  cachedAccessToken = token;
+};
+
+// Get the stored Access Token
+const getAccessToken = async (): Promise<string> => {
+  if (cachedAccessToken) {
+    return cachedAccessToken;
+  }
+  
+  // If no token, user needs to sign in again with Drive scope
+  throw new Error('No Drive access token. Please sign in again.');
+};
+
 // Request Google Drive permission from user
 export const requestDriveAccess = async (): Promise<boolean> => {
   try {
@@ -11,12 +29,9 @@ export const requestDriveAccess = async (): Promise<boolean> => {
       throw new Error('User not authenticated');
     }
 
-    // Check if user already has drive scope
-    const token = await user.getIdToken();
-    
-    // For new auth flow with Drive scope, we need to re-authenticate
-    // This will show Google's consent screen
-    return true;
+    // Check if we have an access token
+    const hasToken = cachedAccessToken !== null;
+    return hasToken;
   } catch (error) {
     console.error('Error requesting drive access:', error);
     return false;
@@ -34,7 +49,7 @@ export const uploadToDrive = async (
       throw new Error('User not authenticated');
     }
 
-    const token = await user.getIdToken();
+    const token = await getAccessToken();
 
     // Create folder if doesn't exist
     const folderId = await getOrCreateFolder(folder, token);
@@ -126,7 +141,7 @@ export const deleteFromDrive = async (fileId: string): Promise<void> => {
       throw new Error('User not authenticated');
     }
 
-    const token = await user.getIdToken();
+    const token = await getAccessToken();
 
     const response = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}`,
@@ -155,7 +170,7 @@ export const getFileInfo = async (fileId: string) => {
       throw new Error('User not authenticated');
     }
 
-    const token = await user.getIdToken();
+    const token = await getAccessToken();
 
     const response = await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,webViewLink,webContentLink,thumbnailLink`,

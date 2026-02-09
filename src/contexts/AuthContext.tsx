@@ -5,6 +5,7 @@ import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, s
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User } from '@/types';
+import { setDriveAccessToken } from '@/lib/googleDrive';
 
 interface AuthContextType {
   user: User | null;
@@ -73,6 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
+
+    // Get the OAuth Access Token from the credential
+    const credential = GoogleAuthProvider.credentialFromResult(userCredential);
+    if (credential?.accessToken) {
+      // Store the access token for Drive API calls
+      setDriveAccessToken(credential.accessToken);
+      console.log('Drive access token stored successfully');
+    }
 
     // Check if user document exists, if not create it
     const userDoc = await getDoc(doc(db, 'users', user.uid));
