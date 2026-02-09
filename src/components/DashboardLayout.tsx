@@ -44,13 +44,18 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, projectId, project }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { signOut, user, firebaseUser } = useAuth();
   const { permissions } = useProjectRole(projectId, firebaseUser?.uid || null);
   const router = useRouter();
   const pathname = usePathname();
   
-  // Calculate settingsOpen directly from pathname, no state needed
-  const settingsOpen = pathname?.includes('/settings') || false;
+  // Open settings if we're on a settings page
+  useEffect(() => {
+    if (pathname?.includes('/settings')) {
+      setSettingsOpen(true);
+    }
+  }, [pathname]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -94,7 +99,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
         {permissions?.canManageUsers && (
           <>
             <ListItem disablePadding>
-              <ListItemButton>
+              <ListItemButton onClick={() => setSettingsOpen(!settingsOpen)}>
                 <ListItemIcon><SettingsIcon /></ListItemIcon>
                 <ListItemText primary="הגדרות" />
                 {settingsOpen ? <ExpandLess /> : <ExpandMore />}
