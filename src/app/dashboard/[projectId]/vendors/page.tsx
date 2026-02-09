@@ -2237,7 +2237,10 @@ export default function VendorsPage() {
                     <Box display="flex" alignItems="center" gap={1}>
                       <AttachFileIcon color="primary" />
                       <Typography variant="body2">
-                        {selectedVendorForFiles.contractFileUrl.split('/').pop()}
+                        {(() => {
+                          const fileData = parseFileData(selectedVendorForFiles.contractFileUrl!);
+                          return fileData?.name || 'חוזה';
+                        })()}
                       </Typography>
                     </Box>
                   </Card>
@@ -2287,7 +2290,10 @@ export default function VendorsPage() {
                                     חשבונית: {payment.invoiceDescription || 'ללא תיאור'}
                                   </Typography>
                                   <Typography variant="caption" display="block" color="text.secondary">
-                                    {payment.invoiceUrl.split('/').pop()}
+                                    {(() => {
+                                      const fileData = parseFileData(payment.invoiceUrl);
+                                      return fileData?.name || 'חשבונית';
+                                    })()}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -2316,7 +2322,10 @@ export default function VendorsPage() {
                                     קבלה: {payment.receiptDescription || 'ללא תיאור'}
                                   </Typography>
                                   <Typography variant="caption" display="block" color="text.secondary">
-                                    {payment.receiptUrl.split('/').pop()}
+                                    {(() => {
+                                      const fileData = parseFileData(payment.receiptUrl);
+                                      return fileData?.name || 'קבלה';
+                                    })()}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -2367,7 +2376,7 @@ export default function VendorsPage() {
               {viewingFile?.type === 'invoice' ? '📄 חשבונית' : viewingFile?.type === 'receipt' ? '✅ קבלה' : '📋 חוזה'}
             </Typography>
             <IconButton onClick={() => setOpenFileViewerDialog(false)} size="small">
-              <DeleteIcon />
+              <CloseIcon />
             </IconButton>
           </Box>
         </DialogTitle>
@@ -2391,7 +2400,10 @@ export default function VendorsPage() {
                       <Box>
                         <Typography variant="caption" color="text.secondary">שם הקובץ</Typography>
                         <Typography variant="body2" fontFamily="monospace">
-                          {viewingFile.url.split('/').pop()}
+                          {(() => {
+                            const fileData = parseFileData(viewingFile.url);
+                            return fileData?.name || 'חוזה';
+                          })()}
                         </Typography>
                       </Box>
                       
@@ -2466,7 +2478,10 @@ export default function VendorsPage() {
                       <Box>
                         <Typography variant="caption" color="text.secondary">שם הקובץ</Typography>
                         <Typography variant="body2" fontFamily="monospace">
-                          {viewingFile.url.split('/').pop()}
+                          {(() => {
+                            const fileData = parseFileData(viewingFile.url);
+                            return fileData?.name || (viewingFile.type === 'invoice' ? 'חשבונית' : 'קבלה');
+                          })()}
                         </Typography>
                       </Box>
                       
@@ -2499,12 +2514,14 @@ export default function VendorsPage() {
                               </Typography>
                             </Box>
                             <Box flex={1}>
-                              <Typography variant="caption" color="text.secondary">סטטוס</Typography>
-                              <Chip 
-                                label={viewingFile.payment.status} 
-                                size="small"
-                                color={paymentStatuses.find(s => s.value === viewingFile.payment!.status)?.color}
-                              />
+                              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>סטטוס</Typography>
+                              <Box>
+                                <Chip 
+                                  label={viewingFile.payment.status} 
+                                  size="small"
+                                  color={paymentStatuses.find(s => s.value === viewingFile.payment!.status)?.color}
+                                />
+                              </Box>
                             </Box>
                           </Box>
                           
