@@ -72,6 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Add Google Drive scope for file storage
     provider.addScope('https://www.googleapis.com/auth/drive.file');
     
+    // Force account selection every time (allows switching between accounts)
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
 
