@@ -718,13 +718,24 @@ export default function VendorsPage() {
       let memberEmails: string[] = [];
       if (project && projectId) {
         try {
+          // Get project owner email
+          const allUserIds: string[] = [];
+          if (project.ownerId) {
+            allUserIds.push(project.ownerId);
+          }
+          
+          // Get project members from projectUsers collection
           const usersSnapshot = await getDocs(
             query(collection(db, 'projectUsers'), where('projectId', '==', projectId))
           );
+          const memberUserIds = usersSnapshot.docs.map(doc => doc.data().userId).filter(Boolean);
+          allUserIds.push(...memberUserIds);
+          
+          // Remove duplicates
+          const uniqueUserIds = Array.from(new Set(allUserIds));
           
           // Get emails from users collection using userId
-          const userIds = usersSnapshot.docs.map(doc => doc.data().userId).filter(Boolean);
-          const emailPromises = userIds.map(async (userId) => {
+          const emailPromises = uniqueUserIds.map(async (userId) => {
             const userDoc = await getDoc(doc(db, 'users', userId));
             return userDoc.exists() ? userDoc.data().email : null;
           });
