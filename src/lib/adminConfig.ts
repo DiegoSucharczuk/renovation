@@ -2,7 +2,7 @@
 // כדי להוסיף מנהל חדש, הוסף את האימייל שלו לרשימה
 
 export const SUPER_ADMINS = [
-  'diego.sucharczuk@gmail.com', // מנהל ראשי
+  'diegosh@gmail.com', // מנהל ראשי
   // הוסף כאן אימיילים נוספים של מנהלים
 ];
 
