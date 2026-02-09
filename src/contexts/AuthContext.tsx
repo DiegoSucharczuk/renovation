@@ -98,10 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    // Clear Drive access token from localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('drive_access_token');
-    }
     await firebaseSignOut(auth);
   };
 

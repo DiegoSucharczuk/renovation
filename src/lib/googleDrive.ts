@@ -1,56 +1,53 @@
 // Google Drive Integration for File Storage
 // Files are stored in the user's personal Google Drive
+// Security: Token stored in memory only (not localStorage) with short TTL
 
 import { auth } from './firebase';
+import { GoogleAuthProvider } from 'firebase/auth';
 
-const DRIVE_TOKEN_KEY = 'drive_access_token';
+// In-memory token cache with expiration
+let cachedToken: { token: string; expiresAt: number } | null = null;
 
-// Store OAuth Access Token (persisted in localStorage)
-let cachedAccessToken: string | null = null;
-
-// Load token from localStorage on module initialization
-if (typeof window !== 'undefined') {
-  const savedToken = localStorage.getItem(DRIVE_TOKEN_KEY);
-  if (savedToken) {
-    cachedAccessToken = savedToken;
-    console.log('Drive access token loaded from storage');
+// Get Access Token with in-memory caching (expires after 50 minutes)
+const getAccessToken = async (): Promise<string> => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('User not authenticated');
   }
-}
+
+  // Check if we have a valid cached token
+  if (cachedToken && Date.now() < cachedToken.expiresAt) {
+    return cachedToken.token;
+  }
+
+  // Check if user has Google provider
+  const googleProvider = user.providerData.find(
+    provider => provider.providerId === GoogleAuthProvider.PROVIDER_ID
+  );
+  
+  if (!googleProvider) {
+    throw new Error('Please sign in with Google to use file uploads');
+  }
+
+  // If no valid token, user needs to sign in again
+  throw new Error('Drive access expired. Please sign out and sign in again with Google.');
+};
 
 // Set the OAuth Access Token (called after Google Sign-In)
+// Token is cached in memory only (not localStorage) for security
+// Expires after 50 minutes (Google tokens expire after 1 hour)
 export const setDriveAccessToken = (token: string) => {
-  cachedAccessToken = token;
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(DRIVE_TOKEN_KEY, token);
-  }
-  console.log('Drive access token stored successfully');
+  cachedToken = {
+    token,
+    expiresAt: Date.now() + 50 * 60 * 1000 // 50 minutes
+  };
+  console.log('Drive access token cached securely (in-memory only, 50min TTL)');
 };
 
 // Clear the OAuth Access Token (called on sign out)
 export const clearDriveAccessToken = () => {
-  cachedAccessToken = null;
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(DRIVE_TOKEN_KEY);
-  }
-  console.log('Drive access token cleared');
-};
-
-// Get the stored Access Token
-const getAccessToken = async (): Promise<string> => {
-  // Try to load from localStorage if not in memory
-  if (!cachedAccessToken && typeof window !== 'undefined') {
-    const savedToken = localStorage.getItem(DRIVE_TOKEN_KEY);
-    if (savedToken) {
-      cachedAccessToken = savedToken;
-    }
-  }
-  
-  if (cachedAccessToken) {
-    return cachedAccessToken;
-  }
-  
-  // If no token, user needs to sign in again with Drive scope
-  throw new Error('No Drive access token. Please sign in again.');
+  cachedToken = null;
+  console.log('Drive access cleared');
 };
 
 // Request Google Drive permission from user
@@ -61,8 +58,8 @@ export const requestDriveAccess = async (): Promise<boolean> => {
       throw new Error('User not authenticated');
     }
 
-    // Check if we have an access token
-    const hasToken = cachedAccessToken !== null;
+    // Check if we have a valid access token
+    const hasToken = cachedToken !== null && Date.now() < cachedToken.expiresAt;
     return hasToken;
   } catch (error) {
     console.error('Error requesting drive access:', error);
