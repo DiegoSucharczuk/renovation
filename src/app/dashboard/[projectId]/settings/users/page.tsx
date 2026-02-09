@@ -611,35 +611,49 @@ export default function UsersManagementPage() {
         </Dialog>
 
         {/* Invitation Link Dialog */}
-        <Dialog open={showInvitationDialog} onClose={() => setShowInvitationDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>קישור הזמנה נוצר בהצלחה</DialogTitle>
+        <Dialog 
+          open={showInvitationDialog} 
+          onClose={() => setShowInvitationDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>הזמנה נשלחה בהצלחה! 🎉</DialogTitle>
           <DialogContent>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              המשתמש לא קיים במערכת. שלח לו את הקישור הבא להרשמה:
+            <Alert severity="success" sx={{ mb: 2 }}>
+              משתמש זה עדיין לא רשום במערכת. נוצרה הזמנה עבורו.
             </Alert>
+            <Typography variant="body2" gutterBottom sx={{ mb: 2 }}>
+              העתק את הלינק הבא ושלח למשתמש. כשיירשם באמצעות הלינק, הוא יתווסף אוטומטית לפרויקט עם התפקיד שנבחר.
+            </Typography>
             <TextField
               fullWidth
               value={invitationLink}
+              multiline
+              rows={3}
               InputProps={{
                 readOnly: true,
               }}
-              multiline
-              rows={3}
+              sx={{ mb: 2, fontFamily: 'monospace' }}
             />
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => {
+                navigator.clipboard.writeText(invitationLink);
+                setSuccessMessage('הלינק הועתק ללוח!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+              }}
+            >
+              📋 העתק לינק
+            </Button>
+            {successMessage && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {successMessage}
+              </Alert>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setShowInvitationDialog(false)}>סגור</Button>
-            <Button 
-              onClick={() => {
-                navigator.clipboard.writeText(invitationLink);
-                setSuccessMessage('הקישור הועתק ללוח');
-                setShowInvitationDialog(false);
-              }} 
-              variant="contained"
-              startIcon={<ContentCopyIcon />}
-            >
-              העתק
-            </Button>
           </DialogActions>
         </Dialog>
       </Box>

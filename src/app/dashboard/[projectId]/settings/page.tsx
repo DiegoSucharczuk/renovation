@@ -16,8 +16,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Paper,
-  Stack,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -160,7 +158,7 @@ export default function ProjectSettingsPage() {
             sx={{ backgroundColor: '#f5f5f5' }}
           >
             <Typography variant="h5" fontWeight="bold">
-              📋 מידע על הפרויקט
+              📋 שינוי מידע על הפרויקט
             </Typography>
           </AccordionSummary>
           <AccordionDetails sx={{ p: 3 }}>
@@ -169,52 +167,61 @@ export default function ProjectSettingsPage() {
                 <Button
                   variant="contained"
                   startIcon={<EditIcon />}
-                  onClick={() => setOpenProjectDialog(true)}
+                  onClick={() => {
+                    setOpenProjectDialog(true);
+                    setError('');
+                  }}
                 >
                   ערוך פרטי פרויקט
                 </Button>
               )}
             </Box>
-            
-            <Stack spacing={3}>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+              <Box sx={{ p: 2, backgroundColor: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="bold">
                   שם הפרויקט
                 </Typography>
-                <Typography variant="body1" fontWeight="medium">
+                <Typography variant="h6" fontWeight="medium" mt={0.5}>
                   {project?.name}
                 </Typography>
               </Box>
-
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
+              <Box sx={{ p: 2, backgroundColor: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="bold">
                   כתובת
                 </Typography>
-                <Typography variant="body1" fontWeight="medium">
+                <Typography variant="body1" mt={0.5}>
                   {project?.address}
                 </Typography>
               </Box>
-
-              <Box display="flex" gap={4}>
-                <Box flex={1}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    תקציב מתוכנן
-                  </Typography>
-                  <Typography variant="body1" fontWeight="medium">
-                    ₪{project?.budgetPlanned.toLocaleString()}
-                  </Typography>
-                </Box>
-
-                <Box flex={1}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    אחוז חריגה מותר
-                  </Typography>
-                  <Typography variant="body1" fontWeight="medium">
-                    {project?.budgetAllowedOverflowPercent}%
-                  </Typography>
-                </Box>
+              <Box sx={{ p: 2, backgroundColor: '#e8f5e9', border: '1px solid #4caf50', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  תקציב מתוכנן
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" color="success.main" mt={0.5}>
+                  ₪{project?.budgetPlanned.toLocaleString()}
+                </Typography>
               </Box>
-            </Stack>
+              <Box sx={{ p: 2, backgroundColor: '#fff3e0', border: '1px solid #ff9800', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  אחוז חריגה מותר
+                </Typography>
+                <Typography variant="h6" fontWeight="bold" color="warning.main" mt={0.5}>
+                  {project?.budgetAllowedOverflowPercent}%
+                </Typography>
+              </Box>
+              <Box sx={{ p: 2, backgroundColor: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                  תאריך יצירה
+                </Typography>
+                <Typography variant="body1" mt={0.5}>
+                  {project?.createdAt.toLocaleDateString('he-IL', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </Typography>
+              </Box>
+            </Box>
           </AccordionDetails>
         </Accordion>
 
