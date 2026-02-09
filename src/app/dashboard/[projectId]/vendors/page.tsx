@@ -665,6 +665,13 @@ export default function VendorsPage() {
   };
 
   const handleDeleteFile = async (url: string, type: 'logo' | 'contract' | 'invoice' | 'receipt') => {
+    console.log('handleDeleteFile called with:', { url, type });
+    
+    if (!url) {
+      alert('לא נמצא URL של הקובץ למחיקה');
+      return;
+    }
+    
     if (!confirm('האם אתה בטוח שברצונך למחוק קובץ זה?')) return;
 
     try {
@@ -714,7 +721,8 @@ export default function VendorsPage() {
       alert('הקובץ נמחק בהצלחה');
     } catch (error) {
       console.error('Error deleting file:', error);
-      alert('שגיאה במחיקת הקובץ: ' + (error as Error).message);
+      const errorMessage = (error as any).message || 'שגיאה לא ידועה';
+      alert('שגיאה במחיקת הקובץ: ' + errorMessage);
     }
   };
 
@@ -1170,7 +1178,7 @@ export default function VendorsPage() {
                     <Box display="flex" gap={1} alignItems="center">
                       <Avatar src={vendorFormData.logoUrl} sx={{ width: 40, height: 40 }} />
                       <Chip
-                        label={vendorFormData.logoUrl.split('/').pop()}
+                        label={decodeURIComponent(vendorFormData.logoUrl.split('/').pop()?.split('?')[0] || 'לוגו')}
                         onDelete={() => handleDeleteFile(vendorFormData.logoUrl, 'logo')}
                         size="small"
                       />
@@ -1203,7 +1211,7 @@ export default function VendorsPage() {
                   </Button>
                   {vendorFormData.contractFileUrl && (
                     <Chip
-                      label={vendorFormData.contractFileUrl.split('/').pop()}
+                      label={decodeURIComponent(vendorFormData.contractFileUrl.split('/').pop()?.split('?')[0] || 'חוזה')}
                       onDelete={() => handleDeleteFile(vendorFormData.contractFileUrl, 'contract')}
                       size="small"
                       icon={<AttachFileIcon />}
@@ -1870,7 +1878,7 @@ export default function VendorsPage() {
                   </Button>
                   {paymentFormData.invoiceUrl && (
                     <Chip
-                      label={paymentFormData.invoiceUrl.split('/').pop()}
+                      label={decodeURIComponent(paymentFormData.invoiceUrl.split('/').pop()?.split('?')[0] || 'חשבונית')}
                       onDelete={() => handleDeleteFile(paymentFormData.invoiceUrl, 'invoice')}
                       size="small"
                     />
@@ -1911,7 +1919,7 @@ export default function VendorsPage() {
                   </Button>
                   {paymentFormData.receiptUrl && (
                     <Chip
-                      label={paymentFormData.receiptUrl.split('/').pop()}
+                      label={decodeURIComponent(paymentFormData.receiptUrl.split('/').pop()?.split('?')[0] || 'קבלה')}
                       onDelete={() => handleDeleteFile(paymentFormData.receiptUrl, 'receipt')}
                       size="small"
                     />
