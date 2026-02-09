@@ -36,8 +36,14 @@ export default function ProjectsPage() {
   const [projectActiveUsers, setProjectActiveUsers] = useState<Record<string, { active: number; pending: number }>>({});
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState('');
+  const [isClient, setIsClient] = useState(false);
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
+
+  // Mount effect
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Debug: בדיקה אם המשתמש הוא super admin
   useEffect(() => {
@@ -155,10 +161,22 @@ export default function ProjectsPage() {
   }, [user, router, authLoading]);
 
   // Show loading only while auth is loading, not while fetching projects
-  if (authLoading) {
+  if (!isClient || authLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
+      <Box 
+        display="flex" 
+        flexDirection="column"
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="100vh"
+        sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        }}
+      >
+        <CircularProgress size={60} sx={{ color: 'white' }} />
+        <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+          טוען...
+        </Typography>
       </Box>
     );
   }
@@ -404,6 +422,7 @@ export default function ProjectsPage() {
         {projectsLoading && projects.length === 0 && (
           <Box 
             display="flex" 
+            flexDirection="column"
             justifyContent="center" 
             alignItems="center" 
             sx={{ 
@@ -413,7 +432,10 @@ export default function ProjectsPage() {
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <CircularProgress />
+            <CircularProgress size={50} />
+            <Typography variant="body1" sx={{ mt: 2, color: 'text.secondary' }}>
+              טוען פרויקטים...
+            </Typography>
           </Box>
         )}
       </Container>

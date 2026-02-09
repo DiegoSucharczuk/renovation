@@ -59,6 +59,7 @@ export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -76,6 +77,10 @@ export default function AdminPage() {
     totalVendors: 0,
     totalBudget: 0,
   });
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -231,11 +236,20 @@ export default function AdminPage() {
     }
   };
 
-  if (loading) {
+  if (!isClient || loading) {
     return (
       <Container>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-          <CircularProgress />
+        <Box 
+          display="flex" 
+          flexDirection="column"
+          justifyContent="center" 
+          alignItems="center" 
+          minHeight="100vh"
+        >
+          <CircularProgress size={60} color="primary" />
+          <Typography variant="h6" sx={{ mt: 2, color: 'text.secondary' }}>
+            טוען נתונים...
+          </Typography>
         </Box>
       </Container>
     );
@@ -507,7 +521,7 @@ export default function AdminPage() {
                       </TableCell>
                       <TableCell>
                         {userProjects.length > 0 ? (
-                          <Stack direction="column" spacing={0.5}>
+                          <Box display="flex" flexDirection="column" gap={0.5}>
                             {userProjects.map(p => (
                               <Chip 
                                 key={p.id}
@@ -516,10 +530,10 @@ export default function AdminPage() {
                                 color="primary"
                                 variant="outlined"
                                 onClick={() => router.push(`/dashboard/${p.id}`)}
-                                sx={{ cursor: 'pointer' }}
+                                sx={{ cursor: 'pointer', width: 'fit-content' }}
                               />
                             ))}
-                          </Stack>
+                          </Box>
                         ) : (
                           <Typography variant="caption" color="text.secondary">אין פרויקטים</Typography>
                         )}
@@ -565,6 +579,7 @@ export default function AdminPage() {
                             size="small"
                             color="warning"
                             variant="outlined"
+                            sx={{ width: 'fit-content' }}
                           />
                         )}
                       </TableCell>
