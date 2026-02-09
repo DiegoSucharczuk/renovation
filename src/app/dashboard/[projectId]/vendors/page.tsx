@@ -721,9 +721,16 @@ export default function VendorsPage() {
           const usersSnapshot = await getDocs(
             query(collection(db, 'projectUsers'), where('projectId', '==', projectId))
           );
-          memberEmails = usersSnapshot.docs
-            .map(doc => doc.data().userEmail)
-            .filter(email => email && email !== user?.email); // Exclude current user
+          
+          // Get emails from users collection using userId
+          const userIds = usersSnapshot.docs.map(doc => doc.data().userId).filter(Boolean);
+          const emailPromises = userIds.map(async (userId) => {
+            const userDoc = await getDoc(doc(db, 'users', userId));
+            return userDoc.exists() ? userDoc.data().email : null;
+          });
+          
+          const emails = await Promise.all(emailPromises);
+          memberEmails = emails.filter(email => email && email !== user?.email) as string[]; // Exclude current user
         } catch (error) {
           console.error('Error fetching project members:', error);
         }
