@@ -63,6 +63,7 @@ export default function AdminPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [projectUsers, setProjectUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -116,6 +117,11 @@ export default function AdminPage() {
         createdAt: doc.data().createdAt?.toDate() || new Date(),
       }));
       setVendors(vendorsData);
+
+      // Fetch all project users
+      const projectUsersSnapshot = await getDocsFromServer(collection(db, 'projectUsers'));
+      const projectUsersData = projectUsersSnapshot.docs.map(doc => doc.data());
+      setProjectUsers(projectUsersData);
 
       // Calculate stats
       const now = new Date();
@@ -268,7 +274,6 @@ export default function AdminPage() {
                 <TableCell>תאריך יצירה</TableCell>
                 <TableCell>עדכון אחרון</TableCell>
                 <TableCell>סטטוס</TableCell>
-                <TableCell align="left">פעולות</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -280,12 +285,16 @@ export default function AdminPage() {
                 )
                 .map((project) => {
                   const projectData = project as any;
-                  const updatedAt = projectData.updatedAt || project.createdAt;
+                  const updatedAt = projectData.updatedAt ? new Date(projectData.updatedAt.seconds * 1000) : project.createdAt;
                   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
                   const isActive = updatedAt >= thirtyDaysAgo;
                   
                   return (
-                    <TableRow key={project.id}>
+                    <TableRow 
+                      key={project.id}
+                      onClick={() => router.push(`/dashboard/${project.id}`)}
+                      sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' } }}
+                    >
                       <TableCell>
                         <Typography fontWeight="medium">{project.name}</Typography>
                       </TableCell>
@@ -307,14 +316,6 @@ export default function AdminPage() {
                           color={isActive ? 'success' : 'default'}
                           size="small"
                         />
-                      </TableCell>
-                      <TableCell align="left">
-                        <IconButton
-                          size="small"
-                          onClick={() => router.push(`/dashboard/${project.id}`)}
-                        >
-                          <VisibilityIcon />
-                        </IconButton>
                       </TableCell>
                     </TableRow>
                   );
@@ -353,7 +354,7 @@ export default function AdminPage() {
                 <TableCell>שם</TableCell>
                 <TableCell>אימייל</TableCell>
                 <TableCell>תאריך הצטרפות</TableCell>
-                <TableCell>מספר פרויקטים</TableCell>
+                <TableCell>פרויקטים</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -363,26 +364,49 @@ export default function AdminPage() {
                   u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   u.email?.toLowerCase().includes(searchTerm.toLowerCase())
                 )
-                .map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <Typography fontWeight="medium">{user.name || 'לא ידוע'}</Typography>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Typography variant="caption">
-                        {user.createdAt?.toLocaleDateString('he-IL')}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={projects.filter(p => p.ownerId === user.id).length} 
-                        size="small"
-                        color="primary"
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                .map((user) => {
+                  // מצא פרויקטים שהמשתמש בעלים או חבר בהם
+                  const userProjects = projects.filter(p => {
+                    // בעל הפרויקט
+                    if (p.ownerId === user.id) return true;
+                    // חבר בפרויקט
+                    const isMember = projectUsers.some(pu => pu.userId === user.id && pu.projectId === p.id);
+                    return isMember;
+                  });
+                  
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <Typography fontWeight="medium">{user.name || 'לא ידוע'}</Typography>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Typography variant="caption">
+                          {user.createdAt?.toLocaleDateString('he-IL')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {userProjects.length > 0 ? (
+                          <Stack direction="column" spacing={0.5}>
+                            {userProjects.map(p => (
+                              <Chip 
+                                key={p.id}
+                                label={p.name} 
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                onClick={() => router.push(`/dashboard/${p.id}`)}
+                                sx={{ cursor: 'pointer' }}
+                              />
+                            ))}
+                          </Stack>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">אין פרויקטים</Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -417,7 +441,7 @@ export default function AdminPage() {
                 <TableCell>שם</TableCell>
                 <TableCell>טלפון</TableCell>
                 <TableCell>אימייל</TableCell>
-                <TableCell>מקצוע</TableCell>
+                <TableCell>קטגוריה</TableCell>
                 <TableCell>פרויקט</TableCell>
               </TableRow>
             </TableHead>
@@ -426,7 +450,7 @@ export default function AdminPage() {
                 .filter(v => 
                   searchTerm === '' || 
                   v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  v.profession?.toLowerCase().includes(searchTerm.toLowerCase())
+                  v.category?.toLowerCase().includes(searchTerm.toLowerCase())
                 )
                 .map((vendor) => {
                   const project = projects.find(p => p.id === vendor.projectId);
@@ -438,7 +462,7 @@ export default function AdminPage() {
                       <TableCell>{vendor.phone || '-'}</TableCell>
                       <TableCell>{vendor.email || '-'}</TableCell>
                       <TableCell>
-                        <Chip label={vendor.profession || 'כללי'} size="small" />
+                        <Chip label={vendor.category || 'כללי'} size="small" />
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption" color="text.secondary">
