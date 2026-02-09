@@ -101,71 +101,187 @@ export default function ProjectsPage() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" component="h1">
-          {hebrewLabels.projects}
-        </Typography>
-        <Box display="flex" gap={2}>
-          {isSuperAdmin(user?.email) && (
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AdminPanelSettingsIcon />}
-              onClick={() => router.push('/admin')}
-            >
-              ניהול מערכת
-            </Button>
-          )}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => router.push('/projects/create')}
-          >
-            {hebrewLabels.createProject}
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<LogoutIcon />}
-            onClick={handleSignOut}
-          >
-            התנתק
-          </Button>
+    <Box 
+      sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        pb: 6
+      }}
+    >
+      <Container maxWidth="lg" sx={{ pt: 4 }}>
+        {/* Header */}
+        <Box 
+          sx={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: 3,
+            p: 3,
+            mb: 4,
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h3" component="h1" sx={{ fontWeight: 700, color: '#667eea', mb: 1 }}>
+                🏠 {hebrewLabels.projects}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                שלום {user?.name || user?.email} 👋
+              </Typography>
+            </Box>
+            <Box display="flex" gap={2}>
+              {isSuperAdmin(user?.email) && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<AdminPanelSettingsIcon />}
+                  onClick={() => router.push('/admin')}
+                  sx={{ 
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  ניהול מערכת
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => router.push('/projects/create')}
+                sx={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
+                  }
+                }}
+              >
+                {hebrewLabels.createProject}
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<LogoutIcon />}
+                onClick={handleSignOut}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                התנתק
+              </Button>
+            </Box>
+          </Box>
         </Box>
-      </Box>
 
-      <Box display="flex" flexWrap="wrap" gap={3}>
-        {projects.map((project) => (
-          <Box key={project.id} flex="1" minWidth="280px" maxWidth="400px">
-            <Card>
-              <CardActionArea onClick={() => router.push(`/dashboard/${project.id}`)}>
-                <CardContent>
-                  <Typography variant="h6" component="h2" gutterBottom>
-                    {project.name}
+        {/* Projects Grid */}
+        <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(320px, 1fr))" gap={3}>
+          {projects.map((project) => (
+            <Card 
+              key={project.id}
+              sx={{ 
+                height: '100%',
+                transition: 'all 0.3s ease',
+                borderRadius: 3,
+                overflow: 'hidden',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.2)',
+                }
+              }}
+            >
+              <CardActionArea 
+                onClick={() => router.push(`/dashboard/${project.id}`)}
+                sx={{ height: '100%' }}
+              >
+                {/* Card Header with Gradient */}
+                <Box 
+                  sx={{ 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    p: 3,
+                    color: 'white',
+                  }}
+                >
+                  <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1 }}>
+                    🏗️ {project.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {project.address}
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    📍 {project.address}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    תקציב: ₪{project.budgetPlanned.toLocaleString()}
-                  </Typography>
+                </Box>
+                
+                {/* Card Content */}
+                <CardContent sx={{ p: 3 }}>
+                  <Box display="flex" alignItems="center" gap={1} mb={2}>
+                    <Typography variant="body2" color="text.secondary">
+                      💰 תקציב:
+                    </Typography>
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+                      ₪{project.budgetPlanned.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="body2" color="text.secondary">
+                      📅 נוצר:
+                    </Typography>
+                    <Typography variant="body2">
+                      {project.createdAt.toLocaleDateString('he-IL')}
+                    </Typography>
+                  </Box>
                 </CardContent>
               </CardActionArea>
             </Card>
-          </Box>
-        ))}
+          ))}
+        </Box>
         
+        {/* Empty State */}
         {projects.length === 0 && (
-          <Box width="100%">
-            <Box textAlign="center" py={8}>
-              <Typography variant="h6" color="text.secondary">
-                אין לך פרויקטים עדיין. לחץ על "יצירת פרויקט" למעלה כדי ליצור פרויקט חדש.
-              </Typography>
-            </Box>
+          <Box 
+            sx={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 3,
+              p: 8,
+              textAlign: 'center',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <Typography variant="h3" sx={{ mb: 2, fontSize: '4rem' }}>
+              🏡
+            </Typography>
+            <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+              אין לך פרויקטים עדיין
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              התחל את המסע שלך בניהול השיפוץ - צור את הפרויקט הראשון שלך!
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={() => router.push('/projects/create')}
+              sx={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1.1rem',
+                px: 4,
+                py: 1.5,
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)',
+                }
+              }}
+            >
+              יצירת פרויקט ראשון
+            </Button>
           </Box>
         )}
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 }
