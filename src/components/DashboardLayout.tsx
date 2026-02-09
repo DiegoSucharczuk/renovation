@@ -49,16 +49,8 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
   const router = useRouter();
   const pathname = usePathname();
   
-  // Keep settings open if we're on any settings page
-  const isSettingsPage = pathname?.includes('/settings');
-  const [settingsOpen, setSettingsOpen] = useState(isSettingsPage);
-  
-  // Update settingsOpen when pathname changes
-  useEffect(() => {
-    if (isSettingsPage) {
-      setSettingsOpen(true);
-    }
-  }, [isSettingsPage]);
+  // Calculate settingsOpen directly from pathname, no state needed
+  const settingsOpen = pathname?.includes('/settings') || false;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -102,13 +94,13 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
         {permissions?.canManageUsers && (
           <>
             <ListItem disablePadding>
-              <ListItemButton onClick={() => setSettingsOpen(!settingsOpen)}>
+              <ListItemButton>
                 <ListItemIcon><SettingsIcon /></ListItemIcon>
                 <ListItemText primary="הגדרות" />
                 {settingsOpen ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
             </ListItem>
-            <Collapse in={settingsOpen} timeout="auto" unmountOnExit>
+            <Collapse in={settingsOpen} timeout={0}>
               <List component="div" disablePadding>
                 <ListItemButton
                   sx={{ pl: 4 }}
@@ -210,6 +202,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
           {drawer}
         </Drawer>
         <Drawer
+          key={`drawer-${projectId}`}
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
@@ -237,6 +230,11 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
           pr: 0,
           mr: { sm: `${drawerWidth}px` },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+          transition: 'none',
+          '& > *': {
+            transition: 'none',
+          }
         }}
       >
         <Toolbar />

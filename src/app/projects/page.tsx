@@ -12,10 +12,16 @@ import {
   Box,
   CircularProgress,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import CloseIcon from '@mui/icons-material/Close';
+import MapIcon from '@mui/icons-material/Map';
 import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +33,8 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [mapDialogOpen, setMapDialogOpen] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState('');
   const { user, signOut } = useAuth();
   const router = useRouter();
 
@@ -98,6 +106,17 @@ export default function ProjectsPage() {
   const handleSignOut = async () => {
     await signOut();
     router.push('/login');
+  };
+
+  const handleAddressClick = (e: React.MouseEvent, address: string) => {
+    e.stopPropagation(); // למנוע מעבר לדשבורד
+    setSelectedAddress(address);
+    setMapDialogOpen(true);
+  };
+
+  const handleCloseMap = () => {
+    setMapDialogOpen(false);
+    setSelectedAddress('');
   };
 
   return (
@@ -201,17 +220,32 @@ export default function ProjectsPage() {
                 {/* Card Header with Gradient */}
                 <Box 
                   sx={{ 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
                     p: 3,
                     color: 'white',
                   }}
                 >
-                  <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1 }}>
+                  <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1, color: '#ffffff' }}>
                     🏗️ {project.name}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    📍 {project.address}
-                  </Typography>
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={1}
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': { 
+                        opacity: 0.8,
+                        textDecoration: 'underline'
+                      }
+                    }}
+                    onClick={(e) => handleAddressClick(e, project.address)}
+                  >
+                    <MapIcon sx={{ fontSize: '1rem', color: '#ffeb3b' }} />
+                    <Typography variant="body2" sx={{ color: '#ffeb3b', fontWeight: 500 }}>
+                      {project.address}
+                    </Typography>
+                  </Box>
                 </Box>
                 
                 {/* Card Content */}
@@ -282,6 +316,49 @@ export default function ProjectsPage() {
           </Box>
         )}
       </Container>
+
+      {/* Map Dialog */}
+      <Dialog 
+        open={mapDialogOpen} 
+        onClose={handleCloseMap}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box display="flex" alignItems="center" gap={1}>
+              <MapIcon color="primary" />
+              <Typography variant="h6">מיקום הפרויקט</Typography>
+            </Box>
+            <IconButton onClick={handleCloseMap} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 2 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              📍 {selectedAddress}
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<MapIcon />}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              fullWidth
+              sx={{ 
+                py: 1.5,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+              }}
+            >
+              פתח ב-Google Maps
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

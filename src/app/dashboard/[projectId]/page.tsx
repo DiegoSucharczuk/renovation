@@ -147,15 +147,26 @@ export default function DashboardPage() {
 
     fetchData();
 
-    // רענון נתונים כשחוזרים לטאב
+    // רענון נתונים רק אם היינו מחוץ לחלון הדפדפן (לא רק החלפת טאבים פנימיים)
+    let wasOutside = false;
+    
+    const handleBlur = () => {
+      wasOutside = true;
+    };
+    
     const handleFocus = () => {
-      console.log('Dashboard focus - refreshing data');
-      fetchData();
+      if (wasOutside) {
+        console.log('Dashboard focus - refreshing data');
+        fetchData();
+        wasOutside = false;
+      }
     };
 
+    window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
     
     return () => {
+      window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
     };
   }, [user, router, fetchData]);
