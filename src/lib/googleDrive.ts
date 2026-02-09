@@ -114,7 +114,11 @@ export const uploadToDrive = async (
     
     // Share with project members if emails provided
     if (userEmails && userEmails.length > 0) {
+      console.log('Sharing file with users:', userEmails);
       await shareFileWithUsers(data.id, userEmails, token);
+      console.log('File shared successfully with', userEmails.length, 'users');
+    } else {
+      console.log('No users to share with');
     }
     
     return data;
@@ -263,6 +267,8 @@ export const shareFileWithUsers = async (
   try {
     const accessToken = token || await getAccessToken();
     
+    console.log(`Starting to share file ${fileId} with ${userEmails.length} users:`, userEmails);
+    
     // Share with each user
     for (const email of userEmails) {
       try {
@@ -285,7 +291,10 @@ export const shareFileWithUsers = async (
         );
 
         if (!response.ok) {
-          console.error(`Failed to share with ${email}:`, response.statusText);
+          const errorText = await response.text();
+          console.error(`Failed to share with ${email}:`, response.statusText, errorText);
+        } else {
+          console.log(`Successfully shared with ${email}`);
         }
       } catch (error) {
         console.error(`Error sharing with ${email}:`, error);
