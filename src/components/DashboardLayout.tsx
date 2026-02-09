@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Box,
@@ -44,11 +44,21 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, projectId, project }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const { signOut, user, firebaseUser } = useAuth();
   const { permissions } = useProjectRole(projectId, firebaseUser?.uid || null);
   const router = useRouter();
   const pathname = usePathname();
+  
+  // Keep settings open if we're on any settings page
+  const isSettingsPage = pathname?.includes('/settings');
+  const [settingsOpen, setSettingsOpen] = useState(isSettingsPage);
+  
+  // Update settingsOpen when pathname changes
+  useEffect(() => {
+    if (isSettingsPage) {
+      setSettingsOpen(true);
+    }
+  }, [isSettingsPage]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
