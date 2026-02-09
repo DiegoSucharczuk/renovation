@@ -47,7 +47,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
   };
 
   return (
-    <Box sx={{ display: 'flex', contain: 'layout style paint', willChange: 'auto' }}>
+    <Box sx={{ display: 'flex' }} suppressHydrationWarning>
       <AppBar
         position="fixed"
         sx={{

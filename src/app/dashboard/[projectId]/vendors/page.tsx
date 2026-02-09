@@ -143,7 +143,7 @@ const mockVendors: Vendor[] = [
 export default function VendorsPage() {
   const params = useParams();
   const projectId = params.projectId as string;
-  const { user, firebaseUser } = useAuth();
+  const { user, firebaseUser, signOut } = useAuth();
   const router = useRouter();
   const { role, permissions, loading: roleLoading } = useProjectRole(projectId, firebaseUser?.uid || null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -1024,15 +1024,15 @@ export default function VendorsPage() {
               <Table>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                    <TableCell sx={{ fontWeight: 'bold', width: 50 }}></TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>שם הספק</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>קטגוריה</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>טלפון</TableCell>
-                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold' }}>סה"כ חוזה</TableCell>}
-                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold' }}>שולם</TableCell>}
-                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold' }}>יתרה</TableCell>}
-                    <TableCell sx={{ fontWeight: 'bold' }}>קבצים</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>פעולות</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: 50, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}></TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>שם הספק</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>קטגוריה</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>טלפון</TableCell>
+                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>סה"כ חוזה</TableCell>}
+                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>שולם</TableCell>}
+                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>יתרה</TableCell>}
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>קבצים</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>פעולות</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1048,12 +1048,12 @@ export default function VendorsPage() {
                           sx={{ cursor: 'pointer', backgroundColor: isExpanded ? '#f5f5f5' : 'inherit' }}
                           onClick={() => setExpandedVendorId(isExpanded ? null : vendor.id)}
                         >
-                          <TableCell>
+                          <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                             <IconButton size="small">
                               {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                             </IconButton>
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ borderLeft: 1, borderColor: 'divider' }}>
                             <Box display="flex" alignItems="center" gap={1}>
                               {vendor.logoUrl && (() => {
                                 const parsedData = parseFileData(vendor.logoUrl);
@@ -1074,10 +1074,10 @@ export default function VendorsPage() {
                               )}
                             </Box>
                           </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                           <Chip label={vendor.category} size="small" />
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                           <Typography 
                             component="a" 
                             href={`tel:${vendor.phone}`}
@@ -1088,19 +1088,19 @@ export default function VendorsPage() {
                           </Typography>
                         </TableCell>
                         {canViewFinancials && (
-                          <TableCell>
+                          <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                             {vendor.contractAmount ? formatCurrency(vendor.contractAmount) : '—'}
                           </TableCell>
                         )}
                         {canViewFinancials && (
-                          <TableCell>
+                          <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                             <Typography color="success.main" fontWeight={500}>
                               {formatCurrency(totalPaid)}
                             </Typography>
                           </TableCell>
                         )}
                         {canViewFinancials && (
-                          <TableCell>
+                          <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                             {balance !== null ? (
                               <Typography 
                                 color={balance > 0 ? 'warning.main' : 'success.main'}
@@ -1111,7 +1111,7 @@ export default function VendorsPage() {
                             ) : '—'}
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                           {(() => {
                             const hasContract = !!vendor.contractFileUrl;
                             const invoicesCount = vendor.payments.filter(p => p.invoiceUrl).length;
@@ -1145,7 +1145,7 @@ export default function VendorsPage() {
                             );
                           })()}
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                           <Box display="flex" gap={0.5} justifyContent="center">
                             {canViewFinancials && (
                               <Tooltip title={hebrewLabels.viewPayments}>
@@ -2661,7 +2661,8 @@ export default function VendorsPage() {
           severity="warning" 
           sx={{ width: '100%' }}
           action={
-            <Button color="inherit" size="small" onClick={() => {
+            <Button color="inherit" size="small" onClick={async () => {
+              await signOut();
               router.push('/login');
             }}>
               התחבר מחדש

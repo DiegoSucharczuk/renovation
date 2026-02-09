@@ -339,9 +339,9 @@ export default function TasksPage() {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                  <TableCell sx={{ width: 140, textAlign: 'right', borderLeft: 1, borderColor: 'divider', pr: 2 }}><strong>קטגוריה</strong></TableCell>
+                  <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>קטגוריה</strong></TableCell>
                   <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>תיאור</strong></TableCell>
-                  <TableCell sx={{ width: 120, borderLeft: 1, borderColor: 'divider', pr: 2 }}><strong>חדר</strong></TableCell>
+                  <TableCell sx={{ width: 120, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>חדר</strong></TableCell>
                   <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>סטטוס</strong></TableCell>
                   <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>פעולות</strong></TableCell>
                 </TableRow>
