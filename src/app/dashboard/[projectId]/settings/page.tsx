@@ -18,8 +18,9 @@ import {
   AccordionDetails,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { updateDoc, doc, getDocFromServer } from 'firebase/firestore';
+import { updateDoc, doc, getDocFromServer, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +38,8 @@ export default function ProjectSettingsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [projectForm, setProjectForm] = useState({
@@ -110,6 +113,35 @@ export default function ProjectSettingsPage() {
     } catch (error) {
       console.error('Error updating project:', error);
       setError('שגיאה בעדכון פרטי הפרויקט');
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (deleteConfirmText !== project?.name) {
+      setError('שם הפרויקט אינו תואם');
+      return;
+    }
+
+    try {
+      // Delete all related collections
+      const collections = ['tasks', 'rooms', 'projectUsers', 'vendors', 'payments', 'pendingInvitations'];
+      
+      for (const collectionName of collections) {
+        const q = query(collection(db, collectionName), where('projectId', '==', projectId));
+        const snapshot = await getDocs(q);
+        await Promise.all(snapshot.docs.map(doc => deleteDoc(doc.ref)));
+      }
+
+      // Delete the project itself
+      await deleteDoc(doc(db, 'projects', projectId));
+
+      setSuccessMessage('הפרויקט נמחק בהצלחה');
+      setTimeout(() => {
+        router.push('/projects');
+      }, 1500);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      setError('שגיאה במחיקת הפרויקט');
     }
   };
 
@@ -225,6 +257,30 @@ export default function ProjectSettingsPage() {
           </AccordionDetails>
         </Accordion>
 
+        {/* Danger Zone: Delete Project */}
+        {(role === 'OWNER' || role === 'ADMIN') && (
+          <Box sx={{ mt: 4, p: 3, border: '2px solid #f44336', borderRadius: 2, backgroundColor: '#ffebee' }}>
+            <Typography variant="h6" fontWeight="bold" color="error" gutterBottom>
+              ⚠️ אזור סכנה
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              מחיקת הפרויקט היא פעולה בלתי הפיכה. כל המידע הקשור לפרויקט יימחק לצמיתות.
+            </Typography>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={() => {
+                setOpenDeleteDialog(true);
+                setDeleteConfirmText('');
+                setError('');
+              }}
+            >
+              מחק פרויקט
+            </Button>
+          </Box>
+        )}
+
         {/* Edit Project Dialog */}
         <Dialog open={openProjectDialog} onClose={() => setOpenProjectDialog(false)} maxWidth="sm" fullWidth>
           <DialogTitle>ערוך פרטי פרויקט</DialogTitle>
@@ -274,6 +330,53 @@ export default function ProjectSettingsPage() {
             <Button onClick={() => setOpenProjectDialog(false)}>ביטול</Button>
             <Button onClick={handleUpdateProject} variant="contained">
               שמור שינויים
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Project Dialog */}
+        <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ color: 'error.main' }}>⚠️ מחיקת פרויקט</DialogTitle>
+          <DialogContent>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+            
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <strong>אזהרה!</strong> פעולה זו תמחק את הפרויקט לצמיתות וכל המידע הקשור אליו:
+              <ul>
+                <li>חדרים</li>
+                <li>משימות</li>
+                <li>ספקים</li>
+                <li>תשלומים</li>
+                <li>חברי צוות</li>
+              </ul>
+            </Alert>
+            
+            <Typography variant="body2" gutterBottom>
+              כדי לאשר, הקלד את שם הפרויקט: <strong>{project?.name}</strong>
+            </Typography>
+            
+            <TextField
+              fullWidth
+              label="שם הפרויקט"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              margin="normal"
+              placeholder={project?.name}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDeleteDialog(false)}>ביטול</Button>
+            <Button 
+              onClick={handleDeleteProject} 
+              variant="contained"
+              color="error"
+              disabled={deleteConfirmText !== project?.name}
+            >
+              מחק פרויקט לצמיתות
             </Button>
           </DialogActions>
         </Dialog>
