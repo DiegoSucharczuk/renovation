@@ -191,3 +191,29 @@ export const getFileInfo = async (fileId: string) => {
     throw error;
   }
 };
+
+// Fetch file as blob with authentication for displaying images
+export const fetchFileAsBlob = async (fileId: string): Promise<string> => {
+  try {
+    const token = await getAccessToken();
+
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Error fetching file as blob:', error);
+    throw error;
+  }
+};

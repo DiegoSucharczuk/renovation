@@ -42,7 +42,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { uploadToDrive, deleteFromDrive } from '@/lib/googleDrive';
+import { uploadToDrive, deleteFromDrive, fetchFileAsBlob } from '@/lib/googleDrive';
 import DashboardLayout from '@/components/DashboardLayout';
 import GoogleDriveConsentDialog from '@/components/GoogleDriveConsentDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -150,6 +150,9 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
+  
+  // Blob URLs for Drive images (cached)
+  const [imageBlobUrls, setImageBlobUrls] = useState<Record<string, string>>({});
   
   // Google Drive Consent Dialog
   const [showDriveConsent, setShowDriveConsent] = useState(false);
@@ -299,6 +302,83 @@ export default function VendorsPage() {
 
     fetchData();
   }, [user, router, mounted, projectId]);
+
+  // Load Drive files as blobs when vendors/payments change
+  useEffect(() => {
+    const loadDriveFiles = async () => {
+      const newBlobUrls: Record<string, string> = { ...imageBlobUrls };
+      
+      // Load vendor logos
+      for (const vendor of vendors) {
+        if (vendor.logoUrl) {
+          try {
+            const fileData = parseFileData(vendor.logoUrl);
+            if (fileData?.id && !newBlobUrls[fileData.id]) {
+              const blobUrl = await fetchFileAsBlob(fileData.id);
+              newBlobUrls[fileData.id] = blobUrl;
+            }
+          } catch (error) {
+            console.error('Error loading vendor logo:', error);
+          }
+        }
+        
+        // Load vendor contracts
+        if (vendor.contractFileUrl) {
+          try {
+            const fileData = parseFileData(vendor.contractFileUrl);
+            if (fileData?.id && !newBlobUrls[fileData.id]) {
+              const blobUrl = await fetchFileAsBlob(fileData.id);
+              newBlobUrls[fileData.id] = blobUrl;
+            }
+          } catch (error) {
+            console.error('Error loading vendor contract:', error);
+          }
+        }
+      }
+      
+      // Load payment invoices and receipts
+      for (const payment of payments) {
+        if (payment.invoiceUrl) {
+          try {
+            const fileData = parseFileData(payment.invoiceUrl);
+            if (fileData?.id && !newBlobUrls[fileData.id]) {
+              const blobUrl = await fetchFileAsBlob(fileData.id);
+              newBlobUrls[fileData.id] = blobUrl;
+            }
+          } catch (error) {
+            console.error('Error loading payment invoice:', error);
+          }
+        }
+        
+        if (payment.receiptUrl) {
+          try {
+            const fileData = parseFileData(payment.receiptUrl);
+            if (fileData?.id && !newBlobUrls[fileData.id]) {
+              const blobUrl = await fetchFileAsBlob(fileData.id);
+              newBlobUrls[fileData.id] = blobUrl;
+            }
+          } catch (error) {
+            console.error('Error loading payment receipt:', error);
+          }
+        }
+      }
+      
+      setImageBlobUrls(newBlobUrls);
+    };
+
+    if (vendors.length > 0 || payments.length > 0) {
+      loadDriveFiles();
+    }
+
+    // Cleanup blob URLs on unmount
+    return () => {
+      Object.values(imageBlobUrls).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [vendors, payments]);
 
   const handleOpenVendorDialog = (vendor?: Vendor) => {
     if (vendor) {
@@ -871,9 +951,11 @@ export default function VendorsPage() {
                           </TableCell>
                           <TableCell>
                             <Box display="flex" alignItems="center" gap={1}>
-                              {vendor.logoUrl && (
-                                <Avatar src={vendor.logoUrl} sx={{ width: 32, height: 32 }} />
-                              )}
+                              {vendor.logoUrl && (() => {
+                                const parsedData = parseFileData(vendor.logoUrl);
+                                const logoSrc = parsedData?.id && imageBlobUrls[parsedData.id] ? imageBlobUrls[parsedData.id] : null;
+                                return logoSrc ? <Avatar src={logoSrc} sx={{ width: 32, height: 32 }} /> : null;
+                              })()}
                               <Typography fontWeight={500}>{vendor.name}</Typography>
                               {vendor.whatsappNumber && (
                                 <IconButton
@@ -1012,18 +1094,26 @@ export default function VendorsPage() {
                                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
                                     {/* לוגו + שם */}
-                                    {vendor.logoUrl && (
-                                      <Box display="flex" justifyContent="center" pb={1} borderBottom="1px solid #e0e0e0">
-                                        <Avatar 
-                                          src={parseFileData(vendor.logoUrl)?.downloadUrl || parseFileData(vendor.logoUrl)?.url || vendor.logoUrl} 
-                                          sx={{ 
-                                            width: 80, 
-                                            height: 80,
-                                            border: '3px solid #e0e0e0'
-                                          }} 
-                                        />
-                                      </Box>
-                                    )}
+                                    {vendor.logoUrl && (() => {
+                                      const parsedData = parseFileData(vendor.logoUrl);
+                                      // Use blob URL from cache if available
+                                      const logoSrc = parsedData?.id && imageBlobUrls[parsedData.id] 
+                                        ? imageBlobUrls[parsedData.id]
+                                        : null; // Don't fallback to direct URL since it requires auth
+                                      
+                                      return logoSrc ? (
+                                        <Box display="flex" justifyContent="center" pb={1} borderBottom="1px solid #e0e0e0">
+                                          <Avatar 
+                                            src={logoSrc} 
+                                            sx={{ 
+                                              width: 80, 
+                                              height: 80,
+                                              border: '3px solid #e0e0e0'
+                                            }} 
+                                          />
+                                        </Box>
+                                      ) : null;
+                                    })()}
                                     
                                     {/* פרטי קשר */}
                                     <Box>
@@ -1212,6 +1302,7 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<UploadIcon />}
                     size="small"
+                    disabled={!!vendorFormData.logoUrl}
                   >
                     העלה לוגו
                     <input
@@ -1221,16 +1312,21 @@ export default function VendorsPage() {
                       onChange={handleLogoUpload}
                     />
                   </Button>
-                  {vendorFormData.logoUrl && (
-                    <Box display="flex" gap={1} alignItems="center">
-                      <Avatar src={vendorFormData.logoUrl} sx={{ width: 40, height: 40 }} />
-                      <Chip
-                        label={decodeURIComponent(vendorFormData.logoUrl.split('/').pop()?.split('?')[0] || 'לוגו')}
-                        onDelete={() => handleDeleteFile(vendorFormData.logoUrl, 'logo')}
-                        size="small"
-                      />
-                    </Box>
-                  )}
+                  {vendorFormData.logoUrl && (() => {
+                    const parsedData = parseFileData(vendorFormData.logoUrl);
+                    const logoSrc = parsedData?.id && imageBlobUrls[parsedData.id] ? imageBlobUrls[parsedData.id] : null;
+                    const fileName = parsedData?.name || 'לוגו';
+                    return (
+                      <Box display="flex" gap={1} alignItems="center">
+                        {logoSrc && <Avatar src={logoSrc} sx={{ width: 40, height: 40 }} />}
+                        <Chip
+                          label={fileName}
+                          onDelete={() => handleDeleteFile(vendorFormData.logoUrl, 'logo')}
+                          size="small"
+                        />
+                      </Box>
+                    );
+                  })()}
                 </Box>
               </Box>
 
@@ -1247,6 +1343,7 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
+                    disabled={!!vendorFormData.contractFileUrl}
                   >
                     העלה חוזה
                     <input
@@ -1914,6 +2011,7 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
+                    disabled={!!paymentFormData.invoiceUrl}
                   >
                     העלה חשבונית
                     <input
@@ -1955,6 +2053,7 @@ export default function VendorsPage() {
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
+                    disabled={!!paymentFormData.receiptUrl}
                   >
                     העלה קבלה
                     <input
@@ -2340,7 +2439,10 @@ export default function VendorsPage() {
               <Card sx={{ p: 2, bgcolor: '#fafafa', textAlign: 'center' }}>
                 {(() => {
                   const fileData = parseFileData(viewingFile.url);
-                  const displayUrl = fileData?.downloadUrl || fileData?.url || viewingFile.url;
+                  // Use blob URL from cache if available, otherwise fallback to direct URL
+                  const displayUrl = fileData?.id && imageBlobUrls[fileData.id]
+                    ? imageBlobUrls[fileData.id]
+                    : fileData?.downloadUrl || fileData?.url || viewingFile.url;
                   return displayUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                     <Box>
                       <img 
