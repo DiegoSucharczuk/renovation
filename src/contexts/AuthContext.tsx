@@ -67,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
+    
+    // Add Google Drive scope for file storage
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+    
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
 

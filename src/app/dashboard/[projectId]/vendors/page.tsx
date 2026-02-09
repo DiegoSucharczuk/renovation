@@ -41,9 +41,10 @@ import UploadIcon from '@mui/icons-material/Upload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import { uploadToDrive, deleteFromDrive } from '@/lib/googleDrive';
 import DashboardLayout from '@/components/DashboardLayout';
+import GoogleDriveConsentDialog from '@/components/GoogleDriveConsentDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
 import AccessDenied from '@/components/AccessDenied';
@@ -149,6 +150,13 @@ export default function VendorsPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
+  
+  // Google Drive Consent Dialog
+  const [showDriveConsent, setShowDriveConsent] = useState(false);
+  const [pendingFileUpload, setPendingFileUpload] = useState<{
+    file: File;
+    type: 'logo' | 'contract' | 'invoice' | 'receipt';
+  } | null>(null);
   
   // Collapse state
   const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
@@ -587,63 +595,91 @@ export default function VendorsPage() {
       return;
     }
 
-    try {
-      const storageRef = ref(storage, `vendors/${projectId}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setVendorFormData({ ...vendorFormData, logoUrl: url });
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      alert('שגיאה בהעלאת הלוגו');
-    }
+    // Show consent dialog on first upload
+    setPendingFileUpload({ file, type: 'logo' });
+    setShowDriveConsent(true);
   };
 
   const handleContractUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      const storageRef = ref(storage, `contracts/${projectId}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setVendorFormData({ ...vendorFormData, contractFileUrl: url });
-    } catch (error) {
-      console.error('Error uploading contract:', error);
-      alert('שגיאה בהעלאת החוזה');
-    }
+    // Show consent dialog
+    setPendingFileUpload({ file, type: 'contract' });
+    setShowDriveConsent(true);
   };
 
   const handleInvoiceUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      const storageRef = ref(storage, `invoices/${projectId}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setPaymentFormData({ ...paymentFormData, invoiceUrl: url });
-    } catch (error) {
-      console.error('Error uploading invoice:', error);
-      alert('שגיאה בהעלאת החשבונית');
-    }
+    // Show consent dialog
+    setPendingFileUpload({ file, type: 'invoice' });
+    setShowDriveConsent(true);
   };
 
   const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Show consent dialog
+    setPendingFileUpload({ file, type: 'receipt' });
+    setShowDriveConsent(true);
+  };
+
+  // Actually upload file to Google Drive after consent
+  const performFileUpload = async () => {
+    if (!pendingFileUpload) return;
+
+    const { file, type } = pendingFileUpload;
+
     try {
-      const storageRef = ref(storage, `receipts/${projectId}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setPaymentFormData({ ...paymentFormData, receiptUrl: url });
+      // Upload to user's Google Drive
+      const result = await uploadToDrive(file, 'שיפוץ-קבצים');
+      
+      // Store the file data with both view and download links
+      const fileData = {
+        id: result.id,
+        name: file.name,
+        url: result.webViewLink, // For viewing
+        downloadUrl: result.webContentLink, // For downloading
+      };
+
+      // Update form data based on type
+      if (type === 'logo') {
+        setVendorFormData({ ...vendorFormData, logoUrl: JSON.stringify(fileData) });
+      } else if (type === 'contract') {
+        setVendorFormData({ ...vendorFormData, contractFileUrl: JSON.stringify(fileData) });
+      } else if (type === 'invoice') {
+        setPaymentFormData({ ...paymentFormData, invoiceUrl: JSON.stringify(fileData) });
+      } else if (type === 'receipt') {
+        setPaymentFormData({ ...paymentFormData, receiptUrl: JSON.stringify(fileData) });
+      }
+
+      alert('הקובץ הועלה בהצלחה ל-Google Drive שלך!');
     } catch (error) {
-      console.error('Error uploading receipt:', error);
-      alert('שגיאה בהעלאת הקבלה');
+      console.error('Error uploading to Drive:', error);
+      alert('שגיאה בהעלאת הקובץ ל-Google Drive');
+    } finally {
+      setPendingFileUpload(null);
     }
   };
 
-  // Extract storage path from full URL
+  // Parse file data (can be old URL string or new JSON object)
+  const parseFileData = (data: string): { id?: string; name?: string; url: string; downloadUrl?: string } | null => {
+    if (!data) return null;
+    
+    try {
+      // Try to parse as JSON (new format)
+      const parsed = JSON.parse(data);
+      return parsed;
+    } catch {
+      // Old format - just a URL string
+      return { url: data };
+    }
+  };
+
+  // Extract storage path from full URL (for old Firebase Storage URLs)
   const getStoragePathFromUrl = (url: string): string => {
     try {
       // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?{query}
@@ -664,35 +700,34 @@ export default function VendorsPage() {
     }
   };
 
-  const handleDeleteFile = async (url: string, type: 'logo' | 'contract' | 'invoice' | 'receipt') => {
-    console.log('handleDeleteFile called with:', { url, type });
+  const handleDeleteFile = async (dataStr: string, type: 'logo' | 'contract' | 'invoice' | 'receipt') => {
+    console.log('handleDeleteFile called with:', { dataStr, type });
     
-    if (!url) {
-      alert('לא נמצא URL של הקובץ למחיקה');
+    if (!dataStr) {
+      alert('לא נמצא קובץ למחיקה');
       return;
     }
     
     if (!confirm('האם אתה בטוח שברצונך למחוק קובץ זה?')) return;
 
     try {
-      // Check if this is a valid Firebase Storage URL
-      const isValidFirebaseUrl = url.includes('firebasestorage.googleapis.com');
-      
-      if (isValidFirebaseUrl) {
-        // Try to delete from storage - extract path from URL
+      const fileData = parseFileData(dataStr);
+      if (!fileData) {
+        alert('שגיאה בפרסור נתוני הקובץ');
+        return;
+      }
+
+      // If it's a Google Drive file (has id), delete from Drive
+      if (fileData.id) {
         try {
-          const storagePath = getStoragePathFromUrl(url);
-          console.log('Original URL:', url);
-          console.log('Extracted path:', storagePath);
-          const fileRef = ref(storage, storagePath);
-          await deleteObject(fileRef);
-          console.log('File deleted successfully from storage');
-        } catch (storageError) {
-          console.warn('Could not delete from storage (file might not exist):', storageError);
+          await deleteFromDrive(fileData.id);
+          console.log('File deleted successfully from Google Drive');
+        } catch (driveError) {
+          console.warn('Could not delete from Drive (file might not exist):', driveError);
           // Continue anyway to clean up DB
         }
       } else {
-        console.log('Skipping storage deletion - invalid URL format (old data):', url);
+        console.log('Old file format (not in Drive) - skipping Drive deletion');
       }
 
       // Update form data or database based on context
@@ -730,7 +765,7 @@ export default function VendorsPage() {
         }
       }
 
-      alert('הקובץ נמחק בהצלחה מהמערכת');
+      alert('הקובץ נמחק בהצלחה');
     } catch (error) {
       console.error('Error deleting file:', error);
       const errorMessage = (error as any).message || 'שגיאה לא ידועה';
@@ -2359,6 +2394,19 @@ export default function VendorsPage() {
           <Button onClick={() => setOpenFileViewerDialog(false)}>סגור</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Google Drive Consent Dialog */}
+      <GoogleDriveConsentDialog
+        open={showDriveConsent}
+        onClose={() => {
+          setShowDriveConsent(false);
+          setPendingFileUpload(null);
+        }}
+        onAccept={async () => {
+          setShowDriveConsent(false);
+          await performFileUpload();
+        }}
+      />
     </DashboardLayout>
   );
 }
