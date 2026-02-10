@@ -289,6 +289,7 @@ export default function TasksPage() {
   };
 
   const statusLabels: Record<Task['status'], string> = {
+    NO_STATUS: 'ללא סטטוס',
     NOT_STARTED: 'לא התחיל',
     IN_PROGRESS: 'בביצוע',
     WAITING: 'ממתין',
@@ -297,6 +298,7 @@ export default function TasksPage() {
   };
 
   const statusColors: Record<Task['status'], 'default' | 'primary' | 'warning' | 'success'> = {
+    NO_STATUS: 'default',
     NOT_STARTED: 'default',
     IN_PROGRESS: 'primary',
     WAITING: 'warning',
