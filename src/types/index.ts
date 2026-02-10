@@ -46,7 +46,7 @@ export interface Room {
 
 // Task types
 export type TaskCategory = 'PLUMBING' | 'ELECTRICITY' | 'PAINT' | 'FLOORING' | 'CARPENTRY' | 'GENERAL' | 'OTHER';
-export type TaskStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'WAITING' | 'DONE' | 'NOT_RELEVANT';
+export type TaskStatus = 'NO_STATUS' | 'NOT_STARTED' | 'IN_PROGRESS' | 'WAITING' | 'DONE' | 'NOT_RELEVANT';
 
 export interface Task {
   id: string;
