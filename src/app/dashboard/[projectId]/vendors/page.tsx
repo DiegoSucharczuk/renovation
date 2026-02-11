@@ -390,24 +390,27 @@ export default function VendorsPage() {
         if (vendor.logoUrl) {
           const fileData = parseFileData(vendor.logoUrl);
           if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
+            // Store fileId to avoid TypeScript issues in async callbacks
+            const fileId = fileData.id;
+            
             // First, try to load from cache (instant) - converted from base64 to blob URL
-            const cachedUrl = getCachedImage(fileData.id);
+            const cachedUrl = getCachedImage(fileId);
             if (cachedUrl) {
-              newBlobUrls[fileData.id] = cachedUrl;
+              newBlobUrls[fileId] = cachedUrl;
             }
             
             // Then load from Firebase in background and update cache
-            fetchFileAsBlob(fileData.id).then(async blobUrl => {
+            fetchFileAsBlob(fileId).then(async blobUrl => {
               if (blobUrl) {
                 // Always update cache with latest version (as base64)
-                await cacheImage(fileData.id, blobUrl);
+                await cacheImage(fileId, blobUrl);
                 // Update state with new blob URL
                 setImageBlobUrls(prev => {
                   // If we already have a URL (from cache), revoke it before replacing
-                  if (prev[fileData.id] && prev[fileData.id] !== blobUrl) {
-                    URL.revokeObjectURL(prev[fileData.id]);
+                  if (prev[fileId] && prev[fileId] !== blobUrl) {
+                    URL.revokeObjectURL(prev[fileId]);
                   }
-                  return { ...prev, [fileData.id]: blobUrl };
+                  return { ...prev, [fileId]: blobUrl };
                 });
               }
             });
