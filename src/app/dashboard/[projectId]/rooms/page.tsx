@@ -681,7 +681,6 @@ export default function RoomsPage() {
             <Box
               sx={{
                 direction: 'ltr',
-                position: 'relative',
                 '--rooms-grid-template': `
                   200px
                   repeat(${taskCategories.length}, minmax(140px, 1fr))
