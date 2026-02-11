@@ -1060,6 +1060,20 @@ export default function VendorsPage() {
     }).format(amount);
   };
 
+  // Helper functions to calculate totals
+  const getTotalPaid = (vendor: Vendor) => {
+    if (!vendor.payments) return 0;
+    return vendor.payments
+      .filter(p => p.status === 'שולם')
+      .reduce((sum, p) => sum + p.amount, 0);
+  };
+
+  const getBalance = (vendor: Vendor) => {
+    const contractAmount = vendor.contractAmount || 0;
+    const totalPaid = getTotalPaid(vendor);
+    return contractAmount - totalPaid;
+  };
+
   if (!mounted || roleLoading || loading) {
     return (
       <DashboardLayout projectId={projectId} project={project || undefined}>
