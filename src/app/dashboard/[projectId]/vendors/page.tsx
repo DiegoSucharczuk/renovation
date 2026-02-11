@@ -1174,7 +1174,7 @@ export default function VendorsPage() {
                         style: 'currency',
                         currency: 'ILS',
                         minimumFractionDigits: 0,
-                      }).format(vendors.reduce((sum, v) => sum + getBalance(v), 0))}
+                      }).format((vendors || []).reduce((sum, v) => sum + getBalance(v), 0))}
                     </Typography>
                   </Box>
                 </>
