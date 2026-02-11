@@ -46,25 +46,31 @@ export interface Room {
 
 // Task types
 export type TaskCategory = 'PLUMBING' | 'ELECTRICITY' | 'PAINT' | 'FLOORING' | 'CARPENTRY' | 'GENERAL' | 'OTHER';
-export type TaskStatus = 'NO_STATUS' | 'NOT_STARTED' | 'IN_PROGRESS' | 'WAITING' | 'DONE' | 'NOT_RELEVANT';
+export type TaskStatus = 'NO_STATUS' | 'NOT_STARTED' | 'IN_PROGRESS' | 'WAITING' | 'DONE' | 'NOT_RELEVANT' | 'BLOCKED';
 
 export interface Task {
   id: string;
   projectId: string;
   roomId?: string;
   title: string;
-  description: string;
-  category: TaskCategory;
-  status: TaskStatus;
+  description?: string;
+  category: TaskCategory | string;
+  status: TaskStatus | string;
   startPlanned?: Date;
   endPlanned?: Date;
   startActual?: Date;
   endActual?: Date;
   assignedToVendorId?: string;
-  dependencies: string[];
+  dependencies?: string[];
   budgetAllocated?: number;
   createdAt?: Date;
   updatedAt?: Date;
+  // Additional fields used in rooms page
+  startDate?: string;
+  endDate?: string;
+  dueDate?: string | null;
+  progress?: number;
+  autoUpdateStatus?: boolean;
 }
 
 // Vendor types

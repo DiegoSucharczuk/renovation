@@ -1097,24 +1097,102 @@ export default function VendorsPage() {
       <Box sx={{ pr: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
           <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h4">
+            <Typography variant="h3" fontWeight="bold">
               {hebrewLabels.vendors}
             </Typography>
-            <Chip label={vendors.length} color="primary" size="medium" />
+            <Chip label={`${vendors.length} ספקים`} color="primary" size="medium" />
           </Box>
           {canEditVendors && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => handleOpenVendorDialog()}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s',
+              }}
             >
               {hebrewLabels.addVendor}
             </Button>
           )}
         </Box>
 
+        {/* Summary Cards */}
+        <Box sx={{ px: 3, mb: 3 }}>
+          <Card 
+            sx={{ 
+              p: 3, 
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+              boxShadow: 3,
+            }}
+          >
+            <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
+              <Box textAlign="center">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  סה"כ ספקים
+                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="primary.main">
+                  {vendors.length}
+                </Typography>
+              </Box>
+              {canViewFinancials && (
+                <>
+                  <Box textAlign="center">
+                    <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                      סה"כ חוזים
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="primary.main">
+                      {new Intl.NumberFormat('he-IL', {
+                        style: 'currency',
+                        currency: 'ILS',
+                        minimumFractionDigits: 0,
+                      }).format(vendors.reduce((sum, v) => sum + (v.contractAmount || 0), 0))}
+                    </Typography>
+                  </Box>
+                  <Box textAlign="center">
+                    <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                      שולם
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="success.main">
+                      {new Intl.NumberFormat('he-IL', {
+                        style: 'currency',
+                        currency: 'ILS',
+                        minimumFractionDigits: 0,
+                      }).format(vendors.reduce((sum, v) => sum + getTotalPaid(v), 0))}
+                    </Typography>
+                  </Box>
+                  <Box textAlign="center">
+                    <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                      יתרה
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold" color="error.main">
+                      {new Intl.NumberFormat('he-IL', {
+                        style: 'currency',
+                        currency: 'ILS',
+                        minimumFractionDigits: 0,
+                      }).format(vendors.reduce((sum, v) => sum + getBalance(v), 0))}
+                    </Typography>
+                  </Box>
+                </>
+              )}
+            </Box>
+          </Card>
+        </Box>
+
         <Box sx={{ px: 3 }}>
-          <Card>
+          <Card 
+            sx={{ 
+              boxShadow: 3,
+              '&:hover': {
+                boxShadow: 4,
+              },
+              transition: 'box-shadow 0.2s',
+            }}
+          >
             <TableContainer>
               <Table>
                 <TableHead>

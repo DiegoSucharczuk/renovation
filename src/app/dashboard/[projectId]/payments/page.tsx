@@ -177,7 +177,7 @@ export default function PaymentsPage() {
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
           <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h4">
+            <Typography variant="h3" fontWeight="bold">
               דוח תשלומים
             </Typography>
             <Chip label={`${totalPaymentsCount} תשלומים`} color="primary" size="medium" />
@@ -190,50 +190,50 @@ export default function PaymentsPage() {
           <Card sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
             <Box display="flex" justifyContent="space-around" gap={2}>
               <Box textAlign="center">
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   סה"כ חוזים
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="primary.main">
+                <Typography variant="h4" fontWeight="bold" color="primary.main">
                   {formatCurrency(totalContract)}
                 </Typography>
               </Box>
               <Box textAlign="center">
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   שולם
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="success.main">
+                <Typography variant="h4" fontWeight="bold" color="success.main">
                   {formatCurrency(totalPaid)}
                 </Typography>
               </Box>
               <Box textAlign="center">
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   ממתין
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="warning.main">
+                <Typography variant="h4" fontWeight="bold" color="warning.main">
                   {formatCurrency(totalPending)}
                 </Typography>
               </Box>
               <Box textAlign="center">
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   מתוכנן
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="info.main">
+                <Typography variant="h4" fontWeight="bold" color="info.main">
                   {formatCurrency(totalPlanned)}
                 </Typography>
               </Box>
               <Box textAlign="center">
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   יתרה
                 </Typography>
-                <Typography variant="h5" fontWeight="bold" color="error.main">
+                <Typography variant="h4" fontWeight="bold" color="error.main">
                   {formatCurrency(totalBalance)}
                 </Typography>
               </Box>
               <Box textAlign="center">
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   אחוז ביצוע
                 </Typography>
-                <Typography variant="h5" fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold">
                   {totalContract > 0 ? Math.round((totalPaid / totalContract) * 100) : 0}%
                 </Typography>
               </Box>

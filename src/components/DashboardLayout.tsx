@@ -47,7 +47,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
   };
 
   return (
-    <Box sx={{ display: 'flex' }} suppressHydrationWarning>
+    <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
         sx={{
@@ -109,7 +109,8 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
           pr: 0,
           mr: { sm: `${drawerWidth}px` },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          minHeight: '100vh',
+          height: '100vh',
+          overflow: 'hidden',
           transition: 'none',
           contain: 'layout style',
           willChange: 'auto',
@@ -119,7 +120,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
         }}
       >
         <Toolbar />
-        <Box sx={{ contain: 'layout', minHeight: 'calc(100vh - 64px)' }}>
+        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: 'auto' }}>
           {children}
         </Box>
       </Box>

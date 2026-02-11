@@ -316,36 +316,137 @@ export default function TasksPage() {
     );
   }
 
+  // Calculate statistics
+  const noStatusTasks = tasks.filter(t => t.status === 'NO_STATUS').length;
+  const notStartedTasks = tasks.filter(t => t.status === 'NOT_STARTED').length;
+  const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS').length;
+  const blockedTasks = tasks.filter(t => t.status === 'BLOCKED').length;
+  const completedTasks = tasks.filter(t => t.status === 'DONE').length;
+  const totalTasks = tasks.length;
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   return (
     <DashboardLayout projectId={projectId} project={project || undefined}>
       <Box sx={{ pr: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
           <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h4">
+            <Typography variant="h3" fontWeight="bold">
               {hebrewLabels.tasks}
             </Typography>
-            <Chip label={tasks.length} color="primary" size="medium" />
+            <Chip label={`${tasks.length} משימות`} color="primary" size="medium" />
           </Box>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
+            sx={{
+              boxShadow: 2,
+              '&:hover': {
+                boxShadow: 4,
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.2s',
+            }}
           >
             הוספת משימה
           </Button>
         </Box>
 
+        {/* Summary Cards */}
+        <Box sx={{ px: 3, mb: 3 }}>
+          <Card 
+            sx={{ 
+              p: 3, 
+              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+              boxShadow: 3,
+            }}
+          >
+            <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
+              <Box textAlign="center">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  סה"כ משימות
+                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="primary.main">
+                  {totalTasks}
+                </Typography>
+              </Box>
+              <Box textAlign="center">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  הושלמו
+                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="success.main">
+                  {completedTasks}
+                </Typography>
+              </Box>
+              <Box textAlign="center">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  בביצוע
+                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="primary.main">
+                  {inProgressTasks}
+                </Typography>
+              </Box>
+              <Box textAlign="center">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  לא התחילו
+                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="text.secondary">
+                  {notStartedTasks}
+                </Typography>
+              </Box>
+              {blockedTasks > 0 && (
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    חסומות
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="error.main">
+                    {blockedTasks}
+                  </Typography>
+                </Box>
+              )}
+              {noStatusTasks > 0 && (
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    ללא סטטוס
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="text.disabled">
+                    {noStatusTasks}
+                  </Typography>
+                </Box>
+              )}
+              <Box textAlign="center">
+                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  אחוז השלמה
+                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="primary.main">
+                  {completionPercentage}%
+                </Typography>
+              </Box>
+            </Box>
+          </Card>
+        </Box>
+
         {/* Tasks Table */}
-        <Card sx={{ mx: 3 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
+        <Card sx={{ 
+          mx: 3,
+          boxShadow: 3,
+          '&:hover': {
+            boxShadow: 4,
+          },
+          transition: 'box-shadow 0.2s',
+          maxHeight: '70vh',
+          overflow: 'auto',
+          direction: 'rtl',
+        }}>
+          <TableContainer sx={{ direction: 'ltr', position: 'relative' }}>
+            <Table sx={{ position: 'relative' }}>
+              <TableHead sx={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f5f5f5' }}>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                  <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>קטגוריה</strong></TableCell>
-                  <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>תיאור</strong></TableCell>
-                  <TableCell sx={{ width: 120, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>חדר</strong></TableCell>
-                  <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>סטטוס</strong></TableCell>
-                  <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}><strong>פעולות</strong></TableCell>
+                  <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>קטגוריה</strong></TableCell>
+                  <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>תיאור</strong></TableCell>
+                  <TableCell sx={{ width: 120, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>חדר</strong></TableCell>
+                  <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>סטטוס</strong></TableCell>
+                  <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>פעולות</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -383,14 +484,19 @@ export default function TasksPage() {
                         </Box>
                       </TableCell>
                       <TableCell sx={{ borderLeft: 1, borderColor: 'divider' }}>
-                        {task.description || '-'}
+                        <Typography>{task.description || '-'}</Typography>
                       </TableCell>
                       <TableCell sx={{ width: 120, borderLeft: 1, borderColor: 'divider', pr: 2 }}>
                         {taskRoom ? (
-                          <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
-                            {taskRoom.icon && `${roomIconMap[taskRoom.icon] || taskRoom.icon} `}{taskRoom.name}
+                          <Box display="flex" alignItems="center" gap={0.5} sx={{ whiteSpace: 'nowrap' }}>
+                            {taskRoom.icon && (
+                              <Typography sx={{ fontSize: 18 }}>{roomIconMap[taskRoom.icon] || taskRoom.icon}</Typography>
+                            )}
+                            <Typography sx={{ whiteSpace: 'nowrap' }}>{taskRoom.name}</Typography>
                           </Box>
-                        ) : '-'}
+                        ) : (
+                          <Typography>-</Typography>
+                        )}
                       </TableCell>
                       <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>
                         <Typography sx={{ fontSize: 20, color: statusDisplay.color }}>
