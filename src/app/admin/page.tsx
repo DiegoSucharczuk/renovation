@@ -287,7 +287,7 @@ export default function AdminPage() {
       <TabPanel value={tabValue} index={0}>
         <Typography variant="h6" gutterBottom>סטטיסטיקות כלליות</Typography>
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 2 }}>
-          <Card>
+          <Card sx={{ cursor: 'pointer' }} onClick={() => setTabValue(1)}>
             <CardContent sx={{ p: 2 }}>
               <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 סה"כ פרויקטים
@@ -297,7 +297,7 @@ export default function AdminPage() {
               </Typography>
             </CardContent>
           </Card>
-          <Card sx={{ backgroundColor: '#e8f5e9' }}>
+          <Card sx={{ backgroundColor: '#e8f5e9', cursor: 'pointer' }} onClick={() => setTabValue(1)}>
             <CardContent sx={{ p: 2 }}>
               <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 פרויקטים פעילים
@@ -310,7 +310,12 @@ export default function AdminPage() {
               </Typography>
             </CardContent>
           </Card>
-          <Card>
+          <Card sx={{ cursor: 'pointer' }} onClick={() => {
+            const firstProject = projects[0];
+            if (firstProject) {
+              router.push(`/dashboard/${firstProject.id}/settings/users`);
+            }
+          }}>
             <CardContent sx={{ p: 2 }}>
               <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 משתמשים רשומים
@@ -323,29 +328,21 @@ export default function AdminPage() {
               </Typography>
             </CardContent>
           </Card>
-          <Card sx={{ backgroundColor: '#fff3e0' }}>
+          <Card sx={{ backgroundColor: '#fff3e0', cursor: 'pointer' }} onClick={() => {
+            const firstProject = projects[0];
+            if (firstProject) {
+              router.push(`/dashboard/${firstProject.id}/settings/users`);
+            }
+          }}>
             <CardContent sx={{ p: 2 }}>
               <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
-                הזמנות ממתינות
+                משתמשים ממתינים לאישור
               </Typography>
               <Typography variant="h5" component="div" color="warning.main">
                 {stats.pendingUsers}
               </Typography>
               <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
                 טרם התקבלו
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ backgroundColor: '#e3f2fd' }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
-                חברי צוות בפרויקטים
-              </Typography>
-              <Typography variant="h5" component="div" color="info.main">
-                {stats.activeProjectUsers}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
-                משוייכים לפרויקטים
               </Typography>
             </CardContent>
           </Card>
@@ -359,7 +356,12 @@ export default function AdminPage() {
               </Typography>
             </CardContent>
           </Card>
-          <Card>
+          <Card sx={{ cursor: 'pointer' }} onClick={() => {
+            const firstProject = projects[0];
+            if (firstProject) {
+              router.push(`/dashboard/${firstProject.id}/vendors`);
+            }
+          }}>
             <CardContent sx={{ p: 2 }}>
               <Typography color="text.secondary" gutterBottom fontSize="0.875rem">
                 ספקים וקבלנים

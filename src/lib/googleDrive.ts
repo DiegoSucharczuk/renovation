@@ -238,7 +238,8 @@ export const getFileInfo = async (fileId: string) => {
 };
 
 // Fetch file as blob with authentication for displaying images
-export const fetchFileAsBlob = async (fileId: string): Promise<string> => {
+// Returns null if token expired or user not authenticated (silent fail)
+export const fetchFileAsBlob = async (fileId: string): Promise<string | null> => {
   try {
     const token = await getAccessToken();
 
@@ -257,9 +258,14 @@ export const fetchFileAsBlob = async (fileId: string): Promise<string> => {
 
     const blob = await response.blob();
     return URL.createObjectURL(blob);
-  } catch (error) {
+  } catch (error: any) {
+    // Silently return null if token expired or user not authenticated
+    // This allows viewing the app without Google Drive access
+    if (error.code === 'TOKEN_EXPIRED' || error.message?.includes('not authenticated')) {
+      return null;
+    }
     console.error('Error fetching file as blob:', error);
-    throw error;
+    return null;
   }
 };
 

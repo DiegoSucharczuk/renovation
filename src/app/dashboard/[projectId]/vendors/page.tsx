@@ -43,7 +43,7 @@ import UploadIcon from '@mui/icons-material/Upload';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import { doc, getDoc, collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { uploadToDrive, deleteFromDrive, fetchFileAsBlob } from '@/lib/googleDrive';
 import DashboardLayout from '@/components/DashboardLayout';
 import GoogleDriveConsentDialog from '@/components/GoogleDriveConsentDialog';
@@ -173,6 +173,7 @@ export default function VendorsPage() {
   
   // Token expiration notification
   const [showTokenExpiredAlert, setShowTokenExpiredAlert] = useState(false);
+  const [tokenExpiredDialogOpen, setTokenExpiredDialogOpen] = useState(false);
   
   // Single File Viewer Dialog
   const [openFileViewerDialog, setOpenFileViewerDialog] = useState(false);
@@ -309,39 +310,118 @@ export default function VendorsPage() {
     fetchData();
   }, [user, router, mounted, projectId]);
 
+  // Helper functions for localStorage caching (using base64 for persistence)
+  const getCachedImage = (fileId: string): string | null => {
+    try {
+      const cached = localStorage.getItem(`logo_${fileId}`);
+      if (!cached) return null;
+      
+      // Check if it's an old blob URL (starts with 'blob:') - if so, ignore it
+      if (cached.startsWith('blob:')) {
+        // Clean up old blob URL format
+        localStorage.removeItem(`logo_${fileId}`);
+        return null;
+      }
+      
+      // Must be base64 data URL (starts with 'data:')
+      if (!cached.startsWith('data:')) {
+        console.warn('Invalid cached format, removing:', fileId);
+        localStorage.removeItem(`logo_${fileId}`);
+        return null;
+      }
+      
+      // Convert base64 back to blob URL
+      const byteCharacters = atob(cached.split(',')[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: cached.split(':')[1].split(';')[0] });
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      return null;
+    }
+  };
+
+  const cacheImage = async (fileId: string, blobUrl: string) => {
+    try {
+      // Convert blob URL to base64 for persistent storage
+      const response = await fetch(blobUrl);
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        try {
+          const base64 = reader.result as string;
+          localStorage.setItem(`logo_${fileId}`, base64);
+        } catch (error) {
+          console.error('Error saving to localStorage (quota exceeded?):', error);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error caching image:', error);
+    }
+  };
+
   // Load Drive files as blobs when vendors/payments change
   useEffect(() => {
     const loadDriveFiles = async () => {
-      const newBlobUrls: Record<string, string> = { ...imageBlobUrls };
+      // Check if user is signed in with Google before attempting to load files
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      const googleProvider = user.providerData.find(
+        provider => provider.providerId === 'google.com'
+      );
+      
+      // If no Google provider, skip loading (user not signed in with Google)
+      if (!googleProvider) {
+        return;
+      }
+      
+      const newBlobUrls: Record<string, string> = {};
       
       // Load vendor logos
       for (const vendor of vendors) {
         if (vendor.logoUrl) {
-          try {
-            const fileData = parseFileData(vendor.logoUrl);
-            if (fileData?.id && !newBlobUrls[fileData.id]) {
-              const blobUrl = await fetchFileAsBlob(fileData.id);
-              newBlobUrls[fileData.id] = blobUrl;
+          const fileData = parseFileData(vendor.logoUrl);
+          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
+            // First, try to load from cache (instant) - converted from base64 to blob URL
+            const cachedUrl = getCachedImage(fileData.id);
+            if (cachedUrl) {
+              newBlobUrls[fileData.id] = cachedUrl;
             }
-          } catch (error: any) {
-            if (error.code === 'TOKEN_EXPIRED') {
-              setShowTokenExpiredAlert(true);
-              return; // Stop trying to load more files
-            }
-            console.error('Error loading vendor logo:', error);
+            
+            // Then load from Firebase in background and update cache
+            fetchFileAsBlob(fileData.id).then(async blobUrl => {
+              if (blobUrl) {
+                // Always update cache with latest version (as base64)
+                await cacheImage(fileData.id, blobUrl);
+                // Update state with new blob URL
+                setImageBlobUrls(prev => {
+                  // If we already have a URL (from cache), revoke it before replacing
+                  if (prev[fileData.id] && prev[fileData.id] !== blobUrl) {
+                    URL.revokeObjectURL(prev[fileData.id]);
+                  }
+                  return { ...prev, [fileData.id]: blobUrl };
+                });
+              }
+            });
           }
         }
         
         // Load vendor contracts
         if (vendor.contractFileUrl) {
-          try {
-            const fileData = parseFileData(vendor.contractFileUrl);
-            if (fileData?.id && !newBlobUrls[fileData.id]) {
-              const blobUrl = await fetchFileAsBlob(fileData.id);
+          const fileData = parseFileData(vendor.contractFileUrl);
+          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
+            const blobUrl = await fetchFileAsBlob(fileData.id);
+            if (blobUrl) {
               newBlobUrls[fileData.id] = blobUrl;
             }
-          } catch (error) {
-            console.error('Error loading vendor contract:', error);
           }
         }
       }
@@ -349,31 +429,30 @@ export default function VendorsPage() {
       // Load payment invoices and receipts
       for (const payment of payments) {
         if (payment.invoiceUrl) {
-          try {
-            const fileData = parseFileData(payment.invoiceUrl);
-            if (fileData?.id && !newBlobUrls[fileData.id]) {
-              const blobUrl = await fetchFileAsBlob(fileData.id);
+          const fileData = parseFileData(payment.invoiceUrl);
+          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
+            const blobUrl = await fetchFileAsBlob(fileData.id);
+            if (blobUrl) {
               newBlobUrls[fileData.id] = blobUrl;
             }
-          } catch (error) {
-            console.error('Error loading payment invoice:', error);
           }
         }
         
         if (payment.receiptUrl) {
-          try {
-            const fileData = parseFileData(payment.receiptUrl);
-            if (fileData?.id && !newBlobUrls[fileData.id]) {
-              const blobUrl = await fetchFileAsBlob(fileData.id);
+          const fileData = parseFileData(payment.receiptUrl);
+          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
+            const blobUrl = await fetchFileAsBlob(fileData.id);
+            if (blobUrl) {
               newBlobUrls[fileData.id] = blobUrl;
             }
-          } catch (error) {
-            console.error('Error loading payment receipt:', error);
           }
         }
       }
       
-      setImageBlobUrls(newBlobUrls);
+      // Update state with cached images immediately
+      if (Object.keys(newBlobUrls).length > 0) {
+        setImageBlobUrls(prev => ({ ...prev, ...newBlobUrls }));
+      }
     };
 
     if (vendors.length > 0 || payments.length > 0) {
@@ -817,11 +896,13 @@ export default function VendorsPage() {
       };
 
       // Load blob URL immediately after upload
-      try {
-        const blobUrl = await fetchFileAsBlob(result.id);
+      const blobUrl = await fetchFileAsBlob(result.id);
+      if (blobUrl) {
         setImageBlobUrls(prev => ({ ...prev, [result.id]: blobUrl }));
-      } catch (error) {
-        console.error('Error loading blob URL after upload:', error);
+        // Cache the logo as base64 for persistence
+        if (type === 'logo') {
+          await cacheImage(result.id, blobUrl);
+        }
       }
 
       // Update form data based on type
@@ -840,9 +921,15 @@ export default function VendorsPage() {
       
       // Update project timestamp
       await updateProjectTimestamp();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading to Drive:', error);
-      alert('שגיאה בהעלאת הקובץ ל-Google Drive');
+      
+      // Check if this is a token expiration error
+      if (error?.code === 'TOKEN_EXPIRED' || error?.message?.includes('Drive access expired')) {
+        setTokenExpiredDialogOpen(true);
+      } else {
+        alert('שגיאה בהעלאת הקובץ ל-Google Drive');
+      }
     } finally {
       setPendingFileUpload(null);
       setIsUploadingFile(false);
@@ -906,9 +993,14 @@ export default function VendorsPage() {
         try {
           await deleteFromDrive(fileData.id);
           console.log('File deleted successfully from Google Drive');
-        } catch (driveError) {
-          console.warn('Could not delete from Drive (file might not exist):', driveError);
-          // Continue anyway to clean up DB
+        } catch (driveError: any) {
+          console.warn('Could not delete from Drive:', driveError);
+          // Check if this is a token expiration error
+          if (driveError?.code === 'TOKEN_EXPIRED' || driveError?.message?.includes('Drive access expired')) {
+            setTokenExpiredDialogOpen(true);
+            return; // Don't proceed with deletion
+          }
+          // For other errors, continue anyway to clean up DB
         }
       } else {
         console.log('Old file format (not in Drive) - skipping Drive deletion');
@@ -1055,11 +1147,33 @@ export default function VendorsPage() {
                           </TableCell>
                           <TableCell sx={{ borderLeft: 1, borderColor: 'divider' }}>
                             <Box display="flex" alignItems="center" gap={1}>
-                              {vendor.logoUrl && (() => {
-                                const parsedData = parseFileData(vendor.logoUrl);
-                                const logoSrc = parsedData?.id && imageBlobUrls[parsedData.id] ? imageBlobUrls[parsedData.id] : null;
-                                return logoSrc ? <Avatar src={logoSrc} sx={{ width: 32, height: 32 }} /> : null;
-                              })()}
+                              <Avatar 
+                                src={(() => {
+                                  if (!vendor.logoUrl) return undefined;
+                                  const parsed = parseFileData(vendor.logoUrl);
+                                  return parsed?.id && imageBlobUrls[parsed.id] ? imageBlobUrls[parsed.id] : undefined;
+                                })()}
+                                sx={{ 
+                                  width: 32, 
+                                  height: 32,
+                                  bgcolor: 'primary.main',
+                                  color: 'white',
+                                  fontSize: '0.875rem',
+                                  fontWeight: 'bold',
+                                  position: 'relative',
+                                }} 
+                              >
+                                {(() => {
+                                  // Show loading spinner if logo exists but not yet loaded
+                                  if (vendor.logoUrl) {
+                                    const parsed = parseFileData(vendor.logoUrl);
+                                    if (parsed?.id && !imageBlobUrls[parsed.id]) {
+                                      return <CircularProgress size={16} sx={{ color: 'white' }} />;
+                                    }
+                                  }
+                                  return vendor.name.charAt(0).toUpperCase();
+                                })()}
+                              </Avatar>
                               <Typography fontWeight={500}>{vendor.name}</Typography>
                               {vendor.whatsappNumber && (
                                 <IconButton
@@ -1198,26 +1312,35 @@ export default function VendorsPage() {
                                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
                                     {/* לוגו + שם */}
-                                    {vendor.logoUrl && (() => {
-                                      const parsedData = parseFileData(vendor.logoUrl);
-                                      // Use blob URL from cache if available
-                                      const logoSrc = parsedData?.id && imageBlobUrls[parsedData.id] 
-                                        ? imageBlobUrls[parsedData.id]
-                                        : null; // Don't fallback to direct URL since it requires auth
-                                      
-                                      return logoSrc ? (
-                                        <Box display="flex" justifyContent="center" pb={1} borderBottom="1px solid #e0e0e0">
-                                          <Avatar 
-                                            src={logoSrc} 
-                                            sx={{ 
-                                              width: 80, 
-                                              height: 80,
-                                              border: '3px solid #e0e0e0'
-                                            }} 
-                                          />
-                                        </Box>
-                                      ) : null;
-                                    })()}
+                                    <Box display="flex" justifyContent="center" pb={1} borderBottom="1px solid #e0e0e0">
+                                      <Avatar 
+                                        src={(() => {
+                                          if (!vendor.logoUrl) return undefined;
+                                          const parsed = parseFileData(vendor.logoUrl);
+                                          return parsed?.id && imageBlobUrls[parsed.id] ? imageBlobUrls[parsed.id] : undefined;
+                                        })()}
+                                        sx={{ 
+                                          width: 80, 
+                                          height: 80,
+                                          border: '3px solid #e0e0e0',
+                                          bgcolor: 'primary.main',
+                                          color: 'white',
+                                          fontSize: '2rem',
+                                          fontWeight: 'bold',
+                                        }} 
+                                      >
+                                        {(() => {
+                                          // Show loading spinner if logo exists but not yet loaded
+                                          if (vendor.logoUrl) {
+                                            const parsed = parseFileData(vendor.logoUrl);
+                                            if (parsed?.id && !imageBlobUrls[parsed.id]) {
+                                              return <CircularProgress size={32} sx={{ color: 'white' }} />;
+                                            }
+                                          }
+                                          return vendor.name.charAt(0).toUpperCase();
+                                        })()}
+                                      </Avatar>
+                                    </Box>
                                     
                                     {/* פרטי קשר */}
                                     <Box>
@@ -2649,6 +2772,60 @@ export default function VendorsPage() {
         }}
       />
       
+      {/* Token Expiration Dialog */}
+      <Dialog
+        open={tokenExpiredDialogOpen}
+        onClose={() => setTokenExpiredDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ fontSize: 40 }}>⚠️</Box>
+          <Typography variant="h6">גישת Google Drive פגה תוקף</Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            התוקף של ה-OAuth token עבור Google Drive פג. כדי להמשיך להעלות ולמחוק קבצים, יש להתנתק ולהתחבר מחדש עם חשבון Google.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            לאחר ההתחברות מחדש, תקבל גישה חדשה למשך שעה נוספת.
+          </Typography>
+          <Box sx={{ 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffc107', 
+            borderRadius: 1, 
+            p: 2, 
+            mt: 2 
+          }}>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>
+              📋 שלבים:
+            </Typography>
+            <Typography variant="body2" component="div">
+              1. לחץ על "התנתק והתחבר מחדש"<br/>
+              2. בחר את חשבון Google שלך<br/>
+              3. אשר את הגישה ל-Google Drive<br/>
+              4. חזור לדף הספקים והמשך לעבוד
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTokenExpiredDialogOpen(false)}>
+            ביטול
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary"
+            onClick={async () => {
+              setTokenExpiredDialogOpen(false);
+              await signOut();
+              router.push('/login');
+            }}
+          >
+            התנתק והתחבר מחדש
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
       {/* Token Expired Alert */}
       <Snackbar 
         open={showTokenExpiredAlert} 
@@ -2675,3 +2852,4 @@ export default function VendorsPage() {
     </DashboardLayout>
   );
 }
+// trigger recompile

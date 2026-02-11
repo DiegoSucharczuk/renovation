@@ -11,12 +11,7 @@ import {
   Box,
   Alert,
   Link,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import CloudIcon from '@mui/icons-material/Cloud';
 import InfoIcon from '@mui/icons-material/Info';
@@ -36,110 +31,37 @@ const GoogleDriveConsentDialog: React.FC<GoogleDriveConsentDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
       dir="rtl"
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <CloudIcon color="primary" />
         <Typography variant="h6">
-          שמירת קבצים ב-Google Drive שלך
+          חיבור ל-Google Drive
         </Typography>
       </DialogTitle>
       
       <DialogContent>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="body1" paragraph>
-            כדי לשמור קבצים (לוגואים, חוזים, חשבוניות), האפליקציה תשתמש ב-<strong>Google Drive האישי שלך</strong>.
+        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
+          <Typography variant="body1" fontWeight="500">
+            חיבור ל-Google Drive נדרש רק לצורך העלאה והורדה של קבצים (לוגואים, חשבוניות, חוזים)
           </Typography>
-          
-          <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              הקבצים יישמרו <strong>בחשבון Google Drive שלך</strong>, לא בשרתים חיצוניים.
-            </Typography>
-          </Alert>
-        </Box>
+        </Alert>
 
-        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-          מה יקרה עכשיו:
+        <Typography variant="body2" color="text.secondary" paragraph>
+          <strong>לצפייה בפרויקט אין צורך בחיבור.</strong> הקבצים יישמרו ב-Google Drive האישי שלך, לא בשרתים חיצוניים.
         </Typography>
-        
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon color="success" />
-            </ListItemIcon>
-            <ListItemText 
-              primary="תיפתח חלון אישור מ-Google"
-              secondary="תתבקש לאשר גישה ל-Google Drive שלך"
-            />
-          </ListItem>
-          
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon color="success" />
-            </ListItemIcon>
-            <ListItemText 
-              primary="תיווצר תיקייה בשם 'שיפוץ-קבצים'"
-              secondary="כל הקבצים שלך יישמרו בתיקייה הזו ב-Drive שלך"
-            />
-          </ListItem>
-          
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon color="success" />
-            </ListItemIcon>
-            <ListItemText 
-              primary="אתה שולט על הקבצים שלך"
-              secondary="תוכל לראות, לערוך ולמחוק את הקבצים ישירות מה-Drive שלך"
-            />
-          </ListItem>
-        </List>
 
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <LockIcon fontSize="small" color="primary" />
-            אבטחה ופרטיות:
+            אבטחה:
           </Typography>
-          <List dense>
-            <ListItem sx={{ py: 0.5 }}>
-              <ListItemText 
-                primary="• האפליקציה רואה רק את הקבצים שהיא יצרה (לא את כל ה-Drive שלך)"
-                primaryTypographyProps={{ variant: 'body2' }}
-              />
-            </ListItem>
-            <ListItem sx={{ py: 0.5 }}>
-              <ListItemText 
-                primary="• הקבצים נשמרים בחשבון שלך, לא בשרתים חיצוניים"
-                primaryTypographyProps={{ variant: 'body2' }}
-              />
-            </ListItem>
-            <ListItem sx={{ py: 0.5 }}>
-              <ListItemText 
-                primary="• Google מצפין את כל הקבצים אוטומטית"
-                primaryTypographyProps={{ variant: 'body2' }}
-              />
-            </ListItem>
-          </List>
-        </Box>
-
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-            איך לבטל את ההרשאה?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            בכל רגע תוכל לבטל את גישת האפליקציה ל-Drive שלך דרך:
-          </Typography>
-          <Link 
-            href="https://myaccount.google.com/permissions" 
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ display: 'block', mb: 1 }}
-          >
-            🔗 הגדרות Google → אפליקציות עם גישה לחשבון שלך
-          </Link>
-          <Typography variant="caption" color="text.secondary">
-            או גש ל: https://myaccount.google.com/permissions
+          <Typography variant="body2" color="text.secondary">
+            • האפליקציה רואה רק קבצים שהיא יצרה<br/>
+            • הקבצים בחשבון שלך, מוצפנים ע"י Google<br/>
+            • ניתן לבטל הרשאה בכל עת דרך <Link href="https://myaccount.google.com/permissions" target="_blank">הגדרות Google</Link>
           </Typography>
         </Box>
       </DialogContent>
@@ -149,7 +71,7 @@ const GoogleDriveConsentDialog: React.FC<GoogleDriveConsentDialogProps> = ({
           ביטול
         </Button>
         <Button onClick={onAccept} variant="contained" color="primary">
-          הבנתי, בואו נמשיך
+          אשר והמשך
         </Button>
       </DialogActions>
     </Dialog>
