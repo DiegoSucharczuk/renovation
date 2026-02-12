@@ -676,6 +676,7 @@ export default function RoomsPage() {
               maxHeight: 'calc(100vh - 400px)',
               overflow: 'auto',
               direction: 'rtl',
+              position: 'relative',
             }}
           >
             <Box

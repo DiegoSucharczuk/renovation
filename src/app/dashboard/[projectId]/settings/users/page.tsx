@@ -567,6 +567,7 @@ export default function UsersManagementPage() {
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value as ProjectRole)}
               margin="normal"
+              helperText="בחר את רמת ההרשאות המתאימה למשתמש"
             >
               <MenuItem value="VIEW_ONLY">צפייה בלבד</MenuItem>
               <MenuItem value="DESIGNER">מעצב</MenuItem>
@@ -574,6 +575,29 @@ export default function UsersManagementPage() {
               <MenuItem value="FAMILY">בן משפחה</MenuItem>
               <MenuItem value="ADMIN">מנהל</MenuItem>
             </TextField>
+
+            <Box sx={{ mt: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                הסברים על תפקידים:
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="body2">
+                  <strong>👨‍💼 מנהל:</strong> גישה מלאה לכל הפרויקט, כולל ניהול משתמשים, תקציבים ותשלומים
+                </Typography>
+                <Typography variant="body2">
+                  <strong>👨‍👩‍👧‍👦 בן משפחה:</strong> גישה מלאה לצפייה ועריכה, כולל תקציבים ותשלומים
+                </Typography>
+                <Typography variant="body2">
+                  <strong>👷 קבלן:</strong> גישה לצפייה ועדכון משימות בלבד, ללא גישה לתקציבים ותשלומים
+                </Typography>
+                <Typography variant="body2">
+                  <strong>🎨 מעצב:</strong> גישה לצפייה ועדכון משימות בלבד, ללא גישה לתקציבים ותשלומים
+                </Typography>
+                <Typography variant="body2">
+                  <strong>👁️ צפייה בלבד:</strong> גישה לצפייה בלבד בכל הפרויקט, ללא אפשרות לערוך
+                </Typography>
+              </Box>
+            </Box>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenAddDialog(false)}>ביטול</Button>
