@@ -434,20 +434,19 @@ export default function TasksPage() {
             boxShadow: 4,
           },
           transition: 'box-shadow 0.2s',
-          maxHeight: '70vh',
-          overflow: 'auto',
-          direction: 'rtl',
+          direction: 'ltr',
           position: 'relative',
         }}>
-          <TableContainer sx={{ direction: 'ltr' }}>
-            <Table>
-              <TableHead sx={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#f5f5f5' }}>
-                <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                  <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>קטגוריה</strong></TableCell>
-                  <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>תיאור</strong></TableCell>
-                  <TableCell sx={{ width: 120, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>חדר</strong></TableCell>
-                  <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>סטטוס</strong></TableCell>
-                  <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5' }}><strong>פעולות</strong></TableCell>
+          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+            <Box sx={{ direction: 'ltr' }}>
+              <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: 140, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5', position: 'sticky', top: 0, zIndex: 10 }}><strong>קטגוריה</strong></TableCell>
+                  <TableCell sx={{ textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5', position: 'sticky', top: 0, zIndex: 10 }}><strong>תיאור</strong></TableCell>
+                  <TableCell sx={{ width: 120, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5', position: 'sticky', top: 0, zIndex: 10 }}><strong>חדר</strong></TableCell>
+                  <TableCell sx={{ width: 100, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5', position: 'sticky', top: 0, zIndex: 10 }}><strong>סטטוס</strong></TableCell>
+                  <TableCell sx={{ width: 180, textAlign: 'center', borderLeft: 1, borderColor: 'divider', backgroundColor: '#f5f5f5', position: 'sticky', top: 0, zIndex: 10 }}><strong>פעולות</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -544,6 +543,7 @@ export default function TasksPage() {
                 )}
               </TableBody>
             </Table>
+            </Box>
           </TableContainer>
         </Card>
 

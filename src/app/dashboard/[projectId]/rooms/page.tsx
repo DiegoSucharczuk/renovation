@@ -159,6 +159,7 @@ export default function RoomsPage() {
     description: '',
     icon: '',
   });
+  const [highlightedStatus, setHighlightedStatus] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -394,6 +395,16 @@ export default function RoomsPage() {
       alert('לא ניתן לסמן משימה כהושלם אם האחוז ביצוע הוא פחות מ-100%');
       return;
     }
+
+    // Validation: start date cannot be after end date
+    if (taskFormData.startDate && taskFormData.endDate) {
+      const startDate = new Date(taskFormData.startDate);
+      const endDate = new Date(taskFormData.endDate);
+      if (startDate > endDate) {
+        alert('תאריך התחלה לא יכול להיות מאוחר יותר מתאריך הסיום');
+        return;
+      }
+    }
     
     // If auto-update is enabled, apply the same logic as useEffect
     if (autoUpdateStatus) {
@@ -502,10 +513,27 @@ export default function RoomsPage() {
       'WAITING': { icon: '⏸', color: '#ff9800', label: 'ממתין' },
       'BLOCKED': { icon: '⚠', color: '#f44336', label: 'חסום' },
       'NOT_STARTED': { icon: '○', color: '#9e9e9e', label: 'לא התחיל' },
+      'SHOULD_START': { icon: '❗', color: '#ff5722', label: 'צריך להתחיל' },
     };
     
-    // משימה NOT_STARTED עם תאריכים = בהמתנה
-    if (task.status === 'NOT_STARTED' && (task.startDate || task.endDate)) {
+    // בדיקה אם תאריך ההתחלה עבר אבל המשימה עדיין לא התחילה
+    if (task.status === 'NOT_STARTED' && task.startDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // איפוס שעות להשוואה מדויקת
+      const startDate = new Date(task.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      
+      // אם תאריך ההתחלה עבר או הוא היום
+      if (today >= startDate) {
+        return icons['SHOULD_START'];
+      }
+      
+      // אם יש תאריך אבל עוד לא הגיע
+      return icons['WAITING'];
+    }
+    
+    // משימה NOT_STARTED עם תאריך סיום בלבד = בהמתנה
+    if (task.status === 'NOT_STARTED' && task.endDate) {
       return icons['WAITING'];
     }
     
@@ -519,17 +547,110 @@ export default function RoomsPage() {
     return today > endDate;
   };
 
+  const isInProgressOverdue = (task: any) => {
+    if (!task || !task.endDate || task.status !== 'IN_PROGRESS') return false;
+    const today = new Date();
+    const endDate = new Date(task.endDate);
+    return today > endDate;
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setHighlightedStatus(highlightedStatus === status ? null : status);
+  };
+
+  const getHighlightColor = (task: any) => {
+    if (!task || !highlightedStatus) return 'transparent';
+    
+    // בדיקת התאמה לסטטוס שנבחר
+    if (highlightedStatus === 'DONE' && task.status === 'DONE') {
+      return '#e8f5e9'; // ירוק בהיר
+    }
+    if (highlightedStatus === 'IN_PROGRESS' && task.status === 'IN_PROGRESS' && !isInProgressOverdue(task)) {
+      return '#fff9c4'; // צהוב בהיר
+    }
+    if (highlightedStatus === 'WAITING') {
+      // משימה בהמתנה
+      if (task.status === 'WAITING') return '#ffe0b2';
+      if (task.status === 'NOT_STARTED' && (task.startDate || task.endDate)) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = task.startDate ? new Date(task.startDate) : null;
+        if (startDate) {
+          startDate.setHours(0, 0, 0, 0);
+          if (today < startDate) return '#ffe0b2'; // עדיין לא הגיע הזמן
+        } else {
+          return '#ffe0b2';
+        }
+      }
+    }
+    if (highlightedStatus === 'NOT_STARTED') {
+      // משימה לא התחילה (ללא תאריכים)
+      if (task.status === 'NOT_STARTED' && !task.startDate && !task.endDate && (!task.progress || task.progress === 0)) {
+        return '#f5f5f5'; // אפור בהיר
+      }
+    }
+    if (highlightedStatus === 'BLOCKED' && task.status === 'BLOCKED') {
+      return '#ffebee'; // אדום בהיר
+    }
+    if (highlightedStatus === 'OVERDUE' && isOverdue(task) && !isInProgressOverdue(task)) {
+      return '#ffccbc'; // כתום-אדום בהיר
+    }
+    if (highlightedStatus === 'IN_PROGRESS_OVERDUE' && isInProgressOverdue(task)) {
+      return '#ffcdd2'; // אדום בהיר יותר
+    }
+    
+    return 'transparent';
+  };
+
   // Calculate statistics
   const completedTasks = tasks.filter(t => t.roomId && t.status === 'DONE').length;
   const inProgressTasks = tasks.filter(t => t.roomId && t.status === 'IN_PROGRESS').length;
   
-  // משימה בהמתנה = WAITING או NOT_STARTED עם תאריכים
+  // משימה בהמתנה = WAITING או NOT_STARTED עם תאריכים שעדיין לא הגיעו
   const waitingTasks = tasks.filter(t => {
     if (!t.roomId) return false;
     if (t.status === 'WAITING') return true;
-    if (t.status === 'NOT_STARTED' && (t.startDate || t.endDate)) return true;
+    if (t.status === 'NOT_STARTED' && (t.startDate || t.endDate)) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDate = t.startDate ? new Date(t.startDate) : null;
+      
+      // אם יש תאריך התחלה - בדוק אם עוד לא הגיע
+      if (startDate) {
+        startDate.setHours(0, 0, 0, 0);
+        if (today < startDate) return true; // תאריך לא הגיע = בהמתנה
+      } else if (t.endDate) {
+        // יש רק תאריך סיום (בלי התחלה) = בהמתנה
+        return true;
+      }
+    }
     return false;
   }).length;
+  
+  // Debug: הצג משימות בהמתנה בקונסול
+  React.useEffect(() => {
+    const waiting = tasks.filter(t => {
+      if (!t.roomId) return false;
+      if (t.status === 'WAITING') return true;
+      if (t.status === 'NOT_STARTED' && (t.startDate || t.endDate)) return true;
+      return false;
+    });
+    
+    console.log('🕐 משימות בהמתנה:', waiting.length, waiting.map(t => {
+      const room = rooms.find(r => r.id === t.roomId);
+      const statusDisplay = getStatusDisplay(t);
+      return {
+        title: t.title,
+        category: t.category,
+        status: t.status,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        roomName: room?.name || 'לא ידוע',
+        displayIcon: statusDisplay.icon,
+        displayLabel: statusDisplay.label
+      };
+    }));
+  }, [tasks, rooms]);
   
   // משימה לא התחילה = NOT_STARTED + אין progress (או 0) + אין תאריכים
   const notStartedTasks = tasks.filter(t => 
@@ -542,6 +663,7 @@ export default function RoomsPage() {
   
   const blockedTasks = tasks.filter(t => t.roomId && t.status === 'BLOCKED').length;
   const overdueTasks = tasks.filter(t => t.roomId && isOverdue(t)).length;
+  const inProgressOverdueTasks = tasks.filter(t => t.roomId && isInProgressOverdue(t)).length;
   const totalTasks = tasks.filter(t => t.roomId).length;
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -560,13 +682,9 @@ export default function RoomsPage() {
       <Box>
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3, pr: 3 }}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h3" fontWeight="bold">
-              {hebrewLabels.rooms}
-            </Typography>
-            <Chip label={`${rooms.length} חדרים`} color="primary" size="medium" />
-            <Chip label={`${totalTasks} משימות`} color="secondary" size="medium" />
-          </Box>
+          <Typography variant="h3" fontWeight="bold">
+            {hebrewLabels.rooms}
+          </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -602,42 +720,102 @@ export default function RoomsPage() {
                   {totalTasks}
                 </Typography>
               </Box>
-              <Box textAlign="center">
+              <Box 
+                textAlign="center" 
+                onClick={() => handleStatusFilter('DONE')}
+                sx={{ 
+                  cursor: 'pointer',
+                  p: 1,
+                  borderRadius: 2,
+                  backgroundColor: highlightedStatus === 'DONE' ? '#e8f5e9' : 'transparent',
+                  border: highlightedStatus === 'DONE' ? '2px solid #4caf50' : '2px solid transparent',
+                  transition: 'all 0.2s',
+                  '&:hover': { backgroundColor: '#f1f8f4', transform: 'scale(1.05)' }
+                }}
+              >
                 <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  הושלמו
+                  הושלמו <span style={{color: '#4caf50'}}>✓</span>
                 </Typography>
                 <Typography variant="h4" fontWeight="bold" color="success.main">
                   {completedTasks}
                 </Typography>
               </Box>
-              <Box textAlign="center">
+              <Box 
+                textAlign="center"
+                onClick={() => handleStatusFilter('IN_PROGRESS')}
+                sx={{ 
+                  cursor: 'pointer',
+                  p: 1,
+                  borderRadius: 2,
+                  backgroundColor: highlightedStatus === 'IN_PROGRESS' ? '#fff9c4' : 'transparent',
+                  border: highlightedStatus === 'IN_PROGRESS' ? '2px solid #FFD700' : '2px solid transparent',
+                  transition: 'all 0.2s',
+                  '&:hover': { backgroundColor: '#fffde7', transform: 'scale(1.05)' }
+                }}
+              >
                 <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  בביצוע
+                  בביצוע <span style={{color: '#FFD700'}}>●</span>
                 </Typography>
                 <Typography variant="h4" fontWeight="bold" sx={{ color: '#FFD700' }}>
                   {inProgressTasks}
                 </Typography>
               </Box>
-              <Box textAlign="center">
+              <Box 
+                textAlign="center"
+                onClick={() => handleStatusFilter('WAITING')}
+                sx={{ 
+                  cursor: 'pointer',
+                  p: 1,
+                  borderRadius: 2,
+                  backgroundColor: highlightedStatus === 'WAITING' ? '#ffe0b2' : 'transparent',
+                  border: highlightedStatus === 'WAITING' ? '2px solid #ff9800' : '2px solid transparent',
+                  transition: 'all 0.2s',
+                  '&:hover': { backgroundColor: '#fff3e0', transform: 'scale(1.05)' }
+                }}
+              >
                 <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  בהמתנה
+                  בהמתנה <span style={{color: '#ff9800'}}>⏸</span>
                 </Typography>
                 <Typography variant="h4" fontWeight="bold" color="warning.main">
                   {waitingTasks}
                 </Typography>
               </Box>
-              <Box textAlign="center">
+              <Box 
+                textAlign="center"
+                onClick={() => handleStatusFilter('NOT_STARTED')}
+                sx={{ 
+                  cursor: 'pointer',
+                  p: 1,
+                  borderRadius: 2,
+                  backgroundColor: highlightedStatus === 'NOT_STARTED' ? '#f5f5f5' : 'transparent',
+                  border: highlightedStatus === 'NOT_STARTED' ? '2px solid #9e9e9e' : '2px solid transparent',
+                  transition: 'all 0.2s',
+                  '&:hover': { backgroundColor: '#fafafa', transform: 'scale(1.05)' }
+                }}
+              >
                 <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  לא התחילו
+                  לא התחילו <span style={{color: '#9e9e9e'}}>○</span>
                 </Typography>
                 <Typography variant="h4" fontWeight="bold" color="text.secondary">
                   {notStartedTasks}
                 </Typography>
               </Box>
               {blockedTasks > 0 && (
-                <Box textAlign="center">
+                <Box 
+                  textAlign="center"
+                  onClick={() => handleStatusFilter('BLOCKED')}
+                  sx={{ 
+                    cursor: 'pointer',
+                    p: 1,
+                    borderRadius: 2,
+                    backgroundColor: highlightedStatus === 'BLOCKED' ? '#ffebee' : 'transparent',
+                    border: highlightedStatus === 'BLOCKED' ? '2px solid #f44336' : '2px solid transparent',
+                    transition: 'all 0.2s',
+                    '&:hover': { backgroundColor: '#ffebee', transform: 'scale(1.05)' }
+                  }}
+                >
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    חסומות
+                    חסומות <span style={{color: '#f44336'}}>⚠</span>
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="error.main">
                     {blockedTasks}
@@ -645,12 +823,46 @@ export default function RoomsPage() {
                 </Box>
               )}
               {overdueTasks > 0 && (
-                <Box textAlign="center">
+                <Box 
+                  textAlign="center"
+                  onClick={() => handleStatusFilter('OVERDUE')}
+                  sx={{ 
+                    cursor: 'pointer',
+                    p: 1,
+                    borderRadius: 2,
+                    backgroundColor: highlightedStatus === 'OVERDUE' ? '#ffccbc' : 'transparent',
+                    border: highlightedStatus === 'OVERDUE' ? '2px solid #ff5722' : '2px solid transparent',
+                    transition: 'all 0.2s',
+                    '&:hover': { backgroundColor: '#ffe0d8', transform: 'scale(1.05)' }
+                  }}
+                >
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    באיחור
+                    באיחור <span style={{color: '#ff5722'}}>❗</span>
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="error.main">
                     {overdueTasks}
+                  </Typography>
+                </Box>
+              )}
+              {inProgressOverdueTasks > 0 && (
+                <Box 
+                  textAlign="center"
+                  onClick={() => handleStatusFilter('IN_PROGRESS_OVERDUE')}
+                  sx={{ 
+                    cursor: 'pointer',
+                    p: 1,
+                    borderRadius: 2,
+                    backgroundColor: highlightedStatus === 'IN_PROGRESS_OVERDUE' ? '#ffcdd2' : 'transparent',
+                    border: highlightedStatus === 'IN_PROGRESS_OVERDUE' ? '2px solid #f44336' : '2px solid transparent',
+                    transition: 'all 0.2s',
+                    '&:hover': { backgroundColor: '#ffebee', transform: 'scale(1.05)' }
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    בביצוע - באיחור ⚠️
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="error.main">
+                    {inProgressOverdueTasks}
                   </Typography>
                 </Box>
               )}
@@ -673,7 +885,7 @@ export default function RoomsPage() {
               boxShadow: 3,
               '&:hover': { boxShadow: 4 },
               transition: 'box-shadow 0.2s',
-              maxHeight: 'calc(100vh - 400px)',
+              maxHeight: 'calc(100vh - 200px)',
               overflow: 'auto',
               direction: 'rtl',
               position: 'relative',
@@ -811,71 +1023,92 @@ export default function RoomsPage() {
                     const task = room.tasks[category];
                     const statusDisplay = getStatusDisplay(task);
                     const overdue = isOverdue(task);
+                    const inProgressOverdue = isInProgressOverdue(task);
 
                     return (
-                      <Box
+                      <Tooltip 
                         key={category}
-                        onClick={() => handleOpenTaskDialog(room.id, category, task)}
-                        sx={{
-                          p: 1.5,
-                          borderBottom: '1px solid #e0e0e0',
-                          borderLeft: '1px solid #e0e0e0',
-                          backgroundColor: overdue ? '#ffebee' : 'transparent',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            backgroundColor: overdue ? '#ffcdd2' : '#e3f2fd',
-                            transform: 'scale(1.02)',
-                          },
-                          transition: 'all 0.2s',
-                          textAlign: 'center',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }}
+                        title={task ? `${statusDisplay.label}${task.updatedAt ? ' | עודכן: ' + new Date(task.updatedAt).toLocaleDateString('he-IL') : ''}` : 'אין משימה'}
+                        arrow
                       >
-                        {task ? (
-                          <Box>
-                            <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
-                              <Typography
-                                sx={{
-                                  fontSize: '24px',
-                                  color: statusDisplay.color,
-                                  lineHeight: 1,
-                                  fontWeight: 'bold',
-                                }}
-                              >
-                                {statusDisplay.icon}
-                              </Typography>
-                              {task.progress > 0 && (
-                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }} color="primary">
-                                  {task.progress}%
+                        <Box
+                          onClick={() => handleOpenTaskDialog(room.id, category, task)}
+                          sx={{
+                            p: 1.5,
+                            borderBottom: '1px solid #e0e0e0',
+                            borderLeft: '1px solid #e0e0e0',
+                            backgroundColor: (() => {
+                              const highlightColor = highlightedStatus && task ? getHighlightColor(task) : 'transparent';
+                              if (highlightColor !== 'transparent') return highlightColor;
+                              // Fallback to default colors for overdue (always visible)
+                              if (inProgressOverdue) return '#ffcdd2';
+                              if (overdue) return '#ffebee';
+                              return 'transparent';
+                            })(),
+                            cursor: 'pointer',
+                            '&:hover': {
+                              backgroundColor: inProgressOverdue ? '#ef9a9a' : (overdue ? '#ffcdd2' : '#e3f2fd'),
+                              transform: 'scale(1.02)',
+                            },
+                            transition: 'all 0.2s',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {task ? (
+                            <Box>
+                              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
+                                <Typography
+                                  sx={{
+                                    fontSize: '24px',
+                                    color: statusDisplay.color,
+                                    lineHeight: 1,
+                                    fontWeight: 'bold',
+                                  }}
+                                >
+                                  {statusDisplay.icon}
+                                </Typography>
+                                {inProgressOverdue && (
+                                  <Typography sx={{ fontSize: '16px' }}>⚠️</Typography>
+                                )}
+                                {task.progress > 0 && (
+                                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }} color="primary">
+                                    {task.progress}%
+                                  </Typography>
+                                )}
+                              </Box>
+                              {task.startDate && (
+                                <Typography variant="caption" display="block" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                                  {formatDate(task.startDate)}
+                                </Typography>
+                              )}
+                              {task.endDate && (
+                                <Typography
+                                  variant="caption"
+                                  display="block"
+                                  sx={{
+                                    color: (overdue || inProgressOverdue) ? '#d32f2f' : 'text.secondary',
+                                    fontWeight: (overdue || inProgressOverdue) ? 'bold' : 'normal',
+                                    fontSize: '0.75rem',
+                                  }}
+                                >
+                                  {formatDate(task.endDate)}
+                                </Typography>
+                              )}
+                              {task.updatedAt && (
+                                <Typography variant="caption" display="block" sx={{ color: '#999', fontSize: '0.65rem', mt: 0.5 }} suppressHydrationWarning>
+                                  עודכן: {new Date(task.updatedAt).toLocaleDateString('he-IL')}
                                 </Typography>
                               )}
                             </Box>
-                            {task.startDate && (
-                              <Typography variant="caption" display="block" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                                {formatDate(task.startDate)}
-                              </Typography>
-                            )}
-                            {task.endDate && (
-                              <Typography
-                                variant="caption"
-                                display="block"
-                                sx={{
-                                  color: overdue ? '#d32f2f' : 'text.secondary',
-                                  fontWeight: overdue ? 'bold' : 'normal',
-                                  fontSize: '0.75rem',
-                                }}
-                              >
-                                {formatDate(task.endDate)}
-                              </Typography>
-                            )}
-                          </Box>
-                        ) : (
-                          <Typography variant="body2" color="text.disabled">—</Typography>
-                        )}
-                      </Box>
+                          ) : (
+                            <Typography variant="body2" color="text.disabled">—</Typography>
+                          )}
+                        </Box>
+                      </Tooltip>
                     );
                   })}
 
@@ -919,24 +1152,28 @@ export default function RoomsPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="הזז למעלה">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMoveRoom(e, index, 'up')}
-                        disabled={index === 0}
-                        sx={{ p: 0.5 }}
-                      >
-                        <ArrowUpwardIcon fontSize="small" />
-                      </IconButton>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleMoveRoom(e, index, 'up')}
+                          disabled={index === 0}
+                          sx={{ p: 0.5 }}
+                        >
+                          <ArrowUpwardIcon fontSize="small" />
+                        </IconButton>
+                      </span>
                     </Tooltip>
                     <Tooltip title="הזז למטה">
-                      <IconButton
-                        size="small"
-                        sx={{ p: 0.5 }}
-                        onClick={(e) => handleMoveRoom(e, index, 'down')}
-                        disabled={index === rooms.length - 1}
-                      >
-                        <ArrowDownwardIcon fontSize="small" />
-                      </IconButton>
+                      <span>
+                        <IconButton
+                          size="small"
+                          sx={{ p: 0.5 }}
+                          onClick={(e) => handleMoveRoom(e, index, 'down')}
+                          disabled={index === rooms.length - 1}
+                        >
+                          <ArrowDownwardIcon fontSize="small" />
+                        </IconButton>
+                      </span>
                     </Tooltip>
                   </Box>
                 </Box>

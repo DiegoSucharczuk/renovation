@@ -354,6 +354,26 @@ export default function DashboardPage() {
     return dueDate < now;
   });
 
+  // משימות שתאריך ההתחלה שלהן עבר אבל הן עדיין לא התחילו
+  const shouldStartTasks = relevantTasks.filter(task => {
+    if (task.status !== 'NOT_STARTED') return false;
+    if (!task.startDate) return false;
+    const startDateObj = typeof task.startDate === 'string' ? new Date(task.startDate) : task.startDate;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    startDateObj.setHours(0, 0, 0, 0);
+    return startDateObj <= today;
+  });
+
+  // משימות IN_PROGRESS שעבר להן תאריך הסיום
+  const inProgressOverdueTasks = relevantTasks.filter(task => {
+    if (task.status !== 'IN_PROGRESS') return false;
+    const endDateField = task.endDate || task.endPlanned || task.dueDate;
+    if (!endDateField) return false;
+    const endDate = endDateField instanceof Date ? endDateField : new Date(endDateField);
+    return endDate < now;
+  });
+
   // תשלומים שצריך לשלם בקרוב (שבוע-שבועיים)
   const upcomingPayments = payments.filter(payment => {
     if (payment.status === 'שולם') return false;
@@ -455,7 +475,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* ========== ZONE 2: ALERTS ========== */}
-        {(blockedTasks > 0 || overdueTasks.length > 0 || (permissions.canViewPayments && upcomingPayments.length > 0) || recentlyCompletedTasks.length > 0) && (
+        {(blockedTasks > 0 || overdueTasks.length > 0 || shouldStartTasks.length > 0 || inProgressOverdueTasks.length > 0 || (permissions.canViewPayments && upcomingPayments.length > 0) || recentlyCompletedTasks.length > 0) && (
           <Card sx={{ mb: 4, backgroundColor: 'white', borderRadius: 2 }}>
             <CardContent>
               <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -465,6 +485,16 @@ export default function DashboardPage() {
                 {overdueTasks.length > 0 && (
                   <Alert severity="error" sx={{ py: 1 }}>
                     יש {overdueTasks.length} משימות שחרגו מתאריך היעד
+                  </Alert>
+                )}
+                {inProgressOverdueTasks.length > 0 && (
+                  <Alert severity="error" sx={{ py: 1 }}>
+                    ⚠️ יש {inProgressOverdueTasks.length} משימות בביצוע שעבר להן תאריך הסיום!
+                  </Alert>
+                )}
+                {shouldStartTasks.length > 0 && (
+                  <Alert severity="warning" sx={{ py: 1 }}>
+                    יש {shouldStartTasks.length} משימות שתאריך ההתחלה שלהן עבר אבל עדיין לא התחילו ❗
                   </Alert>
                 )}
                 {blockedTasks > 0 && (
