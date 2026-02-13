@@ -23,12 +23,25 @@ import {
   Tooltip,
   Checkbox,
   FormControlLabel,
+  Select,
+  OutlinedInput,
+  InputLabel,
+  FormControl,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import KitchenIcon from '@mui/icons-material/Kitchen';
 import LivingIcon from '@mui/icons-material/Weekend';
 import BedIcon from '@mui/icons-material/Bed';
@@ -160,6 +173,9 @@ export default function RoomsPage() {
     icon: '',
   });
   const [highlightedStatus, setHighlightedStatus] = useState<string | null>(null);
+  const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -667,6 +683,54 @@ export default function RoomsPage() {
   const totalTasks = tasks.filter(t => t.roomId).length;
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  // Filter logic
+  const filteredRooms = rooms.filter(room => {
+    // Room filter
+    if (selectedRooms.length > 0 && !selectedRooms.includes(room.id)) {
+      return false;
+    }
+    
+    // Status filter - show room if ANY task matches ANY selected status
+    if (selectedStatuses.length > 0) {
+      const hasMatchingStatus = Object.values(room.tasks).some((task: any) => 
+        task && selectedStatuses.includes(task.status)
+      );
+      if (!hasMatchingStatus) return false;
+    }
+    
+    return true;
+  });
+
+  // Category filter
+  const filteredCategories = selectedCategories.length > 0 
+    ? taskCategories.filter(cat => selectedCategories.includes(cat))
+    : taskCategories;
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setSelectedRooms([]);
+    setSelectedStatuses([]);
+    setSelectedCategories([]);
+  };
+
+  // Quick filters
+  const handleShowActive = () => {
+    setSelectedStatuses(['IN_PROGRESS']);
+    setSelectedRooms([]);
+    setSelectedCategories([]);
+  };
+
+  const handleShowProblems = () => {
+    const problematicRooms = rooms.filter(room => 
+      Object.values(room.tasks).some((task: any) => 
+        task && (task.status === 'BLOCKED' || isOverdue(task) || isInProgressOverdue(task))
+      )
+    ).map(r => r.id);
+    setSelectedRooms(problematicRooms);
+    setSelectedStatuses([]);
+    setSelectedCategories([]);
+  };
+
   if (!mounted || loading) {
     return (
       <DashboardLayout projectId={projectId}>
@@ -679,7 +743,7 @@ export default function RoomsPage() {
 
   return (
     <DashboardLayout projectId={projectId}>
-      <Box>
+      <Box sx={{ overflow: 'hidden', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3, pr: 3 }}>
           <Typography variant="h3" fontWeight="bold">
@@ -703,15 +767,15 @@ export default function RoomsPage() {
         </Box>
 
         {/* Summary Cards */}
-        <Box sx={{ px: 3, pr: 3, mb: 3 }}>
+        <Box sx={{ px: 3, pr: 3, mb: 2 }}>
           <Card 
             sx={{ 
-              p: 3, 
+              p: 1.5, 
               background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
               boxShadow: 3,
             }}
           >
-            <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
+            <Box display="flex" justifyContent="space-around" gap={1.5} flexWrap="wrap">
               <Box textAlign="center">
                 <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
                   סה"כ משימות
@@ -878,118 +942,184 @@ export default function RoomsPage() {
           </Card>
         </Box>
 
-        {/* Matrix Table */}
-        <Box sx={{ px: 3, pr: 3 }}>
-          <Card
-            sx={{
-              boxShadow: 3,
-              '&:hover': { boxShadow: 4 },
-              transition: 'box-shadow 0.2s',
-              maxHeight: 'calc(100vh - 200px)',
-              overflow: 'auto',
-              direction: 'rtl',
-              position: 'relative',
-            }}
-          >
-            <Box
-              sx={{
-                direction: 'ltr',
-                '--rooms-grid-template': `
-                  200px
-                  repeat(${taskCategories.length}, minmax(140px, 1fr))
-                  minmax(140px, 1fr)
-                `,
-              }}
-            >
-              {/* Header Row */}
-              <Box
-                role="row"
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: 'var(--rooms-grid-template)',
-                  alignItems: 'stretch',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 10,
-                  backgroundColor: '#f5f5f5',
-                }}
-              >
-                <Box
-                  role="columnheader"
-                  sx={{
-                    p: 1.5,
-                    borderBottom: '2px solid #e0e0e0',
-                    borderLeft: '1px solid #e0e0e0',
-                    backgroundColor: '#f5f5f5',
-                    textAlign: 'center',
-                    direction: 'rtl',
-                  }}
-                >
-                  <Typography variant="subtitle2" fontWeight="bold">חדר</Typography>
-                </Box>
-                {taskCategories.map((category) => (
-                  <Box
-                    key={category}
-                    role="columnheader"
-                    sx={{
-                      p: 1.5,
-                      borderBottom: '2px solid #e0e0e0',
-                      borderLeft: '1px solid #e0e0e0',
-                      backgroundColor: '#f5f5f5',
-                      textAlign: 'center',
-                    }}
+        {/* Filters Panel */}
+        <Box sx={{ px: 3, pr: 3, mb: 3 }}>
+          <Card sx={{ p: 2, boxShadow: 2 }}>
+            <Box display="flex" alignItems="center" gap={2} mb={2}>
+              <FilterListIcon color="primary" />
+              <Typography variant="h6" fontWeight="bold">סינון</Typography>
+            </Box>
+            
+            <Box display="flex" gap={2} flexWrap="wrap">
+              {/* Room Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>חדרים</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedRooms}
+                    onChange={(e) => setSelectedRooms(e.target.value as string[])}
+                    input={<OutlinedInput label="חדרים" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל החדרים' : `${selected.length} חדרים`
+                    }
                   >
-                    <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
-                      <Typography sx={{ fontSize: 18 }}>
-                        {taskCategoryIcons[category] || '📝'}
-                      </Typography>
-                      <Typography variant="subtitle2" fontWeight="bold">
-                        {category}
-                      </Typography>
-                    </Box>
-                  </Box>
-                ))}
-                <Box
-                  role="columnheader"
-                  sx={{
-                    p: 1.5,
-                    borderBottom: '2px solid #e0e0e0',
-                    borderLeft: '1px solid #e0e0e0',
-                    backgroundColor: '#f5f5f5',
-                    textAlign: 'center',
-                  }}
-                >
-                  <Typography variant="subtitle2" fontWeight="bold">פעולות</Typography>
-                </Box>
+                    {rooms.map((room) => (
+                      <MenuItem key={room.id} value={room.id}>
+                        <Checkbox checked={selectedRooms.includes(room.id)} />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          {(room.icon ? iconMap[room.icon] : roomIcons[room.name]) && (
+                            <Typography sx={{ fontSize: 18 }}>
+                              {room.icon ? iconMap[room.icon] : roomIcons[room.name]}
+                            </Typography>
+                          )}
+                          <Typography>{room.name}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
 
-              {/* Room Rows */}
-              {rooms.map((room, index) => (
-                <Box
-                  key={room.id}
-                  role="row"
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'var(--rooms-grid-template)',
-                    alignItems: 'stretch',
-                    '&:hover': {
-                      backgroundColor: '#f8f9fa',
-                    },
-                    transition: 'background-color 0.2s',
-                  }}
-                >
-                  {/* Room Name Cell */}
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderBottom: '1px solid #e0e0e0',
-                      borderLeft: '1px solid #e0e0e0',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                    }}
+              {/* Status Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>סטטוס</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedStatuses}
+                    onChange={(e) => setSelectedStatuses(e.target.value as string[])}
+                    input={<OutlinedInput label="סטטוס" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל הסטטוסים' : `${selected.length} סטטוסים`
+                    }
                   >
+                    {statusOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        <Checkbox checked={selectedStatuses.includes(option.value)} />
+                        <Typography>{option.label}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Category Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>קטגוריות</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedCategories}
+                    onChange={(e) => setSelectedCategories(e.target.value as string[])}
+                    input={<OutlinedInput label="קטגוריות" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל הקטגוריות' : `${selected.length} קטגוריות`
+                    }
+                  >
+                    {taskCategories.map((category) => (
+                      <MenuItem key={category} value={category}>
+                        <Checkbox checked={selectedCategories.includes(category)} />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography sx={{ fontSize: 18 }}>
+                            {taskCategoryIcons[category] || '📝'}
+                          </Typography>
+                          <Typography>{category}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* Action Buttons */}
+            <Box display="flex" gap={1} mt={2} flexWrap="wrap">
+              <Button
+                size="small"
+                startIcon={<ClearIcon />}
+                onClick={handleResetFilters}
+                disabled={selectedRooms.length === 0 && selectedStatuses.length === 0 && selectedCategories.length === 0}
+              >
+                איפוס פילטרים
+              </Button>
+              <Button
+                size="small"
+                startIcon={<RefreshIcon />}
+                onClick={handleShowActive}
+                variant="outlined"
+              >
+                חדרים פעילים
+              </Button>
+              <Button
+                size="small"
+                color="warning"
+                onClick={handleShowProblems}
+                variant="outlined"
+              >
+                חדרים עם בעיות
+              </Button>
+            </Box>
+
+
+          </Card>
+        </Box>
+
+        {/* Matrix Table */}
+        <Card
+          sx={{
+            mx: 3,
+            position: 'relative',
+            direction: 'ltr',
+            boxShadow: 3,
+            '&:hover': { boxShadow: 4 },
+            transition: 'box-shadow 0.2s',
+          }}
+        >
+          <TableContainer
+            sx={{
+              overflow: 'auto',
+              direction: 'rtl',
+              maxHeight: 'calc(100vh - 500px)',
+            }}
+          >
+            <Box sx={{ direction: 'ltr' }}>
+              <Table stickyHeader sx={{ direction: 'ltr', tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: 200, minWidth: 200, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                        <Typography variant="subtitle2" fontWeight="bold">חדר</Typography>
+                      </TableCell>
+                      {filteredCategories.map((category) => (
+                        <TableCell key={category} sx={{ width: 140, minWidth: 140, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                          <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                            <Typography sx={{ fontSize: 18 }}>
+                              {taskCategoryIcons[category] || '📝'}
+                            </Typography>
+                            <Typography variant="subtitle2" fontWeight="bold">
+                              {category}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                      ))}
+                      <TableCell sx={{ width: 140, minWidth: 140, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                        <Typography variant="subtitle2" fontWeight="bold">פעולות</Typography>
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredRooms.map((room, index) => (
+                      <TableRow
+                        key={room.id}
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: '#f8f9fa',
+                          },
+                          transition: 'background-color 0.2s',
+                        }}
+                      >
+                        {/* Room Name Cell */}
+                        <TableCell sx={{ p: 1.5, overflow: 'hidden', borderRight: '1px solid #e0e0e0' }}>
                     <Box display="flex" flexDirection="row-reverse" alignItems="center" justifyContent="flex-end" gap={1} mb={0.5}>
                       <Typography variant="body1" fontWeight="600" sx={{ wordBreak: 'break-word' }}>
                         {room.name}
@@ -1016,171 +1146,159 @@ export default function RoomsPage() {
                         {room.description}
                       </Typography>
                     )}
-                  </Box>
+                        </TableCell>
 
-                  {/* Task Status Cells */}
-                  {taskCategories.map((category) => {
-                    const task = room.tasks[category];
-                    const statusDisplay = getStatusDisplay(task);
-                    const overdue = isOverdue(task);
-                    const inProgressOverdue = isInProgressOverdue(task);
+                        {/* Task Status Cells */}
+                        {filteredCategories.map((category) => {
+                          const task = room.tasks[category];
+                          const statusDisplay = getStatusDisplay(task);
+                          const overdue = isOverdue(task);
+                          const inProgressOverdue = isInProgressOverdue(task);
 
-                    return (
-                      <Tooltip 
-                        key={category}
-                        title={task ? `${statusDisplay.label}${task.updatedAt ? ' | עודכן: ' + new Date(task.updatedAt).toLocaleDateString('he-IL') : ''}` : 'אין משימה'}
-                        arrow
-                      >
-                        <Box
-                          onClick={() => handleOpenTaskDialog(room.id, category, task)}
-                          sx={{
-                            p: 1.5,
-                            borderBottom: '1px solid #e0e0e0',
-                            borderLeft: '1px solid #e0e0e0',
-                            backgroundColor: (() => {
-                              const highlightColor = highlightedStatus && task ? getHighlightColor(task) : 'transparent';
-                              if (highlightColor !== 'transparent') return highlightColor;
-                              // Fallback to default colors for overdue (always visible)
-                              if (inProgressOverdue) return '#ffcdd2';
-                              if (overdue) return '#ffebee';
-                              return 'transparent';
-                            })(),
-                            cursor: 'pointer',
-                            '&:hover': {
-                              backgroundColor: inProgressOverdue ? '#ef9a9a' : (overdue ? '#ffcdd2' : '#e3f2fd'),
-                              transform: 'scale(1.02)',
-                            },
-                            transition: 'all 0.2s',
-                            textAlign: 'center',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                          }}
-                        >
-                          {task ? (
-                            <Box>
-                              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
-                                <Typography
-                                  sx={{
-                                    fontSize: '24px',
-                                    color: statusDisplay.color,
-                                    lineHeight: 1,
-                                    fontWeight: 'bold',
-                                  }}
-                                >
-                                  {statusDisplay.icon}
-                                </Typography>
-                                {inProgressOverdue && (
-                                  <Typography sx={{ fontSize: '16px' }}>⚠️</Typography>
+                          return (
+                            <Tooltip 
+                              key={category}
+                              title={task ? `${statusDisplay.label}${task.updatedAt ? ' | עודכן: ' + formatDate(task.updatedAt.split('T')[0]) : ''}` : 'אין משימה'}
+                              arrow
+                            >
+                              <TableCell
+                                onClick={() => handleOpenTaskDialog(room.id, category, task)}
+                                sx={{
+                                  p: 1.5,
+                                  backgroundColor: (() => {
+                                    const highlightColor = highlightedStatus && task ? getHighlightColor(task) : 'transparent';
+                                    if (highlightColor !== 'transparent') return highlightColor;
+                                    // Fallback to default colors for overdue (always visible)
+                                    if (inProgressOverdue) return '#ffcdd2';
+                                    if (overdue) return '#ffebee';
+                                    return 'transparent';
+                                  })(),
+                                  cursor: 'pointer',
+                                  '&:hover': {
+                                    backgroundColor: inProgressOverdue ? '#ef9a9a' : (overdue ? '#ffcdd2' : '#e3f2fd'),
+                                    transform: 'scale(1.02)',
+                                  },
+                                  transition: 'all 0.2s',
+                                  textAlign: 'center',
+                                  borderRight: '1px solid #e0e0e0',
+                                }}
+                              >
+                                {task ? (
+                                  <Box>
+                                    <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
+                                      <Typography
+                                        sx={{
+                                          fontSize: '24px',
+                                          color: statusDisplay.color,
+                                          lineHeight: 1,
+                                          fontWeight: 'bold',
+                                        }}
+                                      >
+                                        {statusDisplay.icon}
+                                      </Typography>
+                                      {inProgressOverdue && (
+                                        <Typography sx={{ fontSize: '16px' }}>⚠️</Typography>
+                                      )}
+                                      {task.progress > 0 && (
+                                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }} color="primary">
+                                          {task.progress}%
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                    {task.startDate && (
+                                      <Typography variant="caption" display="block" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                                        {formatDate(task.startDate)}
+                                      </Typography>
+                                    )}
+                                    {task.endDate && (
+                                      <Typography
+                                        variant="caption"
+                                        display="block"
+                                        sx={{
+                                          color: (overdue || inProgressOverdue) ? '#d32f2f' : 'text.secondary',
+                                          fontWeight: (overdue || inProgressOverdue) ? 'bold' : 'normal',
+                                          fontSize: '0.75rem',
+                                        }}
+                                      >
+                                        {formatDate(task.endDate)}
+                                      </Typography>
+                                    )}
+                                    {task.updatedAt && (
+                                      <Typography variant="caption" display="block" sx={{ color: '#999', fontSize: '0.65rem', mt: 0.5 }} suppressHydrationWarning>
+                                        עודכן: {formatDate(task.updatedAt.split('T')[0])}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" color="text.disabled">—</Typography>
                                 )}
-                                {task.progress > 0 && (
-                                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }} color="primary">
-                                    {task.progress}%
-                                  </Typography>
-                                )}
-                              </Box>
-                              {task.startDate && (
-                                <Typography variant="caption" display="block" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                                  {formatDate(task.startDate)}
-                                </Typography>
-                              )}
-                              {task.endDate && (
-                                <Typography
-                                  variant="caption"
-                                  display="block"
-                                  sx={{
-                                    color: (overdue || inProgressOverdue) ? '#d32f2f' : 'text.secondary',
-                                    fontWeight: (overdue || inProgressOverdue) ? 'bold' : 'normal',
-                                    fontSize: '0.75rem',
-                                  }}
-                                >
-                                  {formatDate(task.endDate)}
-                                </Typography>
-                              )}
-                              {task.updatedAt && (
-                                <Typography variant="caption" display="block" sx={{ color: '#999', fontSize: '0.65rem', mt: 0.5 }} suppressHydrationWarning>
-                                  עודכן: {new Date(task.updatedAt).toLocaleDateString('he-IL')}
-                                </Typography>
-                              )}
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.disabled">—</Typography>
-                          )}
-                        </Box>
-                      </Tooltip>
-                    );
-                  })}
+                              </TableCell>
+                            </Tooltip>
+                          );
+                        })}
 
-                  {/* Actions Cell */}
-                  <Box
-                    sx={{
-                      p: 0.5,
-                      borderBottom: '1px solid #e0e0e0',
-                      borderLeft: '1px solid #e0e0e0',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: 0.25,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Tooltip title="ערוך חדר">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenDialog(room)}
-                        color="primary"
-                        sx={{
-                          p: 0.5,
-                          '&:hover': { backgroundColor: 'primary.light', color: 'white' },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="מחק חדר">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteRoom(room.id)}
-                        color="error"
-                        sx={{
-                          p: 0.5,
-                          '&:hover': { backgroundColor: 'error.light', color: 'white' },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="הזז למעלה">
-                      <span>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => handleMoveRoom(e, index, 'up')}
-                          disabled={index === 0}
-                          sx={{ p: 0.5 }}
-                        >
-                          <ArrowUpwardIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="הזז למטה">
-                      <span>
-                        <IconButton
-                          size="small"
-                          sx={{ p: 0.5 }}
-                          onClick={(e) => handleMoveRoom(e, index, 'down')}
-                          disabled={index === rooms.length - 1}
-                        >
-                          <ArrowDownwardIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Card>
-        </Box>
+                        {/* Actions Cell */}
+                        <TableCell sx={{ p: 0.5, textAlign: 'center', borderRight: '1px solid #e0e0e0' }}>
+                          <Box display="flex" justifyContent="center" alignItems="center" gap={0.25} flexWrap="wrap">
+                            <Tooltip title="ערוך חדר">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenDialog(room)}
+                                color="primary"
+                                sx={{
+                                  p: 0.5,
+                                  '&:hover': { backgroundColor: 'primary.light', color: 'white' },
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="מחק חדר">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteRoom(room.id)}
+                                color="error"
+                                sx={{
+                                  p: 0.5,
+                                  '&:hover': { backgroundColor: 'error.light', color: 'white' },
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="הזז למעלה">
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => handleMoveRoom(e, index, 'up')}
+                                  disabled={index === 0}
+                                  sx={{ p: 0.5 }}
+                                >
+                                  <ArrowUpwardIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="הזז למטה">
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  sx={{ p: 0.5 }}
+                                  onClick={(e) => handleMoveRoom(e, index, 'down')}
+                                  disabled={index === filteredRooms.length - 1}
+                                >
+                                  <ArrowDownwardIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            </TableContainer>
+        </Card>
 
         {/* Add/Edit Room Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

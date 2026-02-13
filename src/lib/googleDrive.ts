@@ -22,7 +22,7 @@ const getAccessToken = async (): Promise<string> => {
 
   // Check if user has Google provider
   const googleProvider = user.providerData.find(
-    provider => provider.providerId === GoogleAuthProvider.PROVIDER_ID
+    (provider: any) => provider.providerId === GoogleAuthProvider.PROVIDER_ID
   );
   
   if (!googleProvider) {

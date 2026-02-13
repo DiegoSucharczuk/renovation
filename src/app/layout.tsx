@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ThemeRegistry from "@/components/ThemeRegistry";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { ClientAuthProvider } from "@/components/ClientAuthProvider";
+
+// Don't prerender pages that use auth context
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "ניהול שיפוצים - Renovation Management",
   description: "מערכת לניהול פרויקטי שיפוצים",
   icons: {
-    icon: [
-      { url: '/favicon.svg?v=2', type: 'image/svg+xml' },
-      { url: '/favicon.ico?v=2' }
-    ],
-    apple: '/favicon.svg?v=2',
-    shortcut: '/favicon.svg?v=2',
+    icon: { url: '/favicon.svg', type: 'image/svg+xml' },
+    apple: '/favicon.svg',
+    shortcut: '/favicon.svg',
   },
 };
 
@@ -31,9 +31,9 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <ThemeRegistry>
-          <AuthProvider>
+          <ClientAuthProvider>
             {children}
-          </AuthProvider>
+          </ClientAuthProvider>
         </ThemeRegistry>
       </body>
     </html>

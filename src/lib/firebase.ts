@@ -12,10 +12,66 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// Initialize Firebase lazily - only when needed
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+let storage: any = null;
+let initialized = false;
 
+function validateFirebaseConfig() {
+  // Check if config has actual values (not undefined)
+  const hasValidConfig = 
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId;
+
+  if (!hasValidConfig) {
+    const errorMsg = `Missing Firebase configuration. Please create a .env.local file in the root directory with these variables:\n\nNEXT_PUBLIC_FIREBASE_API_KEY=your-value\nNEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-value\nNEXT_PUBLIC_FIREBASE_PROJECT_ID=your-value\nNEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-value\nNEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-value\nNEXT_PUBLIC_FIREBASE_APP_ID=your-value\n\nSee QUICKSTART.md for details.`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+}
+
+function initializeFirebase() {
+  if (initialized || typeof window === 'undefined') return;
+
+  try {
+    validateFirebaseConfig();
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+    initialized = true;
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    throw error;
+  }
+}
+
+// Getter functions that initialize on first use
+export function getFirebaseApp() {
+  initializeFirebase();
+  return app;
+}
+
+export function getFirebaseAuth() {
+  initializeFirebase();
+  return auth;
+}
+
+export function getFirebaseDb() {
+  initializeFirebase();
+  return db;
+}
+
+export function getFirebaseStorage() {
+  initializeFirebase();
+  return storage;
+}
+
+// Deprecated - use getter functions instead
 export { app, auth, db, storage };

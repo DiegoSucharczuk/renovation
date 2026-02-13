@@ -120,7 +120,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
         }}
       >
         <Toolbar />
-        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: 'auto' }}>
+        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
           {children}
         </Box>
       </Box>

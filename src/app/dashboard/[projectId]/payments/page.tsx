@@ -242,11 +242,12 @@ export default function PaymentsPage() {
         </Box>
 
         {/* Payments Table */}
-        <Card sx={{ mx: 3 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+        <Card sx={{ mx: 3, direction: 'ltr' }}>
+          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
+            <Box sx={{ direction: 'ltr' }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                   <TableCell sx={{ fontWeight: 'bold' }}>שם הספק</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>קטגוריה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>סכום חוזה</TableCell>
@@ -362,8 +363,7 @@ export default function PaymentsPage() {
                   })
                 )}
               </TableBody>
-            </Table>
-          </TableContainer>
+            </Table>            </Box>          </TableContainer>
         </Card>
       </Box>
     </DashboardLayout>

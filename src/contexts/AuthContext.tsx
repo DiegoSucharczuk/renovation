@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { getFirebaseAuth, getFirebaseDb } from '@/lib/firebase';
 import { User } from '@/types';
 import { setDriveAccessToken } from '@/lib/googleDrive';
 
@@ -25,12 +25,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const firebaseAuth = getFirebaseAuth();
+    const firebaseDb = getFirebaseDb();
+    
+    if (!firebaseAuth) return;
+    
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
       
       if (firebaseUser) {
         // Fetch user data from Firestore
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        const userDoc = await getDoc(doc(firebaseDb, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setUser({
@@ -51,19 +56,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const firebaseAuth = getFirebaseAuth();
+    const firebaseDb = getFirebaseDb();
+    const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
     // Update lastLoginAt
-    await updateDoc(doc(db, 'users', userCredential.user.uid), {
+    await updateDoc(doc(firebaseDb, 'users', userCredential.user.uid), {
       lastLoginAt: new Date(),
     });
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseAuth = getFirebaseAuth();
+    const firebaseDb = getFirebaseDb();
+    const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     const user = userCredential.user;
 
     // Create user document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
+    await setDoc(doc(firebaseDb, 'users', user.uid), {
       name,
       email,
       createdAt: new Date(),
@@ -72,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    const firebaseAuth = getFirebaseAuth();
+    const firebaseDb = getFirebaseDb();
     const provider = new GoogleAuthProvider();
     
     // Add Google Drive scope for full access (create, read, update files)
@@ -84,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       prompt: 'select_account'
     });
     
-    const userCredential = await signInWithPopup(auth, provider);
+    const userCredential = await signInWithPopup(firebaseAuth, provider);
     const user = userCredential.user;
 
     // Get the OAuth Access Token from the credential
@@ -96,9 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Check if user document exists, if not create it
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userDoc = await getDoc(doc(firebaseDb, 'users', user.uid));
     if (!userDoc.exists()) {
-      await setDoc(doc(db, 'users', user.uid), {
+      await setDoc(doc(firebaseDb, 'users', user.uid), {
         name: user.displayName || 'Google User',
         email: user.email || '',
         createdAt: new Date(),
@@ -106,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     } else {
       // Update lastLoginAt for existing users
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateDoc(doc(firebaseDb, 'users', user.uid), {
         lastLoginAt: new Date(),
       });
     }
@@ -116,7 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    const firebaseAuth = getFirebaseAuth();
+    await firebaseSignOut(firebaseAuth);
   };
 
   return (

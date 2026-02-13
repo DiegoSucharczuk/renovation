@@ -294,15 +294,17 @@ export default function TasksPage() {
     IN_PROGRESS: 'בביצוע',
     WAITING: 'ממתין',
     DONE: 'הושלם',
+    BLOCKED: 'חסום',
     NOT_RELEVANT: 'לא רלוונטי',
   };
 
-  const statusColors: Record<Task['status'], 'default' | 'primary' | 'warning' | 'success'> = {
+  const statusColors: Record<Task['status'], 'default' | 'primary' | 'warning' | 'success' | 'error'> = {
     NO_STATUS: 'default',
     NOT_STARTED: 'default',
     IN_PROGRESS: 'primary',
     WAITING: 'warning',
     DONE: 'success',
+    BLOCKED: 'error',
     NOT_RELEVANT: 'default',
   };
 
@@ -437,7 +439,7 @@ export default function TasksPage() {
           direction: 'ltr',
           position: 'relative',
         }}>
-          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
               <TableHead>
@@ -465,10 +467,11 @@ export default function TasksPage() {
                       const icons: any = {
                         'NO_STATUS': { icon: '—', color: '#bdbdbd' },
                         'DONE': { icon: '✓', color: '#4caf50' },
-                        'IN_PROGRESS': { icon: '⬤', color: '#ff9800' },
-                        'WAITING': { icon: '⏸', color: '#ffa726' },
-                        'BLOCKED': { icon: '🚫', color: '#f44336' },
+                        'IN_PROGRESS': { icon: '●', color: '#FFD700' },
+                        'WAITING': { icon: '⏸', color: '#ff9800' },
+                        'BLOCKED': { icon: '⚠', color: '#f44336' },
                         'NOT_STARTED': { icon: '○', color: '#9e9e9e' },
+                        'NOT_RELEVANT': { icon: '—', color: '#e0e0e0' },
                       };
                       return icons[status] || icons['NO_STATUS'];
                     };

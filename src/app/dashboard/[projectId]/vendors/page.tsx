@@ -375,7 +375,7 @@ export default function VendorsPage() {
       if (!user) return;
       
       const googleProvider = user.providerData.find(
-        provider => provider.providerId === 'google.com'
+        (provider: any) => provider.providerId === 'google.com'
       );
       
       // If no Google provider, skip loading (user not signed in with Google)
@@ -1191,12 +1191,14 @@ export default function VendorsPage() {
                 boxShadow: 4,
               },
               transition: 'box-shadow 0.2s',
+              direction: 'ltr',
             }}
           >
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+            <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+              <Box sx={{ direction: 'ltr' }}>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                     <TableCell sx={{ fontWeight: 'bold', width: 50, textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}></TableCell>
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>שם הספק</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>קטגוריה</TableCell>
@@ -1588,6 +1590,7 @@ export default function VendorsPage() {
                   })}
                 </TableBody>
               </Table>
+              </Box>
             </TableContainer>
           </Card>
         </Box>
@@ -2027,10 +2030,12 @@ export default function VendorsPage() {
                 )}
 
                 {/* Payments Table */}
-                <TableContainer>
-                  <Table size="small" sx={{ minWidth: 900 }}>
-                    <TableHead>
-                      <TableRow>
+                <Card sx={{ direction: 'ltr', mt: 2 }}>
+                  <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 500px)', overflow: 'auto' }}>
+                    <Box sx={{ direction: 'ltr' }}>
+                      <Table stickyHeader size="small" sx={{ minWidth: 900 }}>
+                        <TableHead>
+                          <TableRow>
                         <TableCell sx={{ fontWeight: 'bold', minWidth: 100, whiteSpace: 'nowrap' }}>תאריך</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', minWidth: 100, whiteSpace: 'nowrap' }}>סכום</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', minWidth: 120, whiteSpace: 'nowrap' }}>אמצעי תשלום</TableCell>
@@ -2163,7 +2168,9 @@ export default function VendorsPage() {
                       )}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                    </Box>
+                  </TableContainer>
+                </Card>
               </>
             )}
           </DialogContent>
