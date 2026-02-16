@@ -110,7 +110,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
           mr: { sm: `${drawerWidth}px` },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           height: '100vh',
-          overflow: 'hidden',
+          overflow: 'auto',
           transition: 'none',
           contain: 'layout style',
           willChange: 'auto',
@@ -120,7 +120,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
         }}
       >
         <Toolbar />
-        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+        <Box sx={{ contain: 'layout', minHeight: 'calc(100vh - 64px)' }}>
           {children}
         </Box>
       </Box>
