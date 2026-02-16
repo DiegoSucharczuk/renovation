@@ -121,7 +121,7 @@ export default function DashboardLayout({ children, projectId, project, scrollab
         }}
       >
         <Toolbar />
-        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: scrollable ? 'auto' : 'hidden' }}>
+        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: scrollable ? 'auto' : 'hidden', pr: 1 }}>
           {children}
         </Box>
       </Box>

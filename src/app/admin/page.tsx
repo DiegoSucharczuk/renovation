@@ -247,6 +247,7 @@ export default function AdminPage() {
           justifyContent="center" 
           alignItems="center" 
           minHeight="100vh"
+          suppressHydrationWarning
         >
           <CircularProgress size={60} color="primary" />
           <Typography variant="h6" sx={{ mt: 2, color: 'text.secondary' }}>
