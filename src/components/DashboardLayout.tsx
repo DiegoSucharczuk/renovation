@@ -24,9 +24,10 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   projectId: string;
   project?: Project;
+  scrollable?: boolean;
 }
 
-export default function DashboardLayout({ children, projectId, project }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, projectId, project, scrollable = false }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { signOut, user, firebaseUser } = useAuth();
   const { permissions, loading } = useProjectRole(projectId, firebaseUser?.uid || null);
@@ -120,7 +121,7 @@ export default function DashboardLayout({ children, projectId, project }: Dashbo
         }}
       >
         <Toolbar />
-        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: scrollable ? 'auto' : 'hidden' }}>
           {children}
         </Box>
       </Box>

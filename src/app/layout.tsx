@@ -9,11 +9,6 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: "ניהול שיפוצים - Renovation Management",
   description: "מערכת לניהול פרויקטי שיפוצים",
-  icons: {
-    icon: { url: '/favicon.svg', type: 'image/svg+xml' },
-    apple: '/favicon.svg',
-    shortcut: '/favicon.svg',
-  },
 };
 
 export default function RootLayout({
@@ -24,6 +19,9 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/favicon_full_512.png" sizes="512x512" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap"

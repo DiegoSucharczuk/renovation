@@ -393,7 +393,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <DashboardLayout projectId={projectId} project={project || undefined}>
+    <DashboardLayout projectId={projectId} project={project || undefined} scrollable={true}>
       <Box sx={{ px: 3, py: 4, backgroundColor: '#fafafa', minHeight: '100vh' }}>
         
         {/* ========== ZONE 1: OVERVIEW (Header) ========== */}
