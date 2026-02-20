@@ -25,10 +25,13 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
@@ -54,6 +57,7 @@ export default function MeetingsPage() {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [currentTab, setCurrentTab] = useState(0);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -257,12 +261,23 @@ export default function MeetingsPage() {
   };
 
   const getSortedMeetings = () => {
-    const sorted = [...meetings].sort((a, b) => {
+    let sorted = [...meetings].sort((a, b) => {
       const statusOrder = { NOT_STARTED: 0, IN_PROGRESS: 1, PARTIAL: 2, COMPLETED: 3 };
       const statusA = getMeetingStatus(a);
       const statusB = getMeetingStatus(b);
       return statusOrder[statusA as keyof typeof statusOrder] - statusOrder[statusB as keyof typeof statusOrder];
     });
+
+    // Filter by tab
+    if (currentTab === 1) {
+      sorted = sorted.filter(m => {
+        const status = getMeetingStatus(m);
+        return status === 'IN_PROGRESS' || status === 'PARTIAL';
+      });
+    } else if (currentTab === 2) {
+      sorted = sorted.filter(m => getMeetingStatus(m) === 'COMPLETED');
+    }
+
     return sorted;
   };
 
@@ -288,6 +303,29 @@ export default function MeetingsPage() {
           >
             פגישה חדשה
           </Button>
+        </Box>
+
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+          <Tabs 
+            value={currentTab} 
+            onChange={(e, newValue) => setCurrentTab(newValue)}
+            sx={{ minHeight: 'auto' }}
+          >
+            <Tab label={`כל הפגישות (${meetings.length})`} />
+            <Tab 
+              label={`בתהליך (${
+                meetings.filter(m => {
+                  const status = getMeetingStatus(m);
+                  return status === 'IN_PROGRESS' || status === 'PARTIAL';
+                }).length
+              })`} 
+            />
+            <Tab 
+              label={`בוצעו (${
+                meetings.filter(m => getMeetingStatus(m) === 'COMPLETED').length
+              })`} 
+            />
+          </Tabs>
         </Box>
 
         <Card sx={{ borderRadius: 2 }}>
@@ -411,6 +449,24 @@ export default function MeetingsPage() {
                 </Typography>
                 {formData.actionItems.map((item, idx) => (
                   <Box key={idx} sx={{ mb: 1, p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 500, color: '#666' }}>
+                        משימה {idx + 1}
+                      </Typography>
+                      {formData.actionItems.length > 1 && (
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            const newItems = formData.actionItems.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, actionItems: newItems });
+                          }}
+                          color="error"
+                          sx={{ mt: -1, mr: -1 }}
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
                     <TextField
                       label="תיאור"
                       value={item.description}
@@ -466,19 +522,32 @@ export default function MeetingsPage() {
                   החלטות
                 </Typography>
                 {formData.decisions.map((decision, idx) => (
-                  <TextField
-                    key={idx}
-                    value={decision}
-                    onChange={(e) => {
-                      const newDecisions = [...formData.decisions];
-                      newDecisions[idx] = e.target.value;
-                      setFormData({ ...formData, decisions: newDecisions });
-                    }}
-                    placeholder={`החלטה ${idx + 1}`}
-                    fullWidth
-                    size="small"
-                    sx={{ mb: 1 }}
-                  />
+                  <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'flex-start' }}>
+                    <TextField
+                      value={decision}
+                      onChange={(e) => {
+                        const newDecisions = [...formData.decisions];
+                        newDecisions[idx] = e.target.value;
+                        setFormData({ ...formData, decisions: newDecisions });
+                      }}
+                      placeholder={`החלטה ${idx + 1}`}
+                      fullWidth
+                      size="small"
+                    />
+                    {formData.decisions.length > 1 && (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          const newDecisions = formData.decisions.filter((_, i) => i !== idx);
+                          setFormData({ ...formData, decisions: newDecisions });
+                        }}
+                        color="error"
+                        sx={{ mt: 0.5 }}
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
                 ))}
                 <Button
                   onClick={() => setFormData({ ...formData, decisions: [...formData.decisions, ''] })}
