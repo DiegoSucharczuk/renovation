@@ -19,6 +19,9 @@ export interface Project {
   budgetPlanned: number;
   budgetAllowedOverflowPercent: number;
   createdAt: Date;
+  designerName?: string;
+  designerPhone?: string;
+  designerEmail?: string;
 }
 
 export interface ProjectUser {
@@ -71,6 +74,20 @@ export interface Task {
   dueDate?: string | null;
   progress?: number;
   autoUpdateStatus?: boolean;
+  completed?: boolean;
+}
+
+// Project Owner/Contact types
+export interface ProjectOwner {
+  id: string;
+  projectId: string;
+  name: string;
+  phone: string;
+  email: string;
+  role: 'PRIMARY_OWNER' | 'CO_OWNER' | 'OTHER_CONTACT';
+  notes?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Vendor types
@@ -84,6 +101,49 @@ export interface Vendor {
   phone: string;
   email: string;
   notes?: string;
+}
+
+// Meeting types
+export type MeetingType = 'SITE_VISIT' | 'PLANNING' | 'SUPPLIER' | 'HANDOVER' | 'OTHER';
+
+export interface MeetingActionItem {
+  id: string;
+  description: string;
+  assigneeVendorId: string;
+  dueDate: Date;
+  status: 'PENDING' | 'COMPLETED';
+  createdAsTaskId?: string;
+}
+
+export interface Meeting {
+  id: string;
+  projectId: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  meetingDate: Date;
+  dueDate?: Date | null;
+  meetingType: MeetingType;
+  title: string;
+  description: string;
+  completed?: boolean;
+  
+  participantVendorIds: string[];
+  relatedRoomId?: string;
+  relatedVendorId?: string;
+  
+  decisions: string[];
+  actionItems: MeetingActionItem[];
+  
+  attachments: Array<{
+    url: string;
+    fileName: string;
+  }>;
+  
+  sharedWith: Array<{
+    vendorId: string;
+    sharedAt: Date;
+    sharedVia: 'EMAIL' | 'WHATSAPP' | 'PDF_LINK';
+  }>;
 }
 
 // Payment types

@@ -23,6 +23,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import GroupIcon from '@mui/icons-material/Group';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import { hebrewLabels } from '@/lib/labels';
 
 const drawerWidth = 240;
@@ -60,6 +61,7 @@ export default function NavigationDrawer({
     { text: hebrewLabels.tasks, icon: <TaskIcon />, path: `/dashboard/${projectId}/tasks` },
     { text: hebrewLabels.vendors, icon: <PeopleIcon />, path: `/dashboard/${projectId}/vendors` },
     { text: hebrewLabels.payments, icon: <PaymentIcon />, path: `/dashboard/${projectId}/payments`, hidden: !canViewPayments },
+    { text: 'סיכומי פגישות', icon: <EventNoteIcon />, path: `/dashboard/${projectId}/meetings` },
   ];
 
   const drawer = (
@@ -110,6 +112,14 @@ export default function NavigationDrawer({
                 >
                   <ListItemIcon><GroupIcon /></ListItemIcon>
                   <ListItemText primary="ניהול משתמשים" />
+                </ListItemButton>
+                <ListItemButton
+                  sx={{ pl: 4 }}
+                  selected={pathname === `/dashboard/${projectId}/settings/owners`}
+                  onClick={() => router.push(`/dashboard/${projectId}/settings/owners`)}
+                >
+                  <ListItemIcon><PeopleIcon /></ListItemIcon>
+                  <ListItemText primary="בעלי הבית" />
                 </ListItemButton>
               </List>
             </Collapse>

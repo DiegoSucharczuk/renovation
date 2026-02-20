@@ -37,7 +37,11 @@ function validateFirebaseConfig() {
 }
 
 function initializeFirebase() {
-  if (initialized || typeof window === 'undefined') return;
+  if (initialized) return;
+  if (typeof window === 'undefined') {
+    console.warn('Firebase initialization skipped on server-side');
+    return;
+  }
 
   try {
     validateFirebaseConfig();
@@ -46,10 +50,16 @@ function initializeFirebase() {
     db = getFirestore(app);
     storage = getStorage(app);
     initialized = true;
+    console.debug('Firebase initialized successfully');
   } catch (error) {
     console.error('Firebase initialization error:', error);
     throw error;
   }
+}
+
+// Initialize Firebase immediately when this module is imported on the client
+if (typeof window !== 'undefined') {
+  initializeFirebase();
 }
 
 // Getter functions that initialize on first use
@@ -65,6 +75,9 @@ export function getFirebaseAuth() {
 
 export function getFirebaseDb() {
   initializeFirebase();
+  if (!db) {
+    throw new Error('Firestore not initialized. Check .env.local configuration.');
+  }
   return db;
 }
 
@@ -74,4 +87,5 @@ export function getFirebaseStorage() {
 }
 
 // Deprecated - use getter functions instead
+// Always ensure db is initialized before using
 export { app, auth, db, storage };

@@ -87,6 +87,13 @@ export const hebrewLabels = {
   cash: 'מזומן',
   creditCard: 'כרטיס אשראי',
   
+  // Meeting types
+  SITE_VISIT: 'ביקור באתר',
+  PLANNING: 'תכנון',
+  SUPPLIER: 'פגישת ספק',
+  HANDOVER: 'הסגור',
+  OTHER: 'אחר',
+  
   // Common
   save: 'שמור',
   cancel: 'ביטול',

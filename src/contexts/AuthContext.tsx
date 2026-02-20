@@ -85,25 +85,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const firebaseDb = getFirebaseDb();
     const provider = new GoogleAuthProvider();
     
-    // Add Google Drive scope for full access (create, read, update files)
-    // Using 'drive' scope to allow both uploading files and viewing files shared by others
-    // (drive.file only allows access to files created by the app, drive.readonly only allows reading)
+    // Add Google Drive scope
     provider.addScope('https://www.googleapis.com/auth/drive');
     
-    // Force account selection every time (allows switching between accounts)
+    // Add Gmail scope for sending emails
+    provider.addScope('https://www.googleapis.com/auth/gmail.send');
+    
+    // Force consent screen to ensure scopes are granted
     provider.setCustomParameters({
-      prompt: 'select_account'
+      prompt: 'consent',
+      access_type: 'offline'
     });
     
     const userCredential = await signInWithPopup(firebaseAuth, provider);
     const user = userCredential.user;
 
-    // Get the OAuth Access Token from the credential
+    console.log('🔐 Sign In Debug - Attempting to get access token...');
+
+    // Method 1: Try standard Firebase method
+    let accessToken: string | null = null;
     const credential = GoogleAuthProvider.credentialFromResult(userCredential);
+    
     if (credential?.accessToken) {
+      accessToken = credential.accessToken;
+      console.log('✅ Got access token from credential');
+    }
+    
+    // Method 2: Try from _tokenResponse (Firebase internal)
+    if (!accessToken && (userCredential as any)._tokenResponse?.access_token) {
+      accessToken = (userCredential as any)._tokenResponse.access_token;
+      console.log('✅ Got access token from _tokenResponse');
+    }
+    
+    // Method 3: Try from tokenManager (some Firebase versions)
+    if (!accessToken && (user as any).stsTokenManager?.accessToken) {
+      accessToken = (user as any).stsTokenManager.accessToken;
+      console.log('✅ Got access token from stsTokenManager');
+    }
+    
+    console.log('🔐 Access Token Result:', {
+      hasToken: !!accessToken,
+      tokenPreview: accessToken ? accessToken.substring(0, 30) + '...' : 'NONE',
+      credentialKeys: credential ? Object.keys(credential) : [],
+      userCredentialKeys: Object.keys(userCredential),
+    });
+    
+    if (accessToken) {
       // Store the access token for Drive API calls
-      setDriveAccessToken(credential.accessToken);
-      console.log('Drive access token stored successfully');
+      setDriveAccessToken(accessToken);
+      // Also store in sessionStorage for Gmail API
+      sessionStorage.setItem('google_access_token', accessToken);
+      console.log('✅ Access tokens stored (Drive & Gmail)');
+      console.log('📧 Gmail access token stored:', accessToken.substring(0, 20) + '...');
+    } else {
+      console.error('❌ CRITICAL: No access token found using any method!');
+      console.error('   This means Gmail will not work');
     }
 
     // Check if user document exists, if not create it

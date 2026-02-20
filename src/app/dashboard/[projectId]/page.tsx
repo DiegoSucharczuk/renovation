@@ -15,6 +15,8 @@ import {
   Stack,
   IconButton,
   Tooltip,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
@@ -29,11 +31,12 @@ import CelebrationIcon from '@mui/icons-material/Celebration';
 
 import { doc, collection, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { hebrewLabels } from '@/lib/labels';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
 import AccessDenied from '@/components/AccessDenied';
-import type { Project, Room, Task } from '@/types';
+import type { Project, Room, Task, Meeting } from '@/types';
 
 interface Vendor {
   id: string;
@@ -66,6 +69,8 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [activeTab, setActiveTab] = useState(0);
 
   const fetchData = useCallback(async () => {
     const isInitialLoad = loading;
@@ -122,6 +127,21 @@ export default function DashboardPage() {
           ...doc.data(),
         } as Payment));
         setPayments(paymentsData);
+
+        const meetingsQuery = query(collection(db, 'meetings'), where('projectId', '==', projectId));
+        const meetingsSnapshot = await getDocsFromServer(meetingsQuery);
+        const meetingsData = meetingsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || new Date()),
+            meetingDate: data.meetingDate?.toDate ? data.meetingDate.toDate() : (data.meetingDate || new Date()),
+            dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : (data.dueDate || null),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : (data.updatedAt || new Date()),
+          } as unknown as Meeting;
+        });
+        setMeetings(meetingsData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -180,6 +200,33 @@ export default function DashboardPage() {
     if (!endDateField) return false;
     const endDate = endDateField instanceof Date ? endDateField : new Date(endDateField);
     return endDate < now;
+  };
+
+  const getDaysRemaining = (dueDate: Date | null): string => {
+    if (!dueDate) return 'N/A';
+    
+    const due = dueDate instanceof Date ? dueDate : new Date(dueDate);
+    
+    // Set both dates to midnight for accurate day-boundary counting
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    
+    const dueDay = new Date(due);
+    dueDay.setHours(0, 0, 0, 0);
+    
+    const diffTime = dueDay.getTime() - today.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      const days = Math.abs(diffDays);
+      if (days === 1) return '1 יום בחריגה';
+      return `${days} ימים בחריגה`;
+    }
+    
+    if (diffDays === 0) return 'היום';
+    if (diffDays === 1) return 'מחר';
+    
+    return `${diffDays} ימים`;
   };
 
   const relevantTasks = tasks.filter(t => t.status !== 'NOT_RELEVANT');
@@ -285,6 +332,18 @@ export default function DashboardPage() {
     const date = completedDate instanceof Date ? completedDate : new Date(completedDate);
     return date >= weekAgo;
   });
+
+  const upcomingMeetings = meetings
+    .filter(meeting => {
+      const meetingDate = meeting.meetingDate instanceof Date ? meeting.meetingDate : new Date(meeting.meetingDate);
+      return meetingDate >= now;
+    })
+    .sort((a, b) => {
+      const dateA = a.meetingDate instanceof Date ? a.meetingDate : new Date(a.meetingDate);
+      const dateB = b.meetingDate instanceof Date ? b.meetingDate : new Date(b.meetingDate);
+      return dateA.getTime() - dateB.getTime();
+    })
+    .slice(0, 3);
 
   return (
     <DashboardLayout projectId={projectId} project={project || undefined} scrollable={true}>
@@ -415,182 +474,343 @@ export default function DashboardPage() {
           )}
         </Box>
 
-        {/* ========== ZONE 2: ALERTS ========== */}
-        {(blockedTasksArr.length > 0 || overdueNotInProgressArr.length > 0 || shouldStartTasks.length > 0 || inProgressOverdueArr.length > 0 || (permissions.canViewPayments && upcomingPayments.length > 0) || recentlyCompletedTasks.length > 0) && (
-          <Card sx={{ mb: 4, borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', borderLeft: '6px solid #ff9800' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" fontWeight="800" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <WarningAmberIcon color="warning" /> התראות הדורשות תשומת לב
-              </Typography>
-              <Stack spacing={2} mt={2}>
-                {overdueNotInProgressArr.length > 0 && <Alert severity="error" icon={<EventBusyIcon />} sx={{ borderRadius: 2 }}>יש {overdueNotInProgressArr.length} משימות שחרגו מתאריך היעד</Alert>}
-                {inProgressOverdueArr.length > 0 && <Alert severity="error" sx={{ borderRadius: 2 }}>יש {inProgressOverdueArr.length} משימות בביצוע שעבר להן תאריך הסיום!</Alert>}
-                {shouldStartTasks.length > 0 && <Alert severity="warning" sx={{ borderRadius: 2 }}>יש {shouldStartTasks.length} משימות שאמורות היו להתחיל ועדיין לא התחילו</Alert>}
-                {blockedTasksArr.length > 0 && <Alert severity="warning" sx={{ borderRadius: 2 }}>{blockedTasksArr.length} משימות נמצאות בסטטוס חסום ומעכבות את הפרויקט</Alert>}
-                {permissions.canViewPayments && upcomingPayments.length > 0 && <Alert severity="info" sx={{ borderRadius: 2 }}>{upcomingPayments.length} תשלומים ממתינים בשבועיים הקרובים (סך הכל: ₪{upcomingPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()})</Alert>}
-                {recentlyCompletedTasks.length > 0 && <Alert severity="success" icon={<CelebrationIcon />} sx={{ borderRadius: 2 }}>עבודה טובה! הושלמו {recentlyCompletedTasks.length} משימות השבוע.</Alert>}
+
+
+        {/* ========== ZONE 4: TABS ========== */}
+        <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', mt: 6 }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ '& .MuiTab-root': { fontWeight: 500, fontSize: '0.95rem' } }}>
+              <Tab label="📢 התראות" />
+              <Tab label="📊 סטטוס משימות" />
+              <Tab label="💸 ניתוח ספקים" />
+              <Tab label="🏠 התקדמות לפי חדרים" />
+              <Tab label="📅 פגישות" />
+              <Tab label="📋 משימות פעולה" />
+            </Tabs>
+          </Box>
+
+          <CardContent sx={{ p: 3 }}>
+            {/* Tab 0: Alerts */}
+            {activeTab === 0 && (
+              <Stack spacing={2}>
+                {overdueNotInProgressArr.length > 0 && (
+                  <Alert severity="error" icon={<EventBusyIcon />} sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>⚠️ {overdueNotInProgressArr.length} משימות חרגו מתאריך היעד</Typography>
+                    <Stack spacing={1}>
+                      {overdueNotInProgressArr.slice(0, 3).map((task) => {
+                        const dueDate = task.endPlanned || task.endDate || task.dueDate;
+                        const daysOverdue = dueDate ? Math.ceil((new Date().getTime() - (dueDate instanceof Date ? dueDate.getTime() : new Date(dueDate as string).getTime())) / (1000 * 60 * 60 * 24)) : 0;
+                        const roomName = rooms.find(r => r.id === task.roomId)?.name || '';
+                        const roomText = roomName ? ` בחדר ${roomName}` : '';
+                        return (
+                          <Typography key={task.id} variant="body2">• {task.title}{roomText} (אחר {daysOverdue} ימים)</Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Alert>
+                )}
+                {inProgressOverdueArr.length > 0 && (
+                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>🔴 {inProgressOverdueArr.length} משימות בביצוע שעברו תאריך</Typography>
+                    <Stack spacing={1}>
+                      {inProgressOverdueArr.slice(0, 3).map((task) => {
+                        const roomName = rooms.find(r => r.id === task.roomId)?.name || '';
+                        const roomText = roomName ? ` בחדר ${roomName}` : '';
+                        return (
+                          <Typography key={task.id} variant="body2">• {task.title}{roomText} (בביצוע)</Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Alert>
+                )}
+                {blockedTasksArr.length > 0 && (
+                  <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>⛔ {blockedTasksArr.length} משימות חסומות</Typography>
+                    <Stack spacing={1}>
+                      {blockedTasksArr.slice(0, 3).map((task) => {
+                        const roomName = rooms.find(r => r.id === task.roomId)?.name || '';
+                        const roomText = roomName ? ` בחדר ${roomName}` : '';
+                        return (
+                          <Typography key={task.id} variant="body2">• {task.title}{roomText} (חסום)</Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Alert>
+                )}
+                {shouldStartTasks.length > 0 && (
+                  <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>⏸️ {shouldStartTasks.length} משימות צריכות להתחיל</Typography>
+                    <Stack spacing={1}>
+                      {shouldStartTasks.slice(0, 3).map((task) => {
+                        const roomName = rooms.find(r => r.id === task.roomId)?.name || '';
+                        const roomText = roomName ? ` בחדר ${roomName}` : '';
+                        return (
+                          <Typography key={task.id} variant="body2">• {task.title}{roomText} (טרם התחיל)</Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Alert>
+                )}
+                {permissions.canViewPayments && upcomingPayments.length > 0 && (
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>💳 {upcomingPayments.length} תשלומים ממתינים</Typography>
+                    <Typography variant="body2">סך הכל: ₪{upcomingPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()} בשבועיים הקרובים</Typography>
+                  </Alert>
+                )}
+                {recentlyCompletedTasks.length > 0 && (
+                  <Alert severity="success" icon={<CelebrationIcon />} sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>✅ עבודה טובה!</Typography>
+                    <Typography variant="body2">הושלמו {recentlyCompletedTasks.length} משימות השבוע</Typography>
+                  </Alert>
+                )}
+                {overdueNotInProgressArr.length === 0 && inProgressOverdueArr.length === 0 && blockedTasksArr.length === 0 && shouldStartTasks.length === 0 && !permissions.canViewPayments && recentlyCompletedTasks.length === 0 && (
+                  <Alert severity="success">אין התראות כרגע - המצב ירוק! 🟢</Alert>
+                )}
               </Stack>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* ========== ZONE 3: DETAILED SPLIT VIEW ========== */}
-        <Box sx={{ display: 'grid', gap: 4, gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' } }}>
-          
-          <Stack spacing={4}>
-            {/* סטטוס משימות פרויקט */}
-            <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="800" gutterBottom mb={3}>
-                  📊 סטטוס משימות פרויקט
-                </Typography>
-                <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(130px, 1fr))" gap={2}>
-                  
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'success.50', textAlign: 'center', border: '1px solid', borderColor: 'success.100' }}>
-                    <Typography variant="h4" fontWeight="800" color="success.main">{completedTasksArr.length}</Typography>
-                    <Typography variant="body2" color="success.main" fontWeight="bold">הושלמו ✓</Typography>
-                  </Box>
-
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'primary.50', textAlign: 'center', border: '1px solid', borderColor: 'primary.100' }}>
-                    <Typography variant="h4" fontWeight="800" color="primary.main">{inProgressOnTimeArr.length}</Typography>
-                    <Typography variant="body2" color="primary.main" fontWeight="bold">בביצוע ●</Typography>
-                  </Box>
-
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'info.50', textAlign: 'center', border: '1px solid', borderColor: 'info.100' }}>
-                    <Typography variant="h4" fontWeight="800" color="info.main">{waitingTasksArr.length}</Typography>
-                    <Typography variant="body2" color="info.main" fontWeight="bold">בהמתנה ⏸</Typography>
-                  </Box>
-
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'grey.50', textAlign: 'center', border: '1px solid #eee' }}>
-                    <Typography variant="h4" fontWeight="800" color="text.secondary">{notStartedOnTimeArr.length}</Typography>
-                    <Typography variant="body2" color="text.secondary" fontWeight="bold">לא התחילו ○</Typography>
-                  </Box>
-
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fff4e5', textAlign: 'center', border: '1px solid #ffe0b2' }}>
-                    <Typography variant="h4" fontWeight="800" color="#ed6c02">{blockedTasksArr.length}</Typography>
-                    <Typography variant="body2" color="#ed6c02" fontWeight="bold">חסומות ⚠</Typography>
-                  </Box>
-
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fff0f0', textAlign: 'center', border: '1px solid #ffcdd2' }}>
-                    <Typography variant="h4" fontWeight="800" color="error.main">{overdueNotInProgressArr.length}</Typography>
-                    <Typography variant="body2" color="error.main" fontWeight="bold">באיחור ❗</Typography>
-                  </Box>
-
-                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fce4ec', textAlign: 'center', border: '1px solid #f8bbd0' }}>
-                    <Typography variant="h4" fontWeight="800" color="#c2185b">{inProgressOverdueArr.length}</Typography>
-                    <Typography variant="body2" color="#c2185b" fontWeight="bold">בביצוע באיחור ⚠️</Typography>
-                  </Box>
-
+            {/* Tab 1: Task Status */}
+            {activeTab === 1 && (
+              <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(130px, 1fr))" gap={2}>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'success.50', textAlign: 'center', border: '1px solid', borderColor: 'success.100' }}>
+                  <Typography variant="h4" fontWeight="800" color="success.main">{completedTasksArr.length}</Typography>
+                  <Typography variant="body2" color="success.main" fontWeight="bold">הושלמו ✓</Typography>
                 </Box>
-              </CardContent>
-            </Card>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'primary.50', textAlign: 'center', border: '1px solid', borderColor: 'primary.100' }}>
+                  <Typography variant="h4" fontWeight="800" color="primary.main">{inProgressOnTimeArr.length}</Typography>
+                  <Typography variant="body2" color="primary.main" fontWeight="bold">בביצוע ●</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'info.50', textAlign: 'center', border: '1px solid', borderColor: 'info.100' }}>
+                  <Typography variant="h4" fontWeight="800" color="info.main">{waitingTasksArr.length}</Typography>
+                  <Typography variant="body2" color="info.main" fontWeight="bold">בהמתנה ⏸</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: 'grey.50', textAlign: 'center', border: '1px solid #eee' }}>
+                  <Typography variant="h4" fontWeight="800" color="text.secondary">{notStartedOnTimeArr.length}</Typography>
+                  <Typography variant="body2" color="text.secondary" fontWeight="bold">לא התחילו ○</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fff4e5', textAlign: 'center', border: '1px solid #ffe0b2' }}>
+                  <Typography variant="h4" fontWeight="800" color="#ed6c02">{blockedTasksArr.length}</Typography>
+                  <Typography variant="body2" color="#ed6c02" fontWeight="bold">חסומות ⚠</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fff0f0', textAlign: 'center', border: '1px solid #ffcdd2' }}>
+                  <Typography variant="h4" fontWeight="800" color="error.main">{overdueNotInProgressArr.length}</Typography>
+                  <Typography variant="body2" color="error.main" fontWeight="bold">באיחור ❗</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fce4ec', textAlign: 'center', border: '1px solid #f8bbd0' }}>
+                  <Typography variant="h4" fontWeight="800" color="#c2185b">{inProgressOverdueArr.length}</Typography>
+                  <Typography variant="body2" color="#c2185b" fontWeight="bold">בביצוע באיחור ⚠️</Typography>
+                </Box>
+              </Box>
+            )}
 
-            {/* התקדמות חדרים - הוסר הסקרול הפנימי וכל החדרים יוצגו באופן מלא */}
-            <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Typography variant="h6" fontWeight="800" gutterBottom mb={3}>
-                  🏠 התקדמות לפי חדרים
+            {/* Tab 2: Vendor Analysis */}
+            {activeTab === 2 && permissions.canViewBudget && (
+              <Box>
+                <Box display="flex" gap={2} mb={4}>
+                  <Box sx={{ flex: 1, p: 2, borderRadius: 3, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold">סך התחייבויות (חוזים)</Typography>
+                    <Typography variant="h5" fontWeight="800" color="#334155" mt={0.5}>₪{totalContracts.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, p: 2, borderRadius: 3, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold">סך הכל שולם</Typography>
+                    <Typography variant="h5" fontWeight="800" color="success.main" mt={0.5}>₪{totalPaid.toLocaleString()}</Typography>
+                  </Box>
+                </Box>
+
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="text.secondary" mb={2}>
+                  ספקים מרכזיים
                 </Typography>
-                
-                <List disablePadding>
-                  {roomsWithProgress.map((roomProgress, index) => {
-                    const isLast = index === roomsWithProgress.length - 1;
-                    return (
-                      <Box key={roomProgress.roomId} sx={{ mb: isLast ? 0 : 2.5 }}> 
-                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                          <Typography variant="body1" fontWeight="bold">{roomProgress.roomName}</Typography>
-                          <Chip size="small" label={`${roomProgress.progress}%`} color={roomProgress.progress === 100 ? "success" : "default"} sx={{ fontWeight: 'bold' }} />
+                <Stack spacing={2} mb={4}>
+                  {vendorsWithPayments.slice(0, 5).map((vendor, index) => (
+                    <Box key={vendor.id} sx={{ p: 2, border: '1px solid #f1f5f9', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: index === 0 ? '#fffbeb' : '#ffffff' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: index === 0 ? '#fde68a' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <PeopleAltIcon sx={{ color: index === 0 ? '#d97706' : '#94a3b8' }} />
                         </Box>
-                        <LinearProgress variant="determinate" value={roomProgress.progress} sx={{ height: 8, borderRadius: 4, backgroundColor: 'grey.100', '& .MuiLinearProgress-bar': { borderRadius: 4 } }} color={roomProgress.progress === 100 ? "success" : "primary"} />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                          {roomProgress.completedTasks} מתוך {roomProgress.totalTasks} משימות הושלמו
-                        </Typography>
+                        <Box>
+                          <Typography variant="body1" fontWeight="bold">{vendor.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{vendor.category || 'כללי'}</Typography>
+                        </Box>
+                      </Box>
+                      <Box sx={{ textAlign: 'left' }}>
+                        <Typography variant="body2" fontWeight="800">₪{vendor.totalPaid.toLocaleString()} / ₪{vendor.totalAmount.toLocaleString()}</Typography>
+                        <Typography variant="caption" color="text.secondary">{vendor.totalPending > 0 ? `₪${vendor.totalPending.toLocaleString()} להשלמה` : 'שולם במלואו'}</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
+
+                <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="text.secondary">
+                  חלוקת תקציב לפי קטגוריות
+                </Typography>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  {categoriesSorted.slice(0, 5).map(([category, data]) => {
+                    const percentage = totalPaid > 0 ? (data.total / totalPaid) * 100 : 0;
+                    return (
+                      <Box key={category}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="body2" fontWeight="bold">{category}</Typography>
+                          <Typography variant="body2" color="text.secondary">₪{data.total.toLocaleString()}</Typography>
+                        </Box>
+                        <LinearProgress variant="determinate" value={Math.min(percentage, 100)} sx={{ height: 6, borderRadius: 2 }} color="info" />
                       </Box>
                     );
                   })}
-                </List>
-              </CardContent>
-            </Card>
-          </Stack>
+                </Box>
+              </Box>
+            )}
+            {activeTab === 2 && !permissions.canViewBudget && (
+              <Alert severity="info">אין לך הרשאה לצפות בתקציב</Alert>
+            )}
 
-          {/* עמודה שמאלית: תקציב וספקים */}
-          {permissions.canViewBudget && (
-            <Stack spacing={4}>
-              <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" fontWeight="800" gutterBottom mb={3}>
-                    💸 ניתוח ספקים והוצאות
-                  </Typography>
-                  
-                  <Box display="flex" gap={2} mb={4}>
-                     <Box sx={{ flex: 1, p: 2, borderRadius: 3, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                        <Typography variant="caption" color="text.secondary" fontWeight="bold">סך התחייבויות (חוזים)</Typography>
-                        <Typography variant="h5" fontWeight="800" color="#334155" mt={0.5}>₪{totalContracts.toLocaleString()}</Typography>
-                     </Box>
-                     <Box sx={{ flex: 1, p: 2, borderRadius: 3, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                        <Typography variant="caption" color="text.secondary" fontWeight="bold">סך הכל שולם</Typography>
-                        <Typography variant="h5" fontWeight="800" color="success.main" mt={0.5}>₪{totalPaid.toLocaleString()}</Typography>
-                     </Box>
-                  </Box>
-
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="text.secondary">
-                    ספקים מרכזיים
-                  </Typography>
-                  <Stack spacing={2} mb={4}>
-                    {vendorsWithPayments.slice(0, 4).map((vendor, index) => (
-                      <Box key={vendor.id} sx={{ p: 2, border: '1px solid #f1f5f9', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: index === 0 ? '#fffbeb' : '#ffffff' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: index === 0 ? '#fde68a' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <PeopleAltIcon sx={{ color: index === 0 ? '#d97706' : '#94a3b8' }} />
-                          </Box>
-                          <Box>
-                            <Typography variant="body1" fontWeight="bold">{vendor.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">{vendor.category || 'כללי'}</Typography>
-                          </Box>
-                        </Box>
-                        <Box sx={{ textAlign: 'left' }}>
-                          <Typography variant="body1" fontWeight="800">₪{vendor.totalAmount.toLocaleString()}</Typography>
-                          {vendor.totalPending > 0 ? (
-                             <Typography variant="caption" color="warning.main" fontWeight="bold">₪{vendor.totalPending.toLocaleString()} להשלמה</Typography>
-                          ) : (
-                             <Typography variant="caption" color="success.main" fontWeight="bold">שולם במלואו</Typography>
-                          )}
-                        </Box>
+            {/* Tab 3: Room Progress */}
+            {activeTab === 3 && (
+              <List disablePadding>
+                {roomsWithProgress.map((roomProgress, index) => {
+                  const isLast = index === roomsWithProgress.length - 1;
+                  return (
+                    <Box key={roomProgress.roomId} sx={{ mb: isLast ? 0 : 2.5 }}>
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                        <Typography variant="body1" fontWeight="bold">{roomProgress.roomName}</Typography>
+                        <Chip size="small" label={`${roomProgress.progress}%`} color={roomProgress.progress === 100 ? "success" : "default"} sx={{ fontWeight: 'bold' }} />
                       </Box>
-                    ))}
-                  </Stack>
+                      <LinearProgress variant="determinate" value={roomProgress.progress} sx={{ height: 8, borderRadius: 4, backgroundColor: 'grey.100' }} color={roomProgress.progress === 100 ? "success" : "primary"} />
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>{roomProgress.completedTasks} מתוך {roomProgress.totalTasks} משימות הושלמו</Typography>
+                    </Box>
+                  );
+                })}
+              </List>
+            )}
 
-                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom color="text.secondary">
-                    חלוקת תקציב לפי קטגוריות
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {categoriesSorted.slice(0, 5).map(([category, data]) => {
-                      const percentage = totalPaid > 0 ? (data.total / totalPaid) * 100 : 0;
-                      return (
-                        <Box key={category}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {category}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              ₪{data.total.toLocaleString()}
-                            </Typography>
+            {/* Tab 4: Upcoming Meetings */}
+            {activeTab === 4 && (
+              <Stack spacing={2}>
+                {meetings.length > 0 ? (
+                  <>
+                    <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={2}>
+                      📅 כל הפגישות בפרויקט
+                    </Typography>
+                    {meetings
+                      .sort((a, b) => {
+                        const dateA = a.meetingDate instanceof Date ? a.meetingDate : new Date(a.meetingDate);
+                        const dateB = b.meetingDate instanceof Date ? b.meetingDate : new Date(b.meetingDate);
+                        return dateA.getTime() - dateB.getTime();
+                      })
+                      .map((meeting) => {
+                        const meetingDate = meeting.meetingDate instanceof Date ? meeting.meetingDate : new Date(meeting.meetingDate);
+                        const dueDate = meeting.dueDate instanceof Date ? meeting.dueDate : (meeting.dueDate ? new Date(meeting.dueDate) : null);
+                        const daysFromMeeting = getDaysRemaining(meetingDate);
+                        const daysUntilDue = getDaysRemaining(dueDate);
+                        const hasActionItems = meeting.actionItems && meeting.actionItems.length > 0;
+                        const isPast = meetingDate < now;
+                        
+                        return (
+                          <Box key={meeting.id} sx={{ p: 2.5, border: '1px solid #e2e8f0', borderRadius: 3, backgroundColor: isPast ? '#f5f5f5' : '#fafbfc', transition: 'all 0.2s' }}>
+                            {!dueDate ? (
+                              <Box sx={{ mb: 2, p: 1.5, backgroundColor: '#f5f5f5', borderRadius: 2, borderLeft: '4px solid #999' }}>
+                                <Typography variant="caption" fontWeight="bold" color="text.secondary">⏱️ לא נקבע תאריך יעד</Typography>
+                              </Box>
+                            ) : (
+                              <Box sx={{ mb: 2, p: 1.5, backgroundColor: '#fff8e1', borderRadius: 2, borderLeft: '4px solid #ffa726' }}>
+                                <Box display="flex" justifyContent="space-between" alignItems="center">
+                                  <Box>
+                                    <Typography variant="caption" fontWeight="bold" color="#e65100">⏱️ תאריך יעד הפגישה:</Typography>
+                                    <Typography variant="body2" fontWeight="bold" color="#e65100" sx={{ mt: 0.3 }}>
+                                      {dueDate.toLocaleDateString('he-IL', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </Typography>
+                                  </Box>
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                      fontWeight: 'bold', 
+                                      ml: 1,
+                                      color: daysUntilDue.includes('בחריגה') ? '#d32f2f' : '#f57c00'
+                                    }}
+                                  >
+                                    {daysUntilDue.includes('בחריגה') 
+                                      ? `❌ ${daysUntilDue}` 
+                                      : daysUntilDue === 'היום' 
+                                      ? '📌 היום'
+                                      : daysUntilDue === 'מחר'
+                                      ? '📌 מחר'
+                                      : `📌 תאריך היעד עוד ${daysUntilDue}`
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            )}
+
+                            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="body1" fontWeight="bold" color="primary.main" sx={{ wordBreak: 'break-word' }}>{meeting.title}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>📅 התקיימה: {meetingDate.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</Typography>
+                              </Box>
+                              {!isPast && <Chip label={daysFromMeeting} color="info" variant="outlined" size="small" sx={{ fontWeight: 'bold', ml: 1, flexShrink: 0 }} />}
+                            </Box>
+                            
+                            {meeting.description && <Typography variant="body2" sx={{ mb: 1.5, color: '#555' }}>{meeting.description}</Typography>}
+                            <Box display="flex" gap={1} flexWrap="wrap">
+                              <Chip label={hebrewLabels[meeting.meetingType as keyof typeof hebrewLabels] || meeting.meetingType} size="small" variant="filled" sx={{ backgroundColor: '#e3f2fd', color: '#1976d2' }} />
+                              {hasActionItems && <Chip label={`${meeting.actionItems.length} משימות פעולה`} size="small" variant="filled" sx={{ backgroundColor: '#fff3e0', color: '#f57c00' }} />}
+                            </Box>
                           </Box>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={Math.min(percentage, 100)} 
-                            sx={{ height: 6, borderRadius: 2 }}
-                            color="info"
-                          />
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Stack>
-          )}
-        </Box>
+                        );
+                      })}
+                  </>
+                ) : (
+                  <Alert severity="info">
+                    אין פגישות מתוכננות כרגע 📆
+                  </Alert>
+                )}
+              </Stack>
+            )}
+
+            {/* Tab 5: Meeting Action Items */}
+            {activeTab === 5 && (
+              <Stack spacing={2}>
+                {meetings.filter(m => m.actionItems && m.actionItems.length > 0).length > 0 ? (
+                  <>
+                    <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={2}>
+                      📝 משימות פעולה מפגישות
+                    </Typography>
+                    {meetings
+                      .filter(m => m.actionItems && m.actionItems.length > 0)
+                      .map((meeting) => {
+                        const meetingDate = meeting.meetingDate instanceof Date ? meeting.meetingDate : new Date(meeting.meetingDate);
+                        return (
+                          <Box key={meeting.id}>
+                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1, color: '#1976d2' }}>
+                              📌 {meeting.title} ({meetingDate.toLocaleDateString('he-IL')})
+                            </Typography>
+                            <Stack spacing={1} sx={{ ml: 2 }}>
+                              {meeting.actionItems
+                                .filter(item => item.status === 'PENDING')
+                                .map((action) => {
+                                  const actionDate = action.dueDate instanceof Date ? action.dueDate : new Date(action.dueDate);
+                                  const daysUntil = getDaysRemaining(actionDate);
+                                  return (
+                                    <Box key={action.id} sx={{ p: 1.5, border: '1px solid #bbdefb', borderRadius: 2, backgroundColor: '#e3f2fd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <Typography variant="body2">{action.description}</Typography>
+                                      <Chip label={daysUntil} size="small" color="info" variant="filled" sx={{ fontWeight: 'bold' }} />
+                                    </Box>
+                                  );
+                                })}
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                  </>
+                ) : (
+                  <Alert severity="success" sx={{ borderRadius: 2 }}>
+                    <Typography variant="body2">
+                      אין משימות פעולה פתוחות מפגישות - כל משהו סגור! ✅
+                    </Typography>
+                  </Alert>
+                )}
+              </Stack>
+            )}
+          </CardContent>
+        </Card>
       </Box>
     </DashboardLayout>
   );

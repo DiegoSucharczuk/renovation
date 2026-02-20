@@ -16,12 +16,17 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Stack,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UploadIcon from '@mui/icons-material/Upload';
+import DownloadIcon from '@mui/icons-material/Download';
+import ClearIcon from '@mui/icons-material/Clear';
 import { updateDoc, doc, getDocFromServer, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { uploadToDrive, deleteFromDrive } from '@/lib/googleDrive';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
@@ -210,42 +215,42 @@ export default function ProjectSettingsPage() {
             </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
               <Box sx={{ p: 2, backgroundColor: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                <Typography variant="h6" color="text.secondary" fontWeight="bold">
                   שם הפרויקט
                 </Typography>
-                <Typography variant="h6" fontWeight="medium" mt={0.5}>
+                <Typography variant="body1" fontWeight="bold" mt={0.5}>
                   {project?.name}
                 </Typography>
               </Box>
               <Box sx={{ p: 2, backgroundColor: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                <Typography variant="h6" color="text.secondary" fontWeight="bold">
                   כתובת
                 </Typography>
-                <Typography variant="body1" mt={0.5}>
+                <Typography variant="body1" fontWeight="bold" mt={0.5}>
                   {project?.address}
                 </Typography>
               </Box>
               <Box sx={{ p: 2, backgroundColor: '#e8f5e9', border: '1px solid #4caf50', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                <Typography variant="h6" color="text.secondary" fontWeight="bold">
                   תקציב מתוכנן
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" color="success.main" mt={0.5}>
+                <Typography variant="body1" fontWeight="bold" color="success.main" mt={0.5}>
                   ₪{project?.budgetPlanned.toLocaleString()}
                 </Typography>
               </Box>
               <Box sx={{ p: 2, backgroundColor: '#fff3e0', border: '1px solid #ff9800', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                <Typography variant="h6" color="text.secondary" fontWeight="bold">
                   אחוז חריגה מותר
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" color="warning.main" mt={0.5}>
+                <Typography variant="body1" fontWeight="bold" color="warning.main" mt={0.5}>
                   {project?.budgetAllowedOverflowPercent}%
                 </Typography>
               </Box>
               <Box sx={{ p: 2, backgroundColor: '#f9fafb', border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                <Typography variant="h6" color="text.secondary" fontWeight="bold">
                   תאריך יצירה
                 </Typography>
-                <Typography variant="body1" mt={0.5}>
+                <Typography variant="body1" fontWeight="bold" mt={0.5}>
                   {project?.createdAt.toLocaleDateString('he-IL', { 
                     year: 'numeric', 
                     month: 'long', 
@@ -326,9 +331,14 @@ export default function ProjectSettingsPage() {
               inputProps={{ min: 0, max: 100 }}
             />
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenProjectDialog(false)}>ביטול</Button>
-            <Button onClick={handleUpdateProject} variant="contained">
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setOpenProjectDialog(false)}>
+              ביטול
+            </Button>
+            <Button 
+              onClick={handleUpdateProject}
+              variant="contained"
+            >
               שמור שינויים
             </Button>
           </DialogActions>
