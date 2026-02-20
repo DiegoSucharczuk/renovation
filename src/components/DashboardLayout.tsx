@@ -55,6 +55,8 @@ export default function DashboardLayout({ children, projectId, project, scrollab
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           mr: { sm: `${drawerWidth}px` },
           pr: { sm: 0 },
+          background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
         <Toolbar sx={{ pr: { sm: 1 } }}>
@@ -83,7 +85,17 @@ export default function DashboardLayout({ children, projectId, project, scrollab
             <Typography variant="body2" noWrap sx={{ display: { xs: 'none', md: 'block' } }}>
               {user?.name}
             </Typography>
-            <Button color="inherit" onClick={handleSignOut} startIcon={<LogoutIcon />}>
+            <Button 
+              color="inherit" 
+              onClick={handleSignOut} 
+              startIcon={<LogoutIcon />}
+              sx={{
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                },
+              }}
+            >
               {hebrewLabels.signOut}
             </Button>
           </Box>
