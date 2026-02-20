@@ -17,6 +17,11 @@ import {
   Tooltip,
   Tabs,
   Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 
@@ -71,6 +76,24 @@ export default function DashboardPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [activeTab, setActiveTab] = useState(0);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [openMeetingDialog, setOpenMeetingDialog] = useState(false);
+  const [selectedActionItem, setSelectedActionItem] = useState<any>(null);
+  const [selectedActionItemMeeting, setSelectedActionItemMeeting] = useState<Meeting | null>(null);
+  const [openActionItemDialog, setOpenActionItemDialog] = useState(false);
+
+  // Helper function to safely format dates
+  const formatDate = (date: any) => {
+    if (!date) return '';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return '';
+    return dateObj.toLocaleDateString('he-IL', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   const fetchData = useCallback(async () => {
     const isInitialLoad = loading;
@@ -227,6 +250,19 @@ export default function DashboardPage() {
     if (diffDays === 1) return 'מחר';
     
     return `${diffDays} ימים`;
+  };
+
+  const getMeetingStatus = (meeting: Meeting): string => {
+    const totalItems = meeting.actionItems?.length || 0;
+    const completedItems = meeting.actionItems?.filter(item => item.status === 'COMPLETED').length || 0;
+    
+    if (meeting.completed) {
+      if (completedItems < totalItems) return 'PARTIAL';
+      return 'COMPLETED';
+    }
+    
+    if (completedItems > 0) return 'IN_PROGRESS';
+    return 'NOT_STARTED';
   };
 
   const relevantTasks = tasks.filter(t => t.status !== 'NOT_RELEVANT');
@@ -685,12 +721,16 @@ export default function DashboardPage() {
             {/* Tab 4: Upcoming Meetings */}
             {activeTab === 4 && (
               <Stack spacing={2}>
-                {meetings.length > 0 ? (
+                {meetings.filter(m => {
+                  const status = getMeetingStatus(m);
+                  return status !== 'COMPLETED';
+                }).length > 0 ? (
                   <>
-                    <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={2}>
-                      📅 כל הפגישות בפרויקט
-                    </Typography>
                     {meetings
+                      .filter(m => {
+                        const status = getMeetingStatus(m);
+                        return status !== 'COMPLETED';
+                      })
                       .sort((a, b) => {
                         const dateA = a.meetingDate instanceof Date ? a.meetingDate : new Date(a.meetingDate);
                         const dateB = b.meetingDate instanceof Date ? b.meetingDate : new Date(b.meetingDate);
@@ -699,67 +739,151 @@ export default function DashboardPage() {
                       .map((meeting) => {
                         const meetingDate = meeting.meetingDate instanceof Date ? meeting.meetingDate : new Date(meeting.meetingDate);
                         const dueDate = meeting.dueDate instanceof Date ? meeting.dueDate : (meeting.dueDate ? new Date(meeting.dueDate) : null);
-                        const daysFromMeeting = getDaysRemaining(meetingDate);
-                        const daysUntilDue = getDaysRemaining(dueDate);
-                        const hasActionItems = meeting.actionItems && meeting.actionItems.length > 0;
-                        const isPast = meetingDate < now;
+                        const hasActionItems = meeting.actionItems && meeting.actionItems.filter(a => a.status === 'PENDING').length > 0;
+                        const isOverdue = dueDate && dueDate < now;
+                        const isDueSoon = dueDate && !isOverdue && dueDate.getTime() - now.getTime() < 7 * 24 * 60 * 60 * 1000;
+                        
+                        // Calculate days overdue or days remaining
+                        const getDaysInfo = () => {
+                          if (!dueDate) return null;
+                          const diffTime = now.getTime() - dueDate.getTime();
+                          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                          if (isOverdue) {
+                            if (diffDays === 0) return 'היום חלף היעד';
+                            if (diffDays === 1) return 'חלף יום 1';
+                            return `חלפו ${diffDays} ימים`;
+                          }
+                          const daysRemaining = Math.ceil(-diffTime / (1000 * 60 * 60 * 24));
+                          if (daysRemaining === 0) return 'היום הוא היעד';
+                          if (daysRemaining === 1) return 'מחר הוא היעד';
+                          return `עוד ${daysRemaining} ימים`;
+                        };
+                        
+                        let borderColor = '#2196F3';
+                        let bgColor = '#E3F2FD';
+                        let headerBg = '#BBDEFB';
+                        let textColor = '#1565C0';
+                        
+                        if (isOverdue) {
+                          borderColor = '#D32F2F';
+                          bgColor = '#FFEBEE';
+                          headerBg = '#FFCDD2';
+                          textColor = '#C62828';
+                        } else if (isDueSoon) {
+                          borderColor = '#F57C00';
+                          bgColor = '#FFF3E0';
+                          headerBg = '#FFE0B2';
+                          textColor = '#E65100';
+                        }
                         
                         return (
-                          <Box key={meeting.id} sx={{ p: 2.5, border: '1px solid #e2e8f0', borderRadius: 3, backgroundColor: isPast ? '#f5f5f5' : '#fafbfc', transition: 'all 0.2s' }}>
-                            {!dueDate ? (
-                              <Box sx={{ mb: 2, p: 1.5, backgroundColor: '#f5f5f5', borderRadius: 2, borderLeft: '4px solid #999' }}>
-                                <Typography variant="caption" fontWeight="bold" color="text.secondary">⏱️ לא נקבע תאריך יעד</Typography>
-                              </Box>
-                            ) : (
-                              <Box sx={{ mb: 2, p: 1.5, backgroundColor: '#fff8e1', borderRadius: 2, borderLeft: '4px solid #ffa726' }}>
-                                <Box display="flex" justifyContent="space-between" alignItems="center">
-                                  <Box>
-                                    <Typography variant="caption" fontWeight="bold" color="#e65100">⏱️ תאריך יעד הפגישה:</Typography>
-                                    <Typography variant="body2" fontWeight="bold" color="#e65100" sx={{ mt: 0.3 }}>
-                                      {dueDate.toLocaleDateString('he-IL', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                                    </Typography>
-                                  </Box>
-                                  <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                      fontWeight: 'bold', 
-                                      ml: 1,
-                                      color: daysUntilDue.includes('בחריגה') ? '#d32f2f' : '#f57c00'
-                                    }}
-                                  >
-                                    {daysUntilDue.includes('בחריגה') 
-                                      ? `❌ ${daysUntilDue}` 
-                                      : daysUntilDue === 'היום' 
-                                      ? '📌 היום'
-                                      : daysUntilDue === 'מחר'
-                                      ? '📌 מחר'
-                                      : `📌 תאריך היעד עוד ${daysUntilDue}`
-                                    }
-                                  </Typography>
-                                </Box>
+                          <Box key={meeting.id} onClick={() => {
+                            setSelectedMeeting(meeting);
+                            setOpenMeetingDialog(true);
+                          }} sx={{ 
+                            border: `2px solid ${borderColor}`, 
+                            borderRadius: 2,
+                            backgroundColor: bgColor,
+                            padding: 2,
+                            transition: 'all 0.2s',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              boxShadow: `0 4px 12px ${borderColor}44`,
+                              transform: 'translateY(-2px)'
+                            }
+                          }}>
+                            {/* Header with meeting name */}
+                            <Box sx={{ 
+                              backgroundColor: headerBg, 
+                              p: 1.2, 
+                              borderRadius: 1, 
+                              mb: 1.5,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <Typography variant="body1" fontWeight="700" sx={{ color: textColor, fontSize: '1rem' }}>
+                                {meeting.title}
+                              </Typography>
+                              <Chip 
+                                label={hebrewLabels[meeting.meetingType as keyof typeof hebrewLabels] || meeting.meetingType} 
+                                size="small" 
+                                sx={{ backgroundColor: borderColor, color: '#fff', fontWeight: 600 }} 
+                              />
+                            </Box>
+
+                            {/* Creation date and time */}
+                            <Box sx={{ mb: 1.2 }}>
+                              <Typography variant="caption" sx={{ display: 'block', color: '#666', fontSize: '0.85rem', mb: 0.3 }}>
+                                <strong>תאריך פגישה:</strong>
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: textColor, fontWeight: 600, fontSize: '0.95rem' }}>
+                                {meetingDate.toLocaleDateString('he-IL', { 
+                                  weekday: 'long', 
+                                  year: 'numeric',
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                })}
+                              </Typography>
+                            </Box>
+
+                            {/* Description if exists */}
+                            {meeting.description && (
+                              <Box sx={{ mb: 1.2, p: 1, backgroundColor: '#fff', borderRadius: 1, border: `1px solid ${borderColor}33` }}>
+                                <Typography variant="body2" sx={{ color: '#444', fontSize: '0.9rem' }}>
+                                  {meeting.description}
+                                </Typography>
                               </Box>
                             )}
 
-                            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                              <Box sx={{ flex: 1 }}>
-                                <Typography variant="body1" fontWeight="bold" color="primary.main" sx={{ wordBreak: 'break-word' }}>{meeting.title}</Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>📅 התקיימה: {meetingDate.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</Typography>
+                            {/* Due Date Section - prominent */}
+                            {dueDate && (
+                              <Box sx={{ 
+                                pt: 1.2, 
+                                borderTop: `2px solid ${borderColor}33`,
+                                mt: 1.2
+                              }}>
+                                <Typography variant="caption" sx={{ display: 'block', color: '#666', fontSize: '0.85rem', mb: 0.4 }}>
+                                  <strong>תאריך יעד:</strong>
+                                </Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                  <Typography variant="body2" sx={{ 
+                                    color: textColor, 
+                                    fontWeight: 700, 
+                                    fontSize: '0.95rem'
+                                  }}>
+                                    {dueDate.toLocaleDateString('he-IL', { 
+                                      weekday: 'long',
+                                      year: 'numeric',
+                                      month: 'long', 
+                                      day: 'numeric' 
+                                    })}
+                                  </Typography>
+                                  <Chip 
+                                    label={getDaysInfo()} 
+                                    size="small"
+                                    sx={{ 
+                                      backgroundColor: isOverdue ? '#D32F2F' : isDueSoon ? '#F57C00' : '#4CAF50',
+                                      color: '#fff',
+                                      fontWeight: 600,
+                                      fontSize: '0.8rem'
+                                    }}
+                                  />
+                                </Box>
+                                {hasActionItems && (
+                                  <Typography variant="caption" sx={{ display: 'block', color: '#1976d2', fontSize: '0.8rem', fontWeight: 500, mt: 0.5 }}>
+                                    ✓ יש {meeting.actionItems.filter(a => a.status === 'PENDING').length} משימות פעולה
+                                  </Typography>
+                                )}
                               </Box>
-                              {!isPast && <Chip label={daysFromMeeting} color="info" variant="outlined" size="small" sx={{ fontWeight: 'bold', ml: 1, flexShrink: 0 }} />}
-                            </Box>
-                            
-                            {meeting.description && <Typography variant="body2" sx={{ mb: 1.5, color: '#555' }}>{meeting.description}</Typography>}
-                            <Box display="flex" gap={1} flexWrap="wrap">
-                              <Chip label={hebrewLabels[meeting.meetingType as keyof typeof hebrewLabels] || meeting.meetingType} size="small" variant="filled" sx={{ backgroundColor: '#e3f2fd', color: '#1976d2' }} />
-                              {hasActionItems && <Chip label={`${meeting.actionItems.length} משימות פעולה`} size="small" variant="filled" sx={{ backgroundColor: '#fff3e0', color: '#f57c00' }} />}
-                            </Box>
+                            )}
                           </Box>
                         );
                       })}
                   </>
                 ) : (
-                  <Alert severity="info">
-                    אין פגישות מתוכננות כרגע 📆
+                  <Alert severity="success" sx={{ borderRadius: 2 }}>
+                    <Typography variant="body2">כל הפגישות הושלמו! ✅</Typography>
                   </Alert>
                 )}
               </Stack>
@@ -767,34 +891,83 @@ export default function DashboardPage() {
 
             {/* Tab 5: Meeting Action Items */}
             {activeTab === 5 && (
-              <Stack spacing={2}>
-                {meetings.filter(m => m.actionItems && m.actionItems.length > 0).length > 0 ? (
+              <Stack spacing={1.5}>
+                {meetings.filter(m => m.actionItems && m.actionItems.filter(a => a.status === 'PENDING').length > 0).length > 0 ? (
                   <>
-                    <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" mb={2}>
-                      📝 משימות פעולה מפגישות
-                    </Typography>
                     {meetings
-                      .filter(m => m.actionItems && m.actionItems.length > 0)
+                      .filter(m => m.actionItems && m.actionItems.filter(a => a.status === 'PENDING').length > 0)
                       .map((meeting) => {
                         const meetingDate = meeting.meetingDate instanceof Date ? meeting.meetingDate : new Date(meeting.meetingDate);
+                        const pendingItems = meeting.actionItems.filter(item => item.status === 'PENDING');
+                        
                         return (
                           <Box key={meeting.id}>
-                            <Typography variant="body2" fontWeight="bold" sx={{ mb: 1, color: '#1976d2' }}>
-                              📌 {meeting.title} ({meetingDate.toLocaleDateString('he-IL')})
-                            </Typography>
-                            <Stack spacing={1} sx={{ ml: 2 }}>
-                              {meeting.actionItems
-                                .filter(item => item.status === 'PENDING')
-                                .map((action) => {
-                                  const actionDate = action.dueDate instanceof Date ? action.dueDate : new Date(action.dueDate);
-                                  const daysUntil = getDaysRemaining(actionDate);
-                                  return (
-                                    <Box key={action.id} sx={{ p: 1.5, border: '1px solid #bbdefb', borderRadius: 2, backgroundColor: '#e3f2fd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <Typography variant="body2">{action.description}</Typography>
-                                      <Chip label={daysUntil} size="small" color="info" variant="filled" sx={{ fontWeight: 'bold' }} />
+                            <Box sx={{ p: 1, mb: 0.75, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                              <Typography variant="body2" fontWeight="600" sx={{ color: '#1976d2', fontSize: '0.9rem' }}>
+                                {meeting.title}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                {meetingDate.toLocaleDateString('he-IL', { weekday: 'short', month: 'short', day: 'numeric' })}
+                              </Typography>
+                            </Box>
+                            <Stack spacing={0.5} sx={{ ml: 0.5 }}>
+                              {pendingItems.map((action) => {
+                                const actionDate = action.dueDate instanceof Date ? action.dueDate : (action.dueDate ? new Date(action.dueDate) : null);
+                                const isOverdue = actionDate && actionDate < now;
+                                const isDueSoon = actionDate && !isOverdue && actionDate.getTime() - now.getTime() < 3 * 24 * 60 * 60 * 1000;
+                                
+                                return (
+                                  <Box 
+                                    key={action.id} 
+                                    onClick={() => {
+                                      setSelectedActionItem(action);
+                                      setSelectedActionItemMeeting(meeting);
+                                      setOpenActionItemDialog(true);
+                                    }}
+                                    sx={{ 
+                                      p: 1.25, 
+                                      border: `1px solid ${isOverdue ? '#ffcdd2' : isDueSoon ? '#ffe0b2' : '#bbdefb'}`,
+                                      borderRadius: 1, 
+                                      backgroundColor: isOverdue ? '#ffebee' : isDueSoon ? '#fff3e0' : '#f3f6ff',
+                                      display: 'flex', 
+                                      justifyContent: 'space-between', 
+                                      alignItems: 'flex-start',
+                                      gap: 1,
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      '&:hover': {
+                                        boxShadow: `0 4px 12px ${isOverdue ? '#d32f2f' : isDueSoon ? '#f57c00' : '#1976d2'}44`,
+                                        transform: 'translateY(-2px)'
+                                      }
+                                    }}
+                                  >
+                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                      <Typography variant="body2" sx={{ color: '#333', wordBreak: 'break-word', fontSize: '0.85rem', fontWeight: 500 }}>
+                                        {action.description}
+                                      </Typography>
+                                      {actionDate && formatDate(actionDate) && (
+                                        <Typography variant="caption" sx={{ color: isOverdue ? '#d32f2f' : isDueSoon ? '#f57c00' : '#888', fontSize: '0.7rem', display: 'block', mt: 0.25 }}>
+                                          {formatDate(actionDate).split(',')[1].trim()}
+                                        </Typography>
+                                      )}
                                     </Box>
-                                  );
-                                })}
+                                    {(isOverdue || isDueSoon) && (
+                                      <Box sx={{ 
+                                        width: 24, 
+                                        height: 24, 
+                                        borderRadius: '50%', 
+                                        backgroundColor: isOverdue ? '#d32f2f' : '#f57c00',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}>
+                                        <Typography sx={{ color: 'white', fontSize: '0.65rem', fontWeight: 'bold' }}>!</Typography>
+                                      </Box>
+                                    )}
+                                  </Box>
+                                );
+                              })}
                             </Stack>
                           </Box>
                         );
@@ -803,7 +976,7 @@ export default function DashboardPage() {
                 ) : (
                   <Alert severity="success" sx={{ borderRadius: 2 }}>
                     <Typography variant="body2">
-                      אין משימות פעולה פתוחות מפגישות - כל משהו סגור! ✅
+                      אין משימות פעולה פתוחות - הכל בסדר! ✅
                     </Typography>
                   </Alert>
                 )}
@@ -811,6 +984,200 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Meeting Details Dialog */}
+        <Dialog open={openMeetingDialog} onClose={() => setOpenMeetingDialog(false)} maxWidth="sm" fullWidth>
+          {selectedMeeting && (
+            <>
+              <DialogTitle sx={{ fontSize: '1.3rem', fontWeight: 700, color: '#1565C0', pb: 1 }}>
+                {selectedMeeting.title}
+              </DialogTitle>
+              <DialogContent dividers>
+                <Stack spacing={2.5}>
+                  {/* Meeting Type */}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                      סוג פגישה
+                    </Typography>
+                    <Chip 
+                      label={hebrewLabels[selectedMeeting.meetingType as keyof typeof hebrewLabels] || selectedMeeting.meetingType}
+                      color="primary"
+                      variant="filled"
+                    />
+                  </Box>
+
+                  {/* Meeting Date */}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                      תאריך הפגישה
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                      {new Date(selectedMeeting.meetingDate).toLocaleDateString('he-IL', { 
+                        weekday: 'long', 
+                        year: 'numeric',
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </Typography>
+                  </Box>
+
+                  {/* Description */}
+                  {selectedMeeting.description && (
+                    <Box>
+                      <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                        תיאור
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
+                        {selectedMeeting.description}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Due Date */}
+                  {selectedMeeting.dueDate && formatDate(selectedMeeting.dueDate) && (
+                    <Box>
+                      <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                        תאריך יעד
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                        {formatDate(selectedMeeting.dueDate)}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Action Items */}
+                  {selectedMeeting.actionItems && selectedMeeting.actionItems.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 1 }}>
+                        משימות פעולה
+                      </Typography>
+                      <Stack spacing={1}>
+                        {selectedMeeting.actionItems.map((item) => (
+                          <Box key={item.id} sx={{ p: 1, backgroundColor: '#f5f5f5', borderRadius: 1, borderLeft: `3px solid ${item.status === 'COMPLETED' ? '#4CAF50' : '#FF9800'}` }}>
+                            <Box display="flex" justifyContent="space-between" alignItems="start" gap={1}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                                  {item.description}
+                                </Typography>
+                                {item.dueDate && formatDate(item.dueDate) && (
+                                  <Typography variant="caption" sx={{ color: '#666', fontSize: '0.75rem', display: 'block', mt: 0.5 }}>
+                                    יעד: {formatDate(item.dueDate)}
+                                  </Typography>
+                                )}
+                              </Box>
+                              <Chip 
+                                label={item.status === 'COMPLETED' ? 'הושלם' : 'בתהליך'}
+                                size="small"
+                                color={item.status === 'COMPLETED' ? 'success' : 'warning'}
+                                variant="filled"
+                              />
+                            </Box>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {/* Decisions */}
+                  {selectedMeeting.decisions && selectedMeeting.decisions.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 1 }}>
+                        החלטות
+                      </Typography>
+                      <Stack spacing={1}>
+                        {selectedMeeting.decisions.map((decision, idx) => (
+                          <Box key={idx} sx={{ p: 1, backgroundColor: '#e3f2fd', borderRadius: 1, borderLeft: '3px solid #2196F3' }}>
+                            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+                              {decision}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {/* Status */}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                      סטטוס פגישה
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                      {selectedMeeting.completed ? '✓ הושלמה' : 'בתהליך'}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenMeetingDialog(false)} color="primary">
+                  סגור
+                </Button>
+              </DialogActions>
+            </>
+          )}
+        </Dialog>
+
+        {/* Action Item Details Dialog */}
+        <Dialog open={openActionItemDialog} onClose={() => setOpenActionItemDialog(false)} maxWidth="sm" fullWidth>
+          {selectedActionItem && selectedActionItemMeeting && (
+            <>
+              <DialogTitle sx={{ fontSize: '1.2rem', fontWeight: 700, color: '#1565C0', pb: 1 }}>
+                משימת פעולה
+              </DialogTitle>
+              <DialogContent dividers>
+                <Stack spacing={2.5}>
+                  {/* Task Description */}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                      תיאור
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem', lineHeight: 1.6 }}>
+                      {selectedActionItem.description}
+                    </Typography>
+                  </Box>
+
+                  {/* Meeting Name */}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                      משויכת לפגישה
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                      {selectedActionItemMeeting.title}
+                    </Typography>
+                  </Box>
+
+                  {/* Due Date */}
+                  {selectedActionItem.dueDate && formatDate(selectedActionItem.dueDate) && (
+                    <Box>
+                      <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                        תאריך יעד
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                        {formatDate(selectedActionItem.dueDate)}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Status */}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
+                      סטטוס
+                    </Typography>
+                    <Chip
+                      label={selectedActionItem.status === 'COMPLETED' ? 'הושלמה' : 'בתהליך'}
+                      color={selectedActionItem.status === 'COMPLETED' ? 'success' : 'warning'}
+                      variant="filled"
+                    />
+                  </Box>
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenActionItemDialog(false)} color="primary">
+                  סגור
+                </Button>
+              </DialogActions>
+            </>
+          )}
+        </Dialog>
       </Box>
     </DashboardLayout>
   );

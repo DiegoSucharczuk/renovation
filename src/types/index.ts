@@ -110,7 +110,7 @@ export interface MeetingActionItem {
   id: string;
   description: string;
   assigneeVendorId: string;
-  dueDate: Date;
+  dueDate: Date | null;
   status: 'PENDING' | 'COMPLETED';
   createdAsTaskId?: string;
 }

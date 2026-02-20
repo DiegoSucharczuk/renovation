@@ -58,6 +58,8 @@ export default function MeetingsPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [currentTab, setCurrentTab] = useState(0);
+  const [selectedMeetingDetails, setSelectedMeetingDetails] = useState<Meeting | null>(null);
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -103,7 +105,7 @@ export default function MeetingsPage() {
               console.log('Loaded actionItem from Firestore:', item);
               return {
                 ...item,
-                dueDate: item.dueDate?.toDate ? item.dueDate.toDate() : (item.dueDate ? new Date(item.dueDate) : new Date()),
+                dueDate: item.dueDate?.toDate ? item.dueDate.toDate() : (item.dueDate ? new Date(item.dueDate) : null),
               };
             }),
           } as Meeting;
@@ -135,7 +137,7 @@ export default function MeetingsPage() {
         actionItems: meeting.actionItems.length > 0 ? meeting.actionItems.map(a => ({
           id: a.id,
           description: a.description,
-          dueDate: (a.dueDate instanceof Date ? a.dueDate : new Date(a.dueDate)).toISOString().split('T')[0],
+          dueDate: a.dueDate ? (a.dueDate instanceof Date ? a.dueDate : new Date(a.dueDate)).toISOString().split('T')[0] : '',
           assigneeVendorId: a.assigneeVendorId || '',
           status: a.status || 'PENDING',
         })) : [{ id: '', description: '', dueDate: '', assigneeVendorId: '', status: 'PENDING' }],
@@ -183,7 +185,7 @@ export default function MeetingsPage() {
           id: a.id || `action_${Date.now()}_${Math.random()}`,
           description: a.description,
           assigneeVendorId: a.assigneeVendorId || '',
-          dueDate: new Date(a.dueDate),
+          dueDate: a.dueDate ? new Date(a.dueDate) : null,
           status: a.status || 'PENDING',
         })),
         updatedAt: new Date(),
@@ -231,6 +233,7 @@ export default function MeetingsPage() {
   const formatDate = (date: Date | null | undefined) => {
     if (!date) return '-';
     if (!(date instanceof Date)) date = new Date(date);
+    if (isNaN(date.getTime())) return '-';
     return date.toLocaleDateString('he-IL');
   };
 
@@ -345,7 +348,10 @@ export default function MeetingsPage() {
                   const status = getMeetingStatus(meeting);
                   const bgColor = getStatusColor(status);
                   return (
-                  <TableRow key={meeting.id} sx={{ '&:hover': { backgroundColor: bgColor === 'transparent' ? '#f9f9f9' : bgColor }, borderBottom: '1px solid #ddd', backgroundColor: bgColor }}>
+                  <TableRow key={meeting.id} sx={{ '&:hover': { backgroundColor: bgColor === 'transparent' ? '#f9f9f9' : bgColor, cursor: 'pointer' }, borderBottom: '1px solid #ddd', backgroundColor: bgColor }} onClick={() => {
+                    setSelectedMeetingDetails(meeting);
+                    setOpenDetailsDialog(true);
+                  }}>
                     <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.meetingDate)}</TableCell>
                     <TableCell sx={{ borderRight: '1px solid #ddd' }}>
                       <Chip
@@ -361,7 +367,7 @@ export default function MeetingsPage() {
                       )}
                     </TableCell>
                     <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.dueDate)}</TableCell>
-                    <TableCell align="center">
+                    <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                       <IconButton
                         size="small"
                         onClick={() => handleOpenDialog(meeting)}
@@ -385,7 +391,112 @@ export default function MeetingsPage() {
           </TableContainer>
         </Card>
 
-        {/* Dialog */}
+        {/* Meeting Details Dialog */}
+        <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="sm" fullWidth>
+          {selectedMeetingDetails && (
+            <>
+              <DialogTitle>פרטי פגישה</DialogTitle>
+              <DialogContent dividers>
+                <Stack spacing={2.5}>
+                  {/* Title */}
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>כותרת</Typography>
+                    <Typography>{selectedMeetingDetails.title}</Typography>
+                  </Box>
+
+                  {/* Meeting Type */}
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>סוג</Typography>
+                    <Chip
+                      label={MEETING_TYPES.find(t => t.value === selectedMeetingDetails.meetingType)?.label || selectedMeetingDetails.meetingType}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+
+                  {/* Meeting Date */}
+                  {selectedMeetingDetails.meetingDate && formatDate(selectedMeetingDetails.meetingDate) && (
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>תאריך פגישה</Typography>
+                      <Typography>{formatDate(selectedMeetingDetails.meetingDate)}</Typography>
+                    </Box>
+                  )}
+
+                  {/* Description */}
+                  {selectedMeetingDetails.description && (
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>תיאור</Typography>
+                      <Typography>{selectedMeetingDetails.description}</Typography>
+                    </Box>
+                  )}
+
+                  {/* Due Date */}
+                  {selectedMeetingDetails.dueDate && formatDate(selectedMeetingDetails.dueDate) && (
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>תאריך יעד</Typography>
+                      <Typography>{formatDate(selectedMeetingDetails.dueDate)}</Typography>
+                    </Box>
+                  )}
+
+                  {/* Action Items */}
+                  {selectedMeetingDetails.actionItems && selectedMeetingDetails.actionItems.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>משימות פעולה</Typography>
+                      <Stack spacing={1}>
+                        {selectedMeetingDetails.actionItems.map((item, idx) => (
+                          <Box key={idx} sx={{ p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                            <Typography variant="body2">{item.description}</Typography>
+                            {item.dueDate && formatDate(item.dueDate) && (
+                              <Typography variant="caption" color="textSecondary">תאריך יעד: {formatDate(item.dueDate)}</Typography>
+                            )}
+                            <Typography variant="caption" sx={{ display: 'block', color: item.status === 'COMPLETED' ? '#2e7d32' : '#f57c00' }}>
+                              סטטוס: {item.status === 'COMPLETED' ? 'הושלמה' : 'בהמתנה'}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {/* Decisions */}
+                  {selectedMeetingDetails.decisions && selectedMeetingDetails.decisions.length > 0 && (
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>החלטות</Typography>
+                      <Stack spacing={1}>
+                        {selectedMeetingDetails.decisions.map((decision, idx) => (
+                          decision && (
+                            <Typography key={idx} variant="body2" sx={{ display: 'flex', gap: 1 }}>
+                              <span>•</span> {decision}
+                            </Typography>
+                          )
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {/* Status */}
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>סטטוס</Typography>
+                    <Chip
+                      label={getMeetingStatus(selectedMeetingDetails) === 'COMPLETED' ? 'בוצעה' : 
+                             getMeetingStatus(selectedMeetingDetails) === 'PARTIAL' ? 'בחלקה' : 
+                             getMeetingStatus(selectedMeetingDetails) === 'IN_PROGRESS' ? 'בתהליך' : 'לא התחילה'}
+                      color={getMeetingStatus(selectedMeetingDetails) === 'COMPLETED' ? 'success' : 
+                             getMeetingStatus(selectedMeetingDetails) === 'PARTIAL' ? 'warning' : 
+                             getMeetingStatus(selectedMeetingDetails) === 'IN_PROGRESS' ? 'info' : 'default'}
+                      size="small"
+                    />
+                  </Box>
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setOpenDetailsDialog(false)}>סגור</Button>
+              </DialogActions>
+            </>
+          )}
+        </Dialog>
+
+        {/* Edit Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
           <DialogTitle>{editingMeeting ? 'עריכת פגישה' : 'פגישה חדשה'}</DialogTitle>
           <DialogContent sx={{ pt: 2 }}>
