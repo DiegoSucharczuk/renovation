@@ -320,7 +320,8 @@ export default function VendorsPage() {
     }
     
     // Then, check cache and convert to blob URL
-    return getCachedImage(fileId);
+    const cached = getCachedImage(fileId);
+    return cached || undefined;
   };
 
   // Helper functions for localStorage caching (using base64 for persistence)
