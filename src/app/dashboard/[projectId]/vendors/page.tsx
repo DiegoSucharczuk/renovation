@@ -310,6 +310,19 @@ export default function VendorsPage() {
     fetchData();
   }, [user, router, mounted, projectId]);
 
+  // Helper function to get logo URL from state or cache
+  const getLogoUrl = (fileId: string | undefined): string | undefined => {
+    if (!fileId) return undefined;
+    
+    // First, check if it's in state (already loaded)
+    if (imageBlobUrls[fileId]) {
+      return imageBlobUrls[fileId];
+    }
+    
+    // Then, check cache and convert to blob URL
+    return getCachedImage(fileId);
+  };
+
   // Helper functions for localStorage caching (using base64 for persistence)
   const getCachedImage = (fileId: string): string | null => {
     try {
@@ -1399,7 +1412,7 @@ export default function VendorsPage() {
                                         src={(() => {
                                           if (!vendor.logoUrl) return undefined;
                                           const parsed = parseFileData(vendor.logoUrl);
-                                          return parsed?.id && imageBlobUrls[parsed.id] ? imageBlobUrls[parsed.id] : undefined;
+                                          return parsed?.id ? getLogoUrl(parsed.id) : undefined;
                                         })()}
                                         sx={{ 
                                           width: 80, 
@@ -1412,10 +1425,10 @@ export default function VendorsPage() {
                                         }} 
                                       >
                                         {(() => {
-                                          // Show loading spinner if logo exists but not yet loaded
+                                          // Show loading spinner only if logo exists but truly not loaded (from Drive yet)
                                           if (vendor.logoUrl) {
                                             const parsed = parseFileData(vendor.logoUrl);
-                                            if (parsed?.id && !imageBlobUrls[parsed.id]) {
+                                            if (parsed?.id && !imageBlobUrls[parsed.id] && !getCachedImage(parsed.id)) {
                                               return <CircularProgress size={32} sx={{ color: 'white' }} />;
                                             }
                                           }
