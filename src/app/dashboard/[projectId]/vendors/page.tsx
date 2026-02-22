@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Select,
   IconButton,
   CircularProgress,
   MenuItem,
@@ -52,6 +53,7 @@ import { useProjectRole } from '@/hooks/useProjectRole';
 import AccessDenied from '@/components/AccessDenied';
 import { hebrewLabels } from '@/lib/labels';
 import { getTaskCategories } from '@/lib/taskCategories';
+import { ISRAELI_BANKS, getBankLabel } from '@/lib/banks';
 import { Vendor, Payment } from '@/types/vendor';
 import type { Project } from '@/types';
 
@@ -1517,7 +1519,7 @@ export default function VendorsPage() {
                                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}>
                                           <Box sx={{ p: 1.5, border: 1, borderColor: 'info.main', borderRadius: 1, backgroundColor: 'info.50' }}>
                                             <Typography variant="caption" color="text.secondary" fontWeight={600}>בנק</Typography>
-                                            <Typography variant="body2" fontWeight={500} mt={0.5}>{vendor.bankName || '—'}</Typography>
+                                            <Typography variant="body2" fontWeight={500} mt={0.5}>{vendor.bankName ? getBankLabel(vendor.bankName) : '—'}</Typography>
                                           </Box>
                                           <Box sx={{ p: 1.5, border: 1, borderColor: 'info.main', borderRadius: 1, backgroundColor: 'info.50' }}>
                                             <Typography variant="caption" color="text.secondary" fontWeight={600}>סניף</Typography>
@@ -1808,11 +1810,19 @@ export default function VendorsPage() {
 
               <Box display="flex" gap={2}>
                 <TextField
+                  select
                   label="בנק"
                   fullWidth
                   value={vendorFormData.bankName}
                   onChange={(e) => setVendorFormData({ ...vendorFormData, bankName: e.target.value })}
-                />
+                >
+                  <MenuItem value="">-- בחר בנק --</MenuItem>
+                  {ISRAELI_BANKS.map((bank) => (
+                    <MenuItem key={bank.code} value={bank.code}>
+                      {getBankLabel(bank.code)}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   label="סניף"
                   fullWidth
