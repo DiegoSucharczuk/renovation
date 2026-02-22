@@ -306,7 +306,8 @@ export default function DashboardPage() {
     const vendorPaymentsPending = payments.filter(p => p.vendorId === vendor.id && p.status === 'ממתין');
     const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + (p.amount || 0), 0);
     const totalPending = vendorPaymentsPending.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const totalAmount = totalPaid + totalPending;
+    const contractAmount = vendor.contractAmount || 0;
+    const totalAmount = totalPaid + totalPending + contractAmount;
     
     if (!acc[category]) {
       acc[category] = { total: 0, paid: 0, pending: 0, count: 0 };
@@ -320,8 +321,7 @@ export default function DashboardPage() {
   }, {} as Record<string, { total: number; paid: number; pending: number; count: number }>);
 
   const categoriesSorted = Object.entries(budgetByCategory)
-    .sort((a, b) => b[1].total - a[1].total)
-    .filter(([_, data]) => data.total > 0);
+    .sort((a, b) => b[1].total - a[1].total);
 
   const vendorsWithPayments = vendors
     .map(vendor => {
@@ -329,17 +329,22 @@ export default function DashboardPage() {
       const vendorPaymentsPending = payments.filter(p => p.vendorId === vendor.id && p.status === 'ממתין');
       const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + (p.amount || 0), 0);
       const totalPending = vendorPaymentsPending.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const contractAmount = vendor.contractAmount || 0;
       return { 
         id: vendor.id,
         name: vendor.name,
         category: vendor.category,
         totalPaid, 
         totalPending,
-        totalAmount: totalPaid + totalPending
+        totalAmount: totalPaid + totalPending,
+        contractAmount
       };
     })
-    .filter(v => v.totalAmount > 0)
-    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .sort((a, b) => {
+      // Sort by total amount first (actual payments), then by contract amount
+      if (b.totalAmount !== a.totalAmount) return b.totalAmount - a.totalAmount;
+      return b.contractAmount - a.contractAmount;
+    })
     .slice(0, 5);
 
   const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -669,8 +674,16 @@ export default function DashboardPage() {
                         </Box>
                       </Box>
                       <Box sx={{ textAlign: 'left' }}>
-                        <Typography variant="body2" fontWeight="800">₪{vendor.totalPaid.toLocaleString()} / ₪{vendor.totalAmount.toLocaleString()}</Typography>
-                        <Typography variant="caption" color="text.secondary">{vendor.totalPending > 0 ? `₪${vendor.totalPending.toLocaleString()} להשלמה` : 'שולם במלואו'}</Typography>
+                        <Typography variant="body2" fontWeight="800">
+                          ₪{vendor.totalPaid.toLocaleString()} / ₪{(vendor.totalAmount || vendor.contractAmount).toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {vendor.totalPending > 0 
+                            ? `₪${vendor.totalPending.toLocaleString()} להשלמה` 
+                            : vendor.totalAmount === 0 && vendor.contractAmount > 0
+                            ? 'ממתין לתשלום'
+                            : 'שולם במלואו'}
+                        </Typography>
                       </Box>
                     </Box>
                   ))}
@@ -681,7 +694,8 @@ export default function DashboardPage() {
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
                   {categoriesSorted.slice(0, 5).map(([category, data]) => {
-                    const percentage = totalPaid > 0 ? (data.total / totalPaid) * 100 : 0;
+                    const totalBudget = categoriesSorted.reduce((sum, [_, d]) => sum + d.total, 0);
+                    const percentage = totalBudget > 0 ? (data.total / totalBudget) * 100 : 0;
                     return (
                       <Box key={category}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
