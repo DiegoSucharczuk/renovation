@@ -1559,7 +1559,10 @@ export default function VendorsPage() {
                                             חוזה
                                           </Typography>
                                           <Chip
-                                            label={vendor.contractFileUrl.split('/').pop()}
+                                            label={(() => {
+                                              const fileData = parseFileData(vendor.contractFileUrl);
+                                              return fileData?.name || 'חוזה';
+                                            })()}
                                             icon={<AttachFileIcon />}
                                             variant="outlined"
                                             size="small"
