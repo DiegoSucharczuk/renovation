@@ -33,6 +33,8 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import CelebrationIcon from '@mui/icons-material/Celebration';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 import { doc, collection, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -294,8 +296,20 @@ export default function DashboardPage() {
   }).sort((a, b) => b.totalTasks - a.totalTasks);
 
   const budgetPlanned = project?.budgetPlanned || 0;
-  const totalContracts = vendors.reduce((sum, vendor) => sum + (vendor.contractAmount || 0), 0);
+  
+  // Calculate total contracts using max of contract amount or actual payments
+  const totalContracts = vendors.reduce((sum, vendor) => {
+    const vendorPaymentsPaid = payments.filter(p => p.vendorId === vendor.id && p.status === 'שולם');
+    const vendorPaymentsPending = payments.filter(p => p.vendorId === vendor.id && p.status === 'ממתין');
+    const totalPaid = vendorPaymentsPaid.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalPending = vendorPaymentsPending.reduce((s, p) => s + (p.amount || 0), 0);
+    const contractAmount = vendor.contractAmount || 0;
+    const vendorTotal = Math.max(contractAmount, totalPaid + totalPending);
+    return sum + vendorTotal;
+  }, 0);
+  
   const totalPaid = payments.filter(p => p.status === 'שולם').reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPending = payments.filter(p => p.status === 'ממתין').reduce((sum, p) => sum + (p.amount || 0), 0);
   const totalPlanned = payments.filter(p => p.status === 'מתוכנן' || p.status === 'ממתין').reduce((sum, p) => sum + (p.amount || 0), 0);
   const budgetRemaining = budgetPlanned - totalPaid;
   const budgetUsedPercent = budgetPlanned > 0 ? (totalPaid / budgetPlanned) * 100 : 0;
@@ -307,7 +321,8 @@ export default function DashboardPage() {
     const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + (p.amount || 0), 0);
     const totalPending = vendorPaymentsPending.reduce((sum, p) => sum + (p.amount || 0), 0);
     const contractAmount = vendor.contractAmount || 0;
-    const totalAmount = totalPaid + totalPending + contractAmount;
+    // Use the maximum of contract amount or actual payments to avoid double-counting
+    const totalAmount = Math.max(contractAmount, totalPaid + totalPending);
     
     if (!acc[category]) {
       acc[category] = { total: 0, paid: 0, pending: 0, count: 0 };
@@ -389,13 +404,16 @@ export default function DashboardPage() {
   return (
     <DashboardLayout projectId={projectId} project={project || undefined} scrollable={true}>
       <Box 
+        suppressHydrationWarning
         sx={{ 
-          px: { xs: 2, md: 4 }, 
-          pt: 4,
-          pb: 10, // הריווח החשוב בתחתית העמוד שמונע מהתוכן להחתך
+          px: { xs: 1.5, sm: 2, md: 4 }, 
+          pt: 3,
+          pb: 15,
           backgroundColor: '#f4f7fe', 
           minHeight: '100vh', 
           fontFamily: 'inherit',
+          width: '100%',
+          overflowX: 'hidden',
           overflowY: 'auto',
           '&::-webkit-scrollbar': { display: 'none' },
           msOverflowStyle: 'none',
@@ -442,36 +460,36 @@ export default function DashboardPage() {
         </Box>
 
         {/* KPI Cards Row */}
-        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, mb: 4 }}>
-          <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, mb: 4 }}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <CardContent sx={{ p: 2 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">התקדמות משימות</Typography>
-                  <Typography variant="h4" fontWeight="800" color="primary.main" sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>התקדמות משימות</Typography>
+                  <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>
                     {tasksCompletedPercent.toFixed(0)}%
                   </Typography>
                 </Box>
-                <Box sx={{ p: 1.5, backgroundColor: 'primary.50', borderRadius: 2 }}>
-                  <TrendingUpIcon color="primary" />
+                <Box sx={{ p: 1, backgroundColor: 'primary.50', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <TrendingUpIcon color="primary" sx={{ fontSize: '1.3rem' }} />
                 </Box>
               </Box>
-              <LinearProgress variant="determinate" value={tasksCompletedPercent} sx={{ height: 8, borderRadius: 4 }} />
+              <LinearProgress variant="determinate" value={tasksCompletedPercent} sx={{ height: 6, borderRadius: 3 }} />
             </CardContent>
           </Card>
 
           {permissions.canViewBudget && (
-            <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-              <CardContent sx={{ p: 3 }}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <CardContent sx={{ p: 2 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                   <Box>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">תקציב מתוכנן</Typography>
-                    <Typography variant="h4" fontWeight="800" sx={{ mt: 1, color: '#333' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>תקציב מתוכנן</Typography>
+                    <Typography variant="h5" fontWeight="800" sx={{ mt: 0.5, color: '#333' }}>
                       ₪{budgetPlanned.toLocaleString()}
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 1.5, backgroundColor: 'grey.100', borderRadius: 2 }}>
-                    <AccountBalanceWalletIcon color="action" />
+                  <Box sx={{ p: 1, backgroundColor: 'grey.100', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <AccountBalanceWalletIcon color="action" sx={{ fontSize: '1.3rem' }} />
                   </Box>
                 </Box>
               </CardContent>
@@ -479,35 +497,71 @@ export default function DashboardPage() {
           )}
 
           {permissions.canViewPayments && (
-            <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
                   <Box>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">שולם בפועל</Typography>
-                    <Typography variant="h4" fontWeight="800" color="success.main" sx={{ mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>שולם בפועל</Typography>
+                    <Typography variant="h5" fontWeight="800" color="success.main" sx={{ mt: 0.5 }}>
                       ₪{totalPaid.toLocaleString()}
                     </Typography>
                   </Box>
-                  <Box sx={{ p: 1.5, backgroundColor: 'success.50', borderRadius: 2 }}>
-                    <PaidIcon color="success" />
+                  <Box sx={{ p: 1, backgroundColor: 'success.50', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <PaidIcon color="success" sx={{ fontSize: '1.3rem' }} />
                   </Box>
                 </Box>
-                <Typography variant="caption" color="text.secondary" fontWeight="medium">
-                  נוצלו {budgetUsedPercent.toFixed(0)}% מהתקציב
+                <Typography variant="caption" color="text.secondary" fontWeight="500" sx={{ fontSize: '0.7rem' }}>
+                  {budgetUsedPercent.toFixed(0)}% מהתקציב
                 </Typography>
               </CardContent>
             </Card>
           )}
 
           {permissions.canViewBudget && (
-            <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', background: budgetRemaining >= 0 ? '#ffffff' : 'linear-gradient(135deg, #fff0f0 0%, #ffe0e0 100%)' }}>
-              <CardContent sx={{ p: 3 }}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', background: budgetRemaining >= 0 ? '#ffffff' : 'linear-gradient(135deg, #fff0f0 0%, #ffe0e0 100%)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <CardContent sx={{ p: 2 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                   <Box>
-                    <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">יתרה נותרת</Typography>
-                    <Typography variant="h4" fontWeight="800" color={budgetRemaining >= 0 ? "success.main" : "error.main"} sx={{ mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>יתרה נותרת</Typography>
+                    <Typography variant="h5" fontWeight="800" color={budgetRemaining >= 0 ? "success.main" : "error.main"} sx={{ mt: 0.5 }}>
                       ₪{budgetRemaining.toLocaleString()}
                     </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+
+          {permissions.canViewPayments && (
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>מתוכנן בפועל</Typography>
+                    <Typography variant="h5" fontWeight="800" sx={{ mt: 0.5, color: '#0369a1' }}>
+                      ₪{totalPlanned.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 1, backgroundColor: '#f0f9ff', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ScheduleIcon sx={{ color: '#0369a1', fontSize: '1.3rem' }} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+
+          {permissions.canViewPayments && (
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>ממתין בפועל</Typography>
+                    <Typography variant="h5" fontWeight="800" sx={{ mt: 0.5, color: '#b45309' }}>
+                      ₪{totalPending.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 1, backgroundColor: '#fef3c7', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <AccessTimeIcon sx={{ color: '#b45309', fontSize: '1.3rem' }} />
                   </Box>
                 </Box>
               </CardContent>
@@ -518,24 +572,24 @@ export default function DashboardPage() {
 
 
         {/* ========== ZONE 4: TABS ========== */}
-        <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', mt: 6 }}>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ '& .MuiTab-root': { fontWeight: 500, fontSize: '0.95rem' } }}>
+        <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', mt: 5, overflow: 'hidden' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: 'auto', '&::-webkit-scrollbar': { height: 4 } }}>
+            <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ '& .MuiTab-root': { fontWeight: 500, fontSize: { xs: '0.75rem', sm: '0.9rem' }, py: 2, px: { xs: 1, sm: 2 } } }}>
               <Tab label="📢 התראות" />
               <Tab label="📊 סטטוס משימות" />
-              <Tab label="💸 ניתוח ספקים" />
-              <Tab label="🏠 התקדמות לפי חדרים" />
+              <Tab label="💸 ספקים" />
+              <Tab label="🏠 חדרים" />
               <Tab label="📅 פגישות" />
-              <Tab label="📋 משימות פעולה" />
+              <Tab label="📋 פעולות" />
             </Tabs>
           </Box>
 
-          <CardContent sx={{ p: 3 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 }, overflowX: 'hidden' }}>
             {/* Tab 0: Alerts */}
             {activeTab === 0 && (
               <Stack spacing={2}>
                 {overdueNotInProgressArr.length > 0 && (
-                  <Alert severity="error" icon={<EventBusyIcon />} sx={{ borderRadius: 2 }}>
+                  <Alert severity="error" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>⚠️ {overdueNotInProgressArr.length} משימות חרגו מתאריך היעד</Typography>
                     <Stack spacing={1}>
                       {overdueNotInProgressArr.slice(0, 3).map((task) => {
@@ -551,7 +605,7 @@ export default function DashboardPage() {
                   </Alert>
                 )}
                 {inProgressOverdueArr.length > 0 && (
-                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                  <Alert severity="error" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>🔴 {inProgressOverdueArr.length} משימות בביצוע שעברו תאריך</Typography>
                     <Stack spacing={1}>
                       {inProgressOverdueArr.slice(0, 3).map((task) => {
@@ -565,7 +619,7 @@ export default function DashboardPage() {
                   </Alert>
                 )}
                 {blockedTasksArr.length > 0 && (
-                  <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                  <Alert severity="warning" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>⛔ {blockedTasksArr.length} משימות חסומות</Typography>
                     <Stack spacing={1}>
                       {blockedTasksArr.slice(0, 3).map((task) => {
@@ -579,7 +633,7 @@ export default function DashboardPage() {
                   </Alert>
                 )}
                 {shouldStartTasks.length > 0 && (
-                  <Alert severity="warning" sx={{ borderRadius: 2 }}>
+                  <Alert severity="warning" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>⏸️ {shouldStartTasks.length} משימות צריכות להתחיל</Typography>
                     <Stack spacing={1}>
                       {shouldStartTasks.slice(0, 3).map((task) => {
@@ -593,7 +647,7 @@ export default function DashboardPage() {
                   </Alert>
                 )}
                 {permissions.canViewPayments && upcomingPayments.length > 0 && (
-                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                  <Alert severity="info" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>💳 {upcomingPayments.length} תשלומים ממתינים</Typography>
                     <Typography variant="body2">סך הכל: ₪{upcomingPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()} בשבועיים הקרובים</Typography>
                   </Alert>
@@ -647,14 +701,22 @@ export default function DashboardPage() {
             {/* Tab 2: Vendor Analysis */}
             {activeTab === 2 && permissions.canViewBudget && (
               <Box>
-                <Box display="flex" gap={2} mb={4}>
-                  <Box sx={{ flex: 1, p: 2, borderRadius: 3, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={2} mb={4}>
+                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <Typography variant="caption" color="text.secondary" fontWeight="bold">סך התחייבויות (חוזים)</Typography>
                     <Typography variant="h5" fontWeight="800" color="#334155" mt={0.5}>₪{totalContracts.toLocaleString()}</Typography>
                   </Box>
-                  <Box sx={{ flex: 1, p: 2, borderRadius: 3, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
                     <Typography variant="caption" color="text.secondary" fontWeight="bold">סך הכל שולם</Typography>
                     <Typography variant="h5" fontWeight="800" color="success.main" mt={0.5}>₪{totalPaid.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#f0f9ff', border: '1px solid #bae6fd' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold">שולם בפועל</Typography>
+                    <Typography variant="h5" fontWeight="800" color="#0369a1" mt={0.5}>₪{totalPaid.toLocaleString()}</Typography>
+                  </Box>
+                  <Box sx={{ p: 2, borderRadius: 3, backgroundColor: '#fef3c7', border: '1px solid #fcd34d' }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold">ממתין בפועל</Typography>
+                    <Typography variant="h5" fontWeight="800" color="#b45309" mt={0.5}>₪{totalPending.toLocaleString()}</Typography>
                   </Box>
                 </Box>
 
@@ -663,8 +725,8 @@ export default function DashboardPage() {
                 </Typography>
                 <Stack spacing={2} mb={4}>
                   {vendorsWithPayments.slice(0, 5).map((vendor, index) => (
-                    <Box key={vendor.id} sx={{ p: 2, border: '1px solid #f1f5f9', borderRadius: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: index === 0 ? '#fffbeb' : '#ffffff' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box key={vendor.id} sx={{ p: 2, border: '1px solid #f1f5f9', borderRadius: 3, backgroundColor: index === 0 ? '#fffbeb' : '#ffffff' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: index === 0 ? '#fde68a' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <PeopleAltIcon sx={{ color: index === 0 ? '#d97706' : '#94a3b8' }} />
                         </Box>
@@ -673,17 +735,19 @@ export default function DashboardPage() {
                           <Typography variant="caption" color="text.secondary">{vendor.category || 'כללי'}</Typography>
                         </Box>
                       </Box>
-                      <Box sx={{ textAlign: 'left' }}>
-                        <Typography variant="body2" fontWeight="800">
-                          ₪{vendor.totalPaid.toLocaleString()} / ₪{(vendor.totalAmount || vendor.contractAmount).toLocaleString()}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {vendor.totalPending > 0 
-                            ? `₪${vendor.totalPending.toLocaleString()} להשלמה` 
-                            : vendor.totalAmount === 0 && vendor.contractAmount > 0
-                            ? 'ממתין לתשלום'
-                            : 'שולם במלואו'}
-                        </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
+                        <Box sx={{ p: 1, backgroundColor: '#f8fafc', borderRadius: 1.5, border: '1px solid #e2e8f0' }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" display="block">סה"כ החוזה</Typography>
+                          <Typography variant="body2" fontWeight="800" color="#334155">₪{vendor.contractAmount.toLocaleString()}</Typography>
+                        </Box>
+                        <Box sx={{ p: 1, backgroundColor: '#f0fdf4', borderRadius: 1.5, border: '1px solid #bbf7d0' }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" display="block">שולם</Typography>
+                          <Typography variant="body2" fontWeight="800" color="success.main">₪{vendor.totalPaid.toLocaleString()}</Typography>
+                        </Box>
+                        <Box sx={{ p: 1, backgroundColor: '#fef3c7', borderRadius: 1.5, border: '1px solid #fcd34d' }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" display="block">ממתין</Typography>
+                          <Typography variant="body2" fontWeight="800" color="#b45309">₪{vendor.totalPending.toLocaleString()}</Typography>
+                        </Box>
                       </Box>
                     </Box>
                   ))}
@@ -693,19 +757,22 @@ export default function DashboardPage() {
                   חלוקת תקציב לפי קטגוריות
                 </Typography>
                 <Box display="flex" flexDirection="column" gap={2}>
-                  {categoriesSorted.slice(0, 5).map(([category, data]) => {
-                    const totalBudget = categoriesSorted.reduce((sum, [_, d]) => sum + d.total, 0);
-                    const percentage = totalBudget > 0 ? (data.total / totalBudget) * 100 : 0;
-                    return (
-                      <Box key={category}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                          <Typography variant="body2" fontWeight="bold">{category}</Typography>
-                          <Typography variant="body2" color="text.secondary">₪{data.total.toLocaleString()}</Typography>
+                  {(() => {
+                    const topCategories = categoriesSorted.slice(0, 5);
+                    const topCategoriesTotal = topCategories.reduce((sum, [_, d]) => sum + d.total, 0);
+                    return topCategories.map(([category, data]) => {
+                      const percentage = topCategoriesTotal > 0 ? (data.total / topCategoriesTotal) * 100 : 0;
+                      return (
+                        <Box key={category}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2" fontWeight="bold">{category}</Typography>
+                            <Typography variant="body2" color="text.secondary">₪{data.total.toLocaleString()}</Typography>
+                          </Box>
+                          <LinearProgress variant="determinate" value={Math.min(percentage, 100)} sx={{ height: 6, borderRadius: 2 }} color="info" />
                         </Box>
-                        <LinearProgress variant="determinate" value={Math.min(percentage, 100)} sx={{ height: 6, borderRadius: 2 }} color="info" />
-                      </Box>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </Box>
               </Box>
             )}

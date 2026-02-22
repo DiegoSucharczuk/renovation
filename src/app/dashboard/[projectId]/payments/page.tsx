@@ -180,8 +180,6 @@ export default function PaymentsPage() {
             <Typography variant="h3" fontWeight="bold">
               דוח תשלומים
             </Typography>
-            <Chip label={`${totalPaymentsCount} תשלומים`} color="primary" size="medium" />
-            <Chip label={`${filteredVendors.length} ספקים`} color="secondary" size="medium" />
           </Box>
         </Box>
 

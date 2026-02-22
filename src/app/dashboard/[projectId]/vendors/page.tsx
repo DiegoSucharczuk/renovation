@@ -1100,7 +1100,6 @@ export default function VendorsPage() {
             <Typography variant="h3" fontWeight="bold">
               {hebrewLabels.vendors}
             </Typography>
-            <Chip label={`${vendors.length} ספקים`} color="primary" size="medium" />
           </Box>
           {canEditVendors && (
             <Button

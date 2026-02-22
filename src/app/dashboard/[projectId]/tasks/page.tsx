@@ -371,51 +371,51 @@ export default function TasksPage() {
         </Box>
 
         {/* Summary Cards */}
-        <Box sx={{ px: 3, mb: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' } }}>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>סה"כ משימות</Typography>
-              <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>{totalTasks}</Typography>
+        <Box sx={{ px: 3, mb: 3, display: 'grid', gap: 2, gridAutoFlow: 'column', gridAutoColumns: '1fr', overflowX: 'auto', pb: 1 }}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>סה"כ משימות</Typography>
+              <Typography variant="h4" fontWeight="800" color="primary.main" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{totalTasks}</Typography>
             </Box>
           </Card>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>הושלמו</Typography>
-              <Typography variant="h5" fontWeight="800" color="success.main" sx={{ mt: 0.5 }}>{completedTasks}</Typography>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>הושלמו</Typography>
+              <Typography variant="h4" fontWeight="800" color="success.main" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{completedTasks}</Typography>
             </Box>
           </Card>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>בביצוע</Typography>
-              <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>{inProgressTasks}</Typography>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>בביצוע</Typography>
+              <Typography variant="h4" fontWeight="800" color="primary.main" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{inProgressTasks}</Typography>
             </Box>
           </Card>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>לא התחילו</Typography>
-              <Typography variant="h5" fontWeight="800" color="text.secondary" sx={{ mt: 0.5 }}>{notStartedTasks}</Typography>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>לא התחילו</Typography>
+              <Typography variant="h4" fontWeight="800" color="text.secondary" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{notStartedTasks}</Typography>
             </Box>
           </Card>
           {blockedTasks > 0 && (
-            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-              <Box sx={{ p: 2 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>חסומות</Typography>
-                <Typography variant="h5" fontWeight="800" color="error.main" sx={{ mt: 0.5 }}>{blockedTasks}</Typography>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>חסומות</Typography>
+                <Typography variant="h4" fontWeight="800" color="error.main" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{blockedTasks}</Typography>
               </Box>
             </Card>
           )}
           {noStatusTasks > 0 && (
-            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-              <Box sx={{ p: 2 }}>
-                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>ללא סטטוס</Typography>
-                <Typography variant="h5" fontWeight="800" color="text.disabled" sx={{ mt: 0.5 }}>{noStatusTasks}</Typography>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>ללא סטטוס</Typography>
+                <Typography variant="h4" fontWeight="800" color="text.disabled" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{noStatusTasks}</Typography>
               </Box>
             </Card>
           )}
-          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>אחוז השלמה</Typography>
-              <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>{completionPercentage}%</Typography>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>אחוז השלמה</Typography>
+              <Typography variant="h4" fontWeight="800" color="primary.main" sx={{ mt: 0.5, fontSize: '2.5rem' }}>{completionPercentage}%</Typography>
             </Box>
           </Card>
         </Box>
@@ -431,7 +431,7 @@ export default function TasksPage() {
           direction: 'ltr',
           position: 'relative',
         }}>
-          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 200px)', overflow: 'auto' }}>
+          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 350px)', overflow: 'auto', width: '100%' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
               <TableHead>

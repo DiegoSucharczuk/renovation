@@ -176,6 +176,7 @@ export default function RoomsPage() {
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -749,320 +750,329 @@ export default function RoomsPage() {
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.rooms}
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            sx={{
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 4,
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
-            {hebrewLabels.addRoom}
-          </Button>
+          <Box display="flex" gap={2} alignItems="center">
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setFilterModalOpen(true)}
+              sx={{
+                boxShadow: 1,
+                '&:hover': {
+                  boxShadow: 3,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              סינון
+              {(selectedRooms.length > 0 || selectedStatuses.length > 0 || selectedCategories.length > 0) && (
+                <Chip 
+                  label={selectedRooms.length + selectedStatuses.length + selectedCategories.length}
+                  size="small"
+                  sx={{ ml: 1, backgroundColor: 'primary.main', color: 'white' }}
+                />
+              )}
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              {hebrewLabels.addRoom}
+            </Button>
+          </Box>
         </Box>
 
-        {/* Summary Cards */}
-        <Box sx={{ px: 3, pr: 3, mb: 2 }}>
-          <Card 
-            sx={{ 
-              p: 1.5, 
-              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-              boxShadow: 3,
-            }}
-          >
-            <Box display="flex" justifyContent="space-around" gap={1.5} flexWrap="wrap">
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  סה"כ משימות
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="primary.main">
-                  {totalTasks}
-                </Typography>
-              </Box>
-              <Box 
-                textAlign="center" 
-                onClick={() => handleStatusFilter('DONE')}
-                sx={{ 
-                  cursor: 'pointer',
-                  p: 1,
-                  borderRadius: 2,
-                  backgroundColor: highlightedStatus === 'DONE' ? '#e8f5e9' : 'transparent',
-                  border: highlightedStatus === 'DONE' ? '2px solid #4caf50' : '2px solid transparent',
-                  transition: 'all 0.2s',
-                  '&:hover': { backgroundColor: '#f1f8f4', transform: 'scale(1.05)' }
-                }}
-              >
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  הושלמו <span style={{color: '#4caf50'}}>✓</span>
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="success.main">
-                  {completedTasks}
-                </Typography>
-              </Box>
-              <Box 
-                textAlign="center"
-                onClick={() => handleStatusFilter('IN_PROGRESS')}
-                sx={{ 
-                  cursor: 'pointer',
-                  p: 1,
-                  borderRadius: 2,
-                  backgroundColor: highlightedStatus === 'IN_PROGRESS' ? '#fff9c4' : 'transparent',
-                  border: highlightedStatus === 'IN_PROGRESS' ? '2px solid #FFD700' : '2px solid transparent',
-                  transition: 'all 0.2s',
-                  '&:hover': { backgroundColor: '#fffde7', transform: 'scale(1.05)' }
-                }}
-              >
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  בביצוע <span style={{color: '#FFD700'}}>●</span>
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" sx={{ color: '#FFD700' }}>
-                  {inProgressTasks}
-                </Typography>
-              </Box>
-              <Box 
-                textAlign="center"
-                onClick={() => handleStatusFilter('WAITING')}
-                sx={{ 
-                  cursor: 'pointer',
-                  p: 1,
-                  borderRadius: 2,
-                  backgroundColor: highlightedStatus === 'WAITING' ? '#ffe0b2' : 'transparent',
-                  border: highlightedStatus === 'WAITING' ? '2px solid #ff9800' : '2px solid transparent',
-                  transition: 'all 0.2s',
-                  '&:hover': { backgroundColor: '#fff3e0', transform: 'scale(1.05)' }
-                }}
-              >
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  בהמתנה <span style={{color: '#ff9800'}}>⏸</span>
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="warning.main">
-                  {waitingTasks}
-                </Typography>
-              </Box>
-              <Box 
-                textAlign="center"
-                onClick={() => handleStatusFilter('NOT_STARTED')}
-                sx={{ 
-                  cursor: 'pointer',
-                  p: 1,
-                  borderRadius: 2,
-                  backgroundColor: highlightedStatus === 'NOT_STARTED' ? '#f5f5f5' : 'transparent',
-                  border: highlightedStatus === 'NOT_STARTED' ? '2px solid #9e9e9e' : '2px solid transparent',
-                  transition: 'all 0.2s',
-                  '&:hover': { backgroundColor: '#fafafa', transform: 'scale(1.05)' }
-                }}
-              >
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  לא התחילו <span style={{color: '#9e9e9e'}}>○</span>
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="text.secondary">
-                  {notStartedTasks}
-                </Typography>
-              </Box>
-              {blockedTasks > 0 && (
-                <Box 
-                  textAlign="center"
-                  onClick={() => handleStatusFilter('BLOCKED')}
-                  sx={{ 
-                    cursor: 'pointer',
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: highlightedStatus === 'BLOCKED' ? '#ffebee' : 'transparent',
-                    border: highlightedStatus === 'BLOCKED' ? '2px solid #f44336' : '2px solid transparent',
-                    transition: 'all 0.2s',
-                    '&:hover': { backgroundColor: '#ffebee', transform: 'scale(1.05)' }
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    חסומות <span style={{color: '#f44336'}}>⚠</span>
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="error.main">
-                    {blockedTasks}
-                  </Typography>
-                </Box>
-              )}
-              {overdueTasks > 0 && (
-                <Box 
-                  textAlign="center"
-                  onClick={() => handleStatusFilter('OVERDUE')}
-                  sx={{ 
-                    cursor: 'pointer',
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: highlightedStatus === 'OVERDUE' ? '#ffccbc' : 'transparent',
-                    border: highlightedStatus === 'OVERDUE' ? '2px solid #ff5722' : '2px solid transparent',
-                    transition: 'all 0.2s',
-                    '&:hover': { backgroundColor: '#ffe0d8', transform: 'scale(1.05)' }
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    באיחור <span style={{color: '#ff5722'}}>❗</span>
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="error.main">
-                    {overdueTasks}
-                  </Typography>
-                </Box>
-              )}
-              {inProgressOverdueTasks > 0 && (
-                <Box 
-                  textAlign="center"
-                  onClick={() => handleStatusFilter('IN_PROGRESS_OVERDUE')}
-                  sx={{ 
-                    cursor: 'pointer',
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: highlightedStatus === 'IN_PROGRESS_OVERDUE' ? '#ffcdd2' : 'transparent',
-                    border: highlightedStatus === 'IN_PROGRESS_OVERDUE' ? '2px solid #f44336' : '2px solid transparent',
-                    transition: 'all 0.2s',
-                    '&:hover': { backgroundColor: '#ffebee', transform: 'scale(1.05)' }
-                  }}
-                >
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    בביצוע - באיחור ⚠️
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="error.main">
-                    {inProgressOverdueTasks}
-                  </Typography>
-                </Box>
-              )}
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  אחוז השלמה
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="primary.main">
-                  {completionPercentage}%
-                </Typography>
-              </Box>
-            </Box>
-          </Card>
-        </Box>
-
-        {/* Filters Panel */}
+        {/* Statistics Grid */}
         <Box sx={{ px: 3, pr: 3, mb: 3 }}>
-          <Card sx={{ p: 2, boxShadow: 2 }}>
-            <Box display="flex" alignItems="center" gap={2} mb={2}>
-              <FilterListIcon color="primary" />
-              <Typography variant="h6" fontWeight="bold">סינון</Typography>
-            </Box>
-            
-            <Box display="flex" gap={2} flexWrap="wrap">
-              {/* Room Filter */}
-              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>חדרים</InputLabel>
-                  <Select
-                    multiple
-                    value={selectedRooms}
-                    onChange={(e) => setSelectedRooms(e.target.value as string[])}
-                    input={<OutlinedInput label="חדרים" />}
-                    renderValue={(selected) => 
-                      selected.length === 0 ? 'כל החדרים' : `${selected.length} חדרים`
-                    }
-                  >
-                    {rooms.map((room) => (
-                      <MenuItem key={room.id} value={room.id}>
-                        <Checkbox checked={selectedRooms.includes(room.id)} />
-                        <Box display="flex" alignItems="center" gap={1}>
-                          {(room.icon ? iconMap[room.icon] : roomIcons[room.name]) && (
-                            <Typography sx={{ fontSize: 18 }}>
-                              {room.icon ? iconMap[room.icon] : roomIcons[room.name]}
-                            </Typography>
-                          )}
-                          <Typography>{room.name}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-
-              {/* Status Filter */}
-              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>סטטוס</InputLabel>
-                  <Select
-                    multiple
-                    value={selectedStatuses}
-                    onChange={(e) => setSelectedStatuses(e.target.value as string[])}
-                    input={<OutlinedInput label="סטטוס" />}
-                    renderValue={(selected) => 
-                      selected.length === 0 ? 'כל הסטטוסים' : `${selected.length} סטטוסים`
-                    }
-                  >
-                    {statusOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        <Checkbox checked={selectedStatuses.includes(option.value)} />
-                        <Typography>{option.label}</Typography>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-
-              {/* Category Filter */}
-              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>קטגוריות</InputLabel>
-                  <Select
-                    multiple
-                    value={selectedCategories}
-                    onChange={(e) => setSelectedCategories(e.target.value as string[])}
-                    input={<OutlinedInput label="קטגוריות" />}
-                    renderValue={(selected) => 
-                      selected.length === 0 ? 'כל הקטגוריות' : `${selected.length} קטגוריות`
-                    }
-                  >
-                    {taskCategories.map((category) => (
-                      <MenuItem key={category} value={category}>
-                        <Checkbox checked={selectedCategories.includes(category)} />
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography sx={{ fontSize: 18 }}>
-                            {taskCategoryIcons[category] || '📝'}
-                          </Typography>
-                          <Typography>{category}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
+            {/* Total Tasks Card */}
+            <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+              <Card 
+                sx={{
+                  height: '100%',
+                  aspectRatio: '1 / 1',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  boxShadow: 3,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: 5,
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.9, mb: 1 }}>
+                    סה"כ משימות
+                  </Typography>
+                  <Typography variant="h3" fontWeight="bold">
+                    {totalTasks}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Box>
 
-            {/* Action Buttons */}
-            <Box display="flex" gap={1} mt={2} flexWrap="wrap">
-              <Button
-                size="small"
-                startIcon={<ClearIcon />}
-                onClick={handleResetFilters}
-                disabled={selectedRooms.length === 0 && selectedStatuses.length === 0 && selectedCategories.length === 0}
+            {/* Completed Card */}
+            <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+              <Card 
+                onClick={() => handleStatusFilter('DONE')}
+                sx={{
+                  height: '100%',
+                  aspectRatio: '1 / 1',
+                  background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
+                  color: 'white',
+                  boxShadow: 3,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: 5,
+                  }
+                }}
               >
-                איפוס פילטרים
-              </Button>
-              <Button
-                size="small"
-                startIcon={<RefreshIcon />}
-                onClick={handleShowActive}
-                variant="outlined"
-              >
-                חדרים פעילים
-              </Button>
-              <Button
-                size="small"
-                color="warning"
-                onClick={handleShowProblems}
-                variant="outlined"
-              >
-                חדרים עם בעיות
-              </Button>
+                <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                    הושלמו ✓
+                  </Typography>
+                  <Typography variant="h3" fontWeight="bold">
+                    {completedTasks}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Box>
 
+            {/* In Progress Card */}
+            <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+              <Card 
+                onClick={() => handleStatusFilter('IN_PROGRESS')}
+                sx={{
+                  height: '100%',
+                  aspectRatio: '1 / 1',
+                  background: 'linear-gradient(135deg, #FFD700 0%, #FFC700 100%)',
+                  color: '#333',
+                  boxShadow: 3,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: 5,
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                    בביצוע ●
+                  </Typography>
+                  <Typography variant="h3" fontWeight="bold">
+                    {inProgressTasks}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
 
-          </Card>
+            {/* Waiting Card */}
+            <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+              <Card 
+                onClick={() => handleStatusFilter('WAITING')}
+                sx={{
+                  height: '100%',
+                  aspectRatio: '1 / 1',
+                  background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)',
+                  color: 'white',
+                  boxShadow: 3,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: 5,
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                    בהמתנה ⏸
+                  </Typography>
+                  <Typography variant="h3" fontWeight="bold">
+                    {waitingTasks}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Not Started Card */}
+            <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+              <Card 
+                onClick={() => handleStatusFilter('NOT_STARTED')}
+                sx={{
+                  height: '100%',
+                  aspectRatio: '1 / 1',
+                  background: 'linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%)',
+                  color: 'white',
+                  boxShadow: 3,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: 5,
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                    לא התחילו ○
+                  </Typography>
+                  <Typography variant="h3" fontWeight="bold">
+                    {notStartedTasks}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+
+            {/* Blocked Card */}
+            {blockedTasks > 0 && (
+              <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+                <Card 
+                  onClick={() => handleStatusFilter('BLOCKED')}
+                  sx={{
+                    height: '100%',
+                    aspectRatio: '1 / 1',
+                    background: 'linear-gradient(135deg, #f44336 0%, #e57373 100%)',
+                    color: 'white',
+                    boxShadow: 3,
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      boxShadow: 5,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                      חסומות ⚠
+                    </Typography>
+                    <Typography variant="h3" fontWeight="bold">
+                      {blockedTasks}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
+
+            {/* Overdue Card */}
+            {overdueTasks > 0 && (
+              <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+                <Card 
+                  onClick={() => handleStatusFilter('OVERDUE')}
+                  sx={{
+                    height: '100%',
+                    aspectRatio: '1 / 1',
+                    background: 'linear-gradient(135deg, #ff5722 0%, #ff7043 100%)',
+                    color: 'white',
+                    boxShadow: 3,
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      boxShadow: 5,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                      באיחור ❗
+                    </Typography>
+                    <Typography variant="h3" fontWeight="bold">
+                      {overdueTasks}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
+
+            {/* In Progress Overdue Card */}
+            {inProgressOverdueTasks > 0 && (
+              <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+                <Card 
+                  onClick={() => handleStatusFilter('IN_PROGRESS_OVERDUE')}
+                  sx={{
+                    height: '100%',
+                    aspectRatio: '1 / 1',
+                    background: 'linear-gradient(135deg, #d32f2f 0%, #ef5350 100%)',
+                    color: 'white',
+                    boxShadow: 3,
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      transform: 'translateY(-8px)',
+                      boxShadow: 5,
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                      בביצוע - באיחור ⚠️
+                    </Typography>
+                    <Typography variant="h3" fontWeight="bold">
+                      {inProgressOverdueTasks}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Box>
+            )}
+
+            {/* Completion Percentage Card */}
+            <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
+              <Card 
+                sx={{
+                  height: '100%',
+                  aspectRatio: '1 / 1',
+                  background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+                  color: 'white',
+                  boxShadow: 3,
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: 5,
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', py: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="body2" display="block" fontWeight={600} sx={{ opacity: 0.95, mb: 1 }}>
+                    אחוז השלמה
+                  </Typography>
+                  <Typography variant="h3" fontWeight="bold">
+                    {completionPercentage}%
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={completionPercentage} 
+                    sx={{
+                      mt: 2,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: '#4caf50',
+                        borderRadius: 3,
+                      }
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
         </Box>
 
         {/* Matrix Table */}
@@ -1080,7 +1090,7 @@ export default function RoomsPage() {
             sx={{
               overflow: 'auto',
               direction: 'rtl',
-              maxHeight: 'calc(100vh - 500px)',
+              maxHeight: 'calc(100vh - 200px)',
             }}
           >
             <Box sx={{ direction: 'ltr' }}>
@@ -1434,6 +1444,135 @@ export default function RoomsPage() {
               variant="contained"
             >
               שמור
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Filter Modal Dialog */}
+        <Dialog 
+          open={filterModalOpen} 
+          onClose={() => setFilterModalOpen(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle fontWeight="bold" display="flex" alignItems="center" gap={1}>
+            <FilterListIcon color="primary" />
+            סינון משימות
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Box display="flex" gap={2} flexWrap="wrap">
+              {/* Room Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>חדרים</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedRooms}
+                    onChange={(e) => setSelectedRooms(e.target.value as string[])}
+                    input={<OutlinedInput label="חדרים" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל החדרים' : `${selected.length} חדרים`
+                    }
+                  >
+                    {rooms.map((room) => (
+                      <MenuItem key={room.id} value={room.id}>
+                        <Checkbox checked={selectedRooms.includes(room.id)} />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          {(room.icon ? iconMap[room.icon] : roomIcons[room.name]) && (
+                            <Typography sx={{ fontSize: 18 }}>
+                              {room.icon ? iconMap[room.icon] : roomIcons[room.name]}
+                            </Typography>
+                          )}
+                          <Typography>{room.name}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Status Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>סטטוס</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedStatuses}
+                    onChange={(e) => setSelectedStatuses(e.target.value as string[])}
+                    input={<OutlinedInput label="סטטוס" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל הסטטוסים' : `${selected.length} סטטוסים`
+                    }
+                  >
+                    {statusOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        <Checkbox checked={selectedStatuses.includes(option.value)} />
+                        <Typography>{option.label}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Category Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>קטגוריות</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedCategories}
+                    onChange={(e) => setSelectedCategories(e.target.value as string[])}
+                    input={<OutlinedInput label="קטגוריות" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל הקטגוריות' : `${selected.length} קטגוריות`
+                    }
+                  >
+                    {taskCategories.map((category) => (
+                      <MenuItem key={category} value={category}>
+                        <Checkbox checked={selectedCategories.includes(category)} />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography sx={{ fontSize: 18 }}>
+                            {taskCategoryIcons[category] || '📝'}
+                          </Typography>
+                          <Typography>{category}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+
+            {/* Quick Filter Buttons */}
+            <Box display="flex" gap={1} mt={3} flexWrap="wrap">
+              <Button
+                size="small"
+                startIcon={<RefreshIcon />}
+                onClick={handleShowActive}
+                variant="outlined"
+              >
+                חדרים פעילים
+              </Button>
+              <Button
+                size="small"
+                color="warning"
+                onClick={handleShowProblems}
+                variant="outlined"
+              >
+                חדרים עם בעיות
+              </Button>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              startIcon={<ClearIcon />}
+              onClick={handleResetFilters}
+              disabled={selectedRooms.length === 0 && selectedStatuses.length === 0 && selectedCategories.length === 0}
+            >
+              איפוס
+            </Button>
+            <Button onClick={() => setFilterModalOpen(false)} variant="contained">
+              סגור
             </Button>
           </DialogActions>
         </Dialog>
