@@ -5,31 +5,24 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Container,
   Paper,
-  TextField,
   Button,
   Typography,
   Box,
   Link,
   Alert,
-  Divider,
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '@/contexts/AuthContext';
-import { hebrewLabels } from '@/lib/labels';
 import { collection, query, where, getDocs, getDocsFromServer, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function RegisterForm() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [invitationInfo, setInvitationInfo] = useState<any>(null);
   const [invitationHandled, setInvitationHandled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const { signUp, signInWithGoogle, user } = useAuth();
+  const { signInWithGoogle, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const invitationToken = searchParams.get('invitation');
@@ -62,7 +55,6 @@ function RegisterForm() {
             invitedByName: invitationData.invitedByName || '',
           };
           setInvitationInfo(invitation);
-          setEmail(invitation.email); // מילוי אוטומטי של האימייל
         }
       } catch (err) {
         console.error('Error loading invitation:', err);
@@ -156,35 +148,6 @@ function RegisterForm() {
     }
   }, [isMounted, user, router, invitationToken]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (password !== confirmPassword) {
-      setError('הסיסמאות אינן תואמות');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('הסיסמה חייבת להיות לפחות 6 תווים');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await signUp(email, password, name);
-      
-      // טיפול בהזמנה אחרי הרשמה
-      await handlePostRegistration(email);
-    } catch (err: any) {
-      setError('שגיאה בהרשמה. אנא נסה שנית.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
@@ -213,7 +176,11 @@ function RegisterForm() {
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          {hebrewLabels.register}
+          הירשם
+        </Typography>
+
+        <Typography variant="body2" align="center" sx={{ mt: 2, mb: 3, color: 'text.secondary' }}>
+          הירשם עם חשבון Google שלך כדי ליתן גישה ל-Google Drive ו-Gmail
         </Typography>
         
         {invitationInfo && (
@@ -237,70 +204,18 @@ function RegisterForm() {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          <TextField
-            fullWidth
-            label={hebrewLabels.name}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            margin="normal"
-          />
-
-          <TextField
-            fullWidth
-            label={hebrewLabels.email}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            margin="normal"
-            autoComplete="email"
-            disabled={!!invitationInfo}
-            helperText={invitationInfo ? "אימייל מוגדר מראש מההזמנה" : ""}
-          />
-          
-          <TextField
-            fullWidth
-            label={hebrewLabels.password}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            margin="normal"
-            autoComplete="new-password"
-          />
-
-          <TextField
-            fullWidth
-            label="אישור סיסמה"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            margin="normal"
-            autoComplete="new-password"
-          />
-
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 3 }}>
           <Button
-            type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            disabled={loading}
-          >
-            {hebrewLabels.signUp}
-          </Button>
-
-          <Divider sx={{ my: 2 }}>או</Divider>
-
-          <Button
-            fullWidth
-            variant="outlined"
+            size="large"
             startIcon={<GoogleIcon />}
             onClick={handleGoogleSignIn}
             disabled={loading}
-            sx={{ mb: 2 }}
+            sx={{ 
+              backgroundColor: '#1976d2',
+              '&:hover': { backgroundColor: '#1565c0' }
+            }}
           >
             הירשם עם Google
           </Button>

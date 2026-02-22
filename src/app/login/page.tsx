@@ -5,24 +5,19 @@ import { useRouter } from 'next/navigation';
 import {
   Container,
   Paper,
-  TextField,
   Button,
   Typography,
   Box,
   Link,
   Alert,
-  Divider,
 } from '@mui/material';
 import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '@/contexts/AuthContext';
-import { hebrewLabels } from '@/lib/labels';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signInWithGoogle, user } = useAuth();
+  const { signInWithGoogle, user } = useAuth();
   const router = useRouter();
 
   // Redirect to projects page if user is already logged in
@@ -31,22 +26,6 @@ export default function LoginPage() {
       router.push('/projects');
     }
   }, [user, router]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      await signIn(email, password);
-      router.push('/projects');
-    } catch (err: any) {
-      setError('שגיאה בהתחברות. אנא בדוק את פרטי הכניסה.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -79,7 +58,11 @@ export default function LoginPage() {
         </Box>
         
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          {hebrewLabels.login}
+          התחברות
+        </Typography>
+
+        <Typography variant="body2" align="center" sx={{ mt: 2, mb: 3, color: 'text.secondary' }}>
+          התחבר באמצעות חשבון Google שלך כדי ליתן גישה ל-Google Drive ו-Gmail
         </Typography>
         
         {error && (
@@ -88,53 +71,23 @@ export default function LoginPage() {
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          <TextField
-            fullWidth
-            label={hebrewLabels.email}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            margin="normal"
-            autoComplete="email"
-          />
-          
-          <TextField
-            fullWidth
-            label={hebrewLabels.password}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            margin="normal"
-            autoComplete="current-password"
-          />
-
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Button
-            type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-            disabled={loading}
-          >
-            {hebrewLabels.signIn}
-          </Button>
-
-          <Divider sx={{ my: 2 }}>או</Divider>
-
-          <Button
-            fullWidth
-            variant="outlined"
+            size="large"
             startIcon={<GoogleIcon />}
             onClick={handleGoogleSignIn}
             disabled={loading}
-            sx={{ mb: 2 }}
+            sx={{ 
+              backgroundColor: '#1976d2',
+              '&:hover': { backgroundColor: '#1565c0' }
+            }}
           >
             התחבר עם Google
           </Button>
 
-          <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{ textAlign: 'center', mt: 2 }}>
             <Link href="/register" underline="hover">
               עדיין אין לך חשבון? הירשם כאן
             </Link>

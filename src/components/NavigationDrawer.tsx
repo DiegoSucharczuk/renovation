@@ -67,11 +67,17 @@ export default function NavigationDrawer({
   const drawer = (
     <div>
       <Toolbar sx={{ 
-        background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+        backgroundImage: 'linear-gradient(135deg, #1976d2 0%, #1565c0 50%, #0d47a1 100%)',
         color: 'white',
-        py: 2.5,
+        py: 3,
+        boxShadow: '0 4px 20px rgba(21, 101, 192, 0.2)',
+        '& .MuiTypography-root': {
+          color: 'white',
+          fontWeight: 800,
+          letterSpacing: '0.5px',
+        },
       }}>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, fontSize: '1.1rem' }}>
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, fontSize: '1.15rem', color: 'white', letterSpacing: '0.5px' }}>
           ניהול שיפוצים
         </Typography>
       </Toolbar>
@@ -86,29 +92,35 @@ export default function NavigationDrawer({
                 onClick={() => router.push(item.path)}
                 sx={{
                   mx: 1,
-                  borderRadius: 1.5,
+                  borderRadius: 1.2,
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  backgroundColor: isSelected ? '#e3f2fd' : 'transparent',
-                  color: isSelected ? '#1565c0' : '#424242',
+                  backgroundImage: isSelected ? 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)' : 'transparent',
+                  backgroundColor: isSelected ? '#1565c0' : 'transparent',
+                  color: isSelected ? '#f5f5f5' : '#424242',
+                  fontWeight: isSelected ? 700 : 600,
+                  boxShadow: isSelected ? '0 4px 16px rgba(21, 101, 192, 0.35)' : 'none',
                   '& .MuiListItemIcon-root': {
-                    color: isSelected ? '#1565c0' : '#666',
-                    transition: 'color 0.3s ease',
-                    minWidth: 40,
+                    color: isSelected ? '#fff' : '#1976d2',
+                    fontSize: '1.4rem',
+                    transition: 'all 0.3s ease',
+                    minWidth: 44,
                   },
                   '& .MuiListItemText-primary': {
                     fontSize: '0.95rem',
-                    fontWeight: isSelected ? 600 : 500,
-                    transition: 'font-weight 0.3s ease',
+                    fontWeight: isSelected ? 700 : 600,
+                    transition: 'all 0.3s ease',
+                    letterSpacing: '0.3px',
                   },
                   '&:hover': {
-                    backgroundColor: isSelected ? '#e3f2fd' : '#f5f5f5',
-                    color: '#1565c0',
+                    backgroundImage: isSelected ? 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)' : 'none',
+                    backgroundColor: isSelected ? '#1565c0' : '#e3f2fd',
+                    boxShadow: isSelected ? '0 6px 20px rgba(21, 101, 192, 0.4)' : '0 2px 8px rgba(25, 118, 210, 0.15)',
                     '& .MuiListItemIcon-root': {
-                      color: '#1565c0',
+                      color: isSelected ? '#fff' : '#1565c0',
                     },
                   },
-                  paddingLeft: '12px',
-                  paddingRight: '12px',
+                  paddingLeft: '14px',
+                  paddingRight: '14px',
                 }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
@@ -126,28 +138,33 @@ export default function NavigationDrawer({
                 onClick={() => setSettingsOpen(!settingsOpen)}
                 sx={{
                   mx: 1,
-                  borderRadius: 1.5,
+                  borderRadius: 1.2,
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  backgroundColor: settingsOpen ? '#f5f5f5' : 'transparent',
-                  color: '#424242',
+                  backgroundColor: settingsOpen ? '#e3f2fd' : 'transparent',
+                  color: settingsOpen ? '#1565c0' : '#424242',
+                  fontWeight: settingsOpen ? 700 : 600,
+                  boxShadow: settingsOpen ? '0 2px 8px rgba(25, 118, 210, 0.15)' : 'none',
                   '& .MuiListItemIcon-root': {
-                    color: '#666',
-                    minWidth: 40,
-                    transition: 'color 0.3s ease',
+                    color: '#1976d2',
+                    fontSize: '1.4rem',
+                    minWidth: 44,
+                    transition: 'all 0.3s ease',
                   },
                   '& .MuiListItemText-primary': {
                     fontSize: '0.95rem',
-                    fontWeight: 500,
+                    fontWeight: settingsOpen ? 700 : 600,
+                    letterSpacing: '0.3px',
                   },
                   '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                    backgroundColor: '#e3f2fd',
                     color: '#1565c0',
+                    boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)',
                     '& .MuiListItemIcon-root': {
                       color: '#1565c0',
                     },
                   },
-                  paddingLeft: '12px',
-                  paddingRight: '12px',
+                  paddingLeft: '14px',
+                  paddingRight: '14px',
                 }}
               >
                 <ListItemIcon><SettingsIcon /></ListItemIcon>
@@ -163,17 +180,20 @@ export default function NavigationDrawer({
                     pr: 2,
                     mx: 1,
                     my: 0.5,
-                    borderRadius: 1.5,
+                    borderRadius: 1.2,
                     backgroundColor: pathname === `/dashboard/${projectId}/settings` ? '#e3f2fd' : 'transparent',
-                    color: pathname === `/dashboard/${projectId}/settings` ? '#1565c0' : '#666',
+                    color: pathname === `/dashboard/${projectId}/settings` ? '#1565c0' : '#555',
                     fontSize: '0.9rem',
+                    fontWeight: pathname === `/dashboard/${projectId}/settings` ? 700 : 600,
                     '& .MuiListItemIcon-root': {
-                      color: pathname === `/dashboard/${projectId}/settings` ? '#1565c0' : '#999',
+                      color: pathname === `/dashboard/${projectId}/settings` ? '#1565c0' : '#1976d2',
                       minWidth: 36,
+                      fontSize: '1.2rem',
                     },
                     '&:hover': {
-                      backgroundColor: pathname === `/dashboard/${projectId}/settings` ? '#e3f2fd' : '#f9f9f9',
+                      backgroundColor: '#e3f2fd',
                       color: '#1565c0',
+                      boxShadow: '0 1px 4px rgba(25, 118, 210, 0.1)',
                     },
                     transition: 'all 0.2s ease',
                   }}
@@ -189,17 +209,20 @@ export default function NavigationDrawer({
                     pr: 2,
                     mx: 1,
                     my: 0.5,
-                    borderRadius: 1.5,
+                    borderRadius: 1.2,
                     backgroundColor: pathname === `/dashboard/${projectId}/settings/users` ? '#e3f2fd' : 'transparent',
-                    color: pathname === `/dashboard/${projectId}/settings/users` ? '#1565c0' : '#666',
+                    color: pathname === `/dashboard/${projectId}/settings/users` ? '#1565c0' : '#555',
                     fontSize: '0.9rem',
+                    fontWeight: pathname === `/dashboard/${projectId}/settings/users` ? 700 : 600,
                     '& .MuiListItemIcon-root': {
-                      color: pathname === `/dashboard/${projectId}/settings/users` ? '#1565c0' : '#999',
+                      color: pathname === `/dashboard/${projectId}/settings/users` ? '#1565c0' : '#1976d2',
                       minWidth: 36,
+                      fontSize: '1.2rem',
                     },
                     '&:hover': {
-                      backgroundColor: pathname === `/dashboard/${projectId}/settings/users` ? '#e3f2fd' : '#f9f9f9',
+                      backgroundColor: '#e3f2fd',
                       color: '#1565c0',
+                      boxShadow: '0 1px 4px rgba(25, 118, 210, 0.1)',
                     },
                     transition: 'all 0.2s ease',
                   }}
@@ -215,17 +238,20 @@ export default function NavigationDrawer({
                     pr: 2,
                     mx: 1,
                     my: 0.5,
-                    borderRadius: 1.5,
+                    borderRadius: 1.2,
                     backgroundColor: pathname === `/dashboard/${projectId}/settings/owners` ? '#e3f2fd' : 'transparent',
-                    color: pathname === `/dashboard/${projectId}/settings/owners` ? '#1565c0' : '#666',
+                    color: pathname === `/dashboard/${projectId}/settings/owners` ? '#1565c0' : '#555',
                     fontSize: '0.9rem',
+                    fontWeight: pathname === `/dashboard/${projectId}/settings/owners` ? 700 : 600,
                     '& .MuiListItemIcon-root': {
-                      color: pathname === `/dashboard/${projectId}/settings/owners` ? '#1565c0' : '#999',
+                      color: pathname === `/dashboard/${projectId}/settings/owners` ? '#1565c0' : '#1976d2',
                       minWidth: 36,
+                      fontSize: '1.2rem',
                     },
                     '&:hover': {
-                      backgroundColor: pathname === `/dashboard/${projectId}/settings/owners` ? '#e3f2fd' : '#f9f9f9',
+                      backgroundColor: '#e3f2fd',
                       color: '#1565c0',
+                      boxShadow: '0 1px 4px rgba(25, 118, 210, 0.1)',
                     },
                     transition: 'all 0.2s ease',
                   }}

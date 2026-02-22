@@ -91,9 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Add Gmail scope for sending emails
     provider.addScope('https://www.googleapis.com/auth/gmail.send');
     
-    // Force consent screen to ensure scopes are granted
+    // Show account selection, but only ask for consent if needed
     provider.setCustomParameters({
-      prompt: 'consent',
       access_type: 'offline'
     });
     
