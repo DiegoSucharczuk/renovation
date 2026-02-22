@@ -342,13 +342,32 @@ export default function PaymentsPage() {
                           {vendor.contractAmount ? (
                             (() => {
                               const totalPayments = vendor.payments.reduce((sum, p) => sum + p.amount, 0);
-                              const isMatching = totalPayments === vendor.contractAmount;
+                              const difference = totalPayments - vendor.contractAmount;
+                              
+                              let label = '';
+                              let color: 'success' | 'warning' | 'error' = 'success';
+                              let icon = '✓';
+                              
+                              if (difference === 0) {
+                                label = 'תואם';
+                                color = 'success';
+                                icon = '✓';
+                              } else if (difference < 0) {
+                                label = `חסר ${formatCurrency(Math.abs(difference))}`;
+                                color = 'warning';
+                                icon = '⚠';
+                              } else {
+                                label = `עודף ${formatCurrency(difference)}`;
+                                color = 'error';
+                                icon = '⚠';
+                              }
+                              
                               return (
                                 <Chip
-                                  label={isMatching ? 'תואם' : 'לא תואם'}
+                                  label={label}
                                   size="small"
-                                  color={isMatching ? 'success' : 'warning'}
-                                  icon={<span>{isMatching ? '✓' : '⚠'}</span>}
+                                  color={color}
+                                  icon={<span>{icon}</span>}
                                 />
                               );
                             })()
