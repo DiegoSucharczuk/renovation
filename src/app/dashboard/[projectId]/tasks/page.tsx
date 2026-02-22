@@ -23,6 +23,11 @@ import {
   TableRow,
   Chip,
   Tooltip,
+  Select,
+  OutlinedInput,
+  InputLabel,
+  FormControl,
+  Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -30,6 +35,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
@@ -49,6 +56,9 @@ export default function TasksPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     description: '',
     category: '',
@@ -351,6 +361,13 @@ export default function TasksPage() {
               }}
             >
               סינון
+              {(selectedRooms.length > 0 || selectedStatuses.length > 0 || selectedCategories.length > 0) && (
+                <Chip 
+                  label={selectedRooms.length + selectedStatuses.length + selectedCategories.length}
+                  size="small"
+                  sx={{ ml: 1, backgroundColor: 'primary.main', color: 'white' }}
+                />
+              )}
             </Button>
             <Button
               variant="contained"
@@ -444,16 +461,44 @@ export default function TasksPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {tasks.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography variant="body2" color="text.secondary" py={3}>
-                        אין משימות להצגה. לחץ על "הוספת משימה" כדי להתחיל.
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  tasks.map((task, index) => {
+                {(() => {
+                  // Apply filters
+                  let filteredTasks = tasks;
+                  
+                  // Filter by room
+                  if (selectedRooms.length > 0) {
+                    filteredTasks = filteredTasks.filter(task => 
+                      task.roomId && selectedRooms.includes(task.roomId)
+                    );
+                  }
+                  
+                  // Filter by status
+                  if (selectedStatuses.length > 0) {
+                    filteredTasks = filteredTasks.filter(task => 
+                      selectedStatuses.includes(task.status)
+                    );
+                  }
+                  
+                  // Filter by category
+                  if (selectedCategories.length > 0) {
+                    filteredTasks = filteredTasks.filter(task => 
+                      task.category && selectedCategories.includes(task.category)
+                    );
+                  }
+
+                  if (filteredTasks.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center">
+                          <Typography variant="body2" color="text.secondary" py={3}>
+                            {tasks.length === 0 ? 'אין משימות להצגה. לחץ על "הוספת משימה" כדי להתחיל.' : 'אין משימות התואמות את ההסתנן הנבחר'}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return filteredTasks.map((task, index) => {
                     const taskRoom = task.roomId ? rooms.find(r => r.id === task.roomId) : null;
                     const getStatusDisplay = (status: string) => {
                       const icons: any = {
@@ -534,8 +579,8 @@ export default function TasksPage() {
                       </TableCell>
                     </TableRow>
                     );
-                  })
-                )}
+                  });
+                })()}
               </TableBody>
             </Table>
             </Box>
@@ -628,7 +673,7 @@ export default function TasksPage() {
         <Dialog 
           open={filterModalOpen} 
           onClose={() => setFilterModalOpen(false)}
-          maxWidth="sm"
+          maxWidth="lg"
           fullWidth
         >
           <DialogTitle fontWeight="bold" display="flex" alignItems="center" gap={1}>
@@ -636,11 +681,119 @@ export default function TasksPage() {
             סינון משימות
           </DialogTitle>
           <DialogContent sx={{ pt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              אפשרויות סינון יתווספו בהמשך
-            </Typography>
+            <Box display="flex" gap={2} flexWrap="wrap">
+              {/* Room Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>חדרים</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedRooms}
+                    onChange={(e) => setSelectedRooms(e.target.value as string[])}
+                    input={<OutlinedInput label="חדרים" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל החדרים' : `${selected.length} חדרים`
+                    }
+                  >
+                    {rooms.map((room) => (
+                      <MenuItem key={room.id} value={room.id}>
+                        <Checkbox checked={selectedRooms.includes(room.id)} />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          {room.icon && (
+                            <Typography sx={{ fontSize: 18 }}>
+                              {roomIconMap[room.icon]}
+                            </Typography>
+                          )}
+                          <Typography>{room.name}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Status Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>סטטוס</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedStatuses}
+                    onChange={(e) => setSelectedStatuses(e.target.value as string[])}
+                    input={<OutlinedInput label="סטטוס" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל הסטטוסים' : `${selected.length} סטטוסים`
+                    }
+                  >
+                    <MenuItem value="NOT_STARTED">
+                      <Checkbox checked={selectedStatuses.includes('NOT_STARTED')} />
+                      <Typography>לא התחיל</Typography>
+                    </MenuItem>
+                    <MenuItem value="IN_PROGRESS">
+                      <Checkbox checked={selectedStatuses.includes('IN_PROGRESS')} />
+                      <Typography>בביצוע</Typography>
+                    </MenuItem>
+                    <MenuItem value="WAITING">
+                      <Checkbox checked={selectedStatuses.includes('WAITING')} />
+                      <Typography>ממתין</Typography>
+                    </MenuItem>
+                    <MenuItem value="DONE">
+                      <Checkbox checked={selectedStatuses.includes('DONE')} />
+                      <Typography>הושלם</Typography>
+                    </MenuItem>
+                    <MenuItem value="BLOCKED">
+                      <Checkbox checked={selectedStatuses.includes('BLOCKED')} />
+                      <Typography>חסום</Typography>
+                    </MenuItem>
+                    <MenuItem value="NO_STATUS">
+                      <Checkbox checked={selectedStatuses.includes('NO_STATUS')} />
+                      <Typography>ללא סטטוס</Typography>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Category Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>קטגוריות</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedCategories}
+                    onChange={(e) => setSelectedCategories(e.target.value as string[])}
+                    input={<OutlinedInput label="קטגוריות" />}
+                    renderValue={(selected) => 
+                      selected.length === 0 ? 'כל הקטגוריות' : `${selected.length} קטגוריות`
+                    }
+                  >
+                    {availableCategoryIcons.map((category) => (
+                      <MenuItem key={category.name} value={category.name}>
+                        <Checkbox checked={selectedCategories.includes(category.name)} />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography sx={{ fontSize: 18 }}>
+                            {category.emoji}
+                          </Typography>
+                          <Typography>{category.name}</Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
           </DialogContent>
           <DialogActions>
+            <Button
+              startIcon={<ClearIcon />}
+              onClick={() => {
+                setSelectedRooms([]);
+                setSelectedStatuses([]);
+                setSelectedCategories([]);
+              }}
+              disabled={selectedRooms.length === 0 && selectedStatuses.length === 0 && selectedCategories.length === 0}
+            >
+              איפוס
+            </Button>
             <Button onClick={() => setFilterModalOpen(false)} variant="contained">
               סגור
             </Button>
