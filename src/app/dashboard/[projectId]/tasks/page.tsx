@@ -29,6 +29,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { hebrewLabels } from '@/lib/labels';
@@ -47,6 +48,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     description: '',
     category: '',
@@ -331,99 +333,89 @@ export default function TasksPage() {
     <DashboardLayout projectId={projectId} project={project || undefined}>
       <Box sx={{ pr: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h3" fontWeight="bold">
-              {hebrewLabels.tasks}
-            </Typography>
-            <Chip label={`${tasks.length} משימות`} color="primary" size="medium" />
+          <Typography variant="h3" fontWeight="bold">
+            {hebrewLabels.tasks}
+          </Typography>
+          <Box display="flex" gap={2} alignItems="center">
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setFilterModalOpen(true)}
+              sx={{
+                boxShadow: 1,
+                '&:hover': {
+                  boxShadow: 3,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              סינון
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              הוספת משימה
+            </Button>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            sx={{
-              boxShadow: 2,
-              '&:hover': {
-                boxShadow: 4,
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
-            הוספת משימה
-          </Button>
         </Box>
 
         {/* Summary Cards */}
-        <Box sx={{ px: 3, mb: 3 }}>
-          <Card 
-            sx={{ 
-              p: 3, 
-              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-              boxShadow: 3,
-            }}
-          >
-            <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  סה"כ משימות
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="primary.main">
-                  {totalTasks}
-                </Typography>
+        <Box sx={{ px: 3, mb: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' } }}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>סה"כ משימות</Typography>
+              <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>{totalTasks}</Typography>
+            </Box>
+          </Card>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>הושלמו</Typography>
+              <Typography variant="h5" fontWeight="800" color="success.main" sx={{ mt: 0.5 }}>{completedTasks}</Typography>
+            </Box>
+          </Card>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>בביצוע</Typography>
+              <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>{inProgressTasks}</Typography>
+            </Box>
+          </Card>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>לא התחילו</Typography>
+              <Typography variant="h5" fontWeight="800" color="text.secondary" sx={{ mt: 0.5 }}>{notStartedTasks}</Typography>
+            </Box>
+          </Card>
+          {blockedTasks > 0 && (
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <Box sx={{ p: 2 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>חסומות</Typography>
+                <Typography variant="h5" fontWeight="800" color="error.main" sx={{ mt: 0.5 }}>{blockedTasks}</Typography>
               </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  הושלמו
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="success.main">
-                  {completedTasks}
-                </Typography>
+            </Card>
+          )}
+          {noStatusTasks > 0 && (
+            <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+              <Box sx={{ p: 2 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>ללא סטטוס</Typography>
+                <Typography variant="h5" fontWeight="800" color="text.disabled" sx={{ mt: 0.5 }}>{noStatusTasks}</Typography>
               </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  בביצוע
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="primary.main">
-                  {inProgressTasks}
-                </Typography>
-              </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  לא התחילו
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="text.secondary">
-                  {notStartedTasks}
-                </Typography>
-              </Box>
-              {blockedTasks > 0 && (
-                <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    חסומות
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="error.main">
-                    {blockedTasks}
-                  </Typography>
-                </Box>
-              )}
-              {noStatusTasks > 0 && (
-                <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    ללא סטטוס
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="text.disabled">
-                    {noStatusTasks}
-                  </Typography>
-                </Box>
-              )}
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  אחוז השלמה
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="primary.main">
-                  {completionPercentage}%
-                </Typography>
-              </Box>
+            </Card>
+          )}
+          <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
+            <Box sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>אחוז השלמה</Typography>
+              <Typography variant="h5" fontWeight="800" color="primary.main" sx={{ mt: 0.5 }}>{completionPercentage}%</Typography>
             </Box>
           </Card>
         </Box>
@@ -439,7 +431,7 @@ export default function TasksPage() {
           direction: 'ltr',
           position: 'relative',
         }}>
-          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
+          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 200px)', overflow: 'auto' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
               <TableHead>
@@ -628,6 +620,29 @@ export default function TasksPage() {
               disabled={!formData.category.trim()}
             >
               {editingTask ? 'שמירה' : 'הוספה'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Filter Modal Dialog */}
+        <Dialog 
+          open={filterModalOpen} 
+          onClose={() => setFilterModalOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle fontWeight="bold" display="flex" alignItems="center" gap={1}>
+            <FilterListIcon color="primary" />
+            סינון משימות
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              אפשרויות סינון יתווספו בהמשך
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setFilterModalOpen(false)} variant="contained">
+              סגור
             </Button>
           </DialogActions>
         </Dialog>
