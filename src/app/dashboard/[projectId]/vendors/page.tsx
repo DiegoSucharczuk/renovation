@@ -2098,7 +2098,24 @@ export default function VendorsPage() {
                         </TableRow>
                       ) : (
                         selectedVendor.payments.map((payment) => (
-                          <TableRow key={payment.id} hover>
+                          <TableRow 
+                            key={payment.id} 
+                            hover
+                            sx={{
+                              backgroundColor: 
+                                payment.status === 'ממתין' && payment.estimatedDate && 
+                                new Date(payment.estimatedDate) < new Date(new Date().toISOString().split('T')[0])
+                                  ? '#ffebee'
+                                  : 'inherit',
+                              '&:hover': {
+                                backgroundColor: 
+                                  payment.status === 'ממתין' && payment.estimatedDate && 
+                                  new Date(payment.estimatedDate) < new Date(new Date().toISOString().split('T')[0])
+                                    ? '#ffcdd2'
+                                    : undefined,
+                              }
+                            }}
+                          >
                             <TableCell>
                               <Typography variant="body2">
                                 {formatDateHE(payment.status === 'שולם' ? payment.date : payment.estimatedDate)}
