@@ -1150,11 +1150,11 @@ export default function RoomsPage() {
                         color="text.secondary"
                         sx={{
                           fontSize: '0.7rem',
-                          display: 'block',
-                          paddingRight: '32px',
+                          display: 'flex',
+                          flexDirection: 'row-reverse',
+                          justifyContent: 'flex-end',
                           wordBreak: 'break-word',
                           whiteSpace: 'normal',
-                          textAlign: 'right',
                         }}
                       >
                         {room.description}

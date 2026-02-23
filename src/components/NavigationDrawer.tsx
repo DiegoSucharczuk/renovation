@@ -66,10 +66,14 @@ export default function NavigationDrawer({
 
   const drawer = (
     <div>
-      <Toolbar sx={{ 
+      <Toolbar disableGutters sx={{ 
+        height: { xs: '56px', sm: '64px' },
+        display: 'flex',
+        alignItems: 'center',
+        px: 2,
+        py: 0,
         backgroundImage: 'linear-gradient(135deg, #1976d2 0%, #1565c0 50%, #0d47a1 100%)',
         color: 'white',
-        py: 3,
         boxShadow: '0 4px 20px rgba(21, 101, 192, 0.2)',
         '& .MuiTypography-root': {
           color: 'white',

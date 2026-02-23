@@ -52,14 +52,14 @@ export default function DashboardLayout({ children, projectId, project, scrollab
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` },
           mr: { sm: `${drawerWidth}px` },
           pr: { sm: 0 },
           background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         }}
       >
-        <Toolbar sx={{ pr: { sm: 1 } }}>
+        <Toolbar disableGutters sx={{ height: { xs: '56px', sm: '64px' }, display: 'flex', alignItems: 'center', px: 2, py: 0, gap: 1 }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -69,13 +69,13 @@ export default function DashboardLayout({ children, projectId, project, scrollab
           >
             <MenuIcon />
           </IconButton>
-          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', overflow: 'hidden', py: 0, gap: 0 }}>
             {project && (
               <>
-                <Typography variant="h6" noWrap component="div" fontWeight={700}>
+                <Typography variant="h6" noWrap component="div" fontWeight={700} sx={{ lineHeight: '1.2', m: 0, height: 'auto' }}>
                   {project.name}
                 </Typography>
-                <Typography variant="caption" noWrap component="div" sx={{ opacity: 0.9 }}>
+                <Typography variant="caption" noWrap component="div" sx={{ opacity: 0.9, lineHeight: '1', m: 0, height: 'auto' }}>
                   {project.address}
                 </Typography>
               </>
@@ -132,7 +132,7 @@ export default function DashboardLayout({ children, projectId, project, scrollab
           }
         }}
       >
-        <Toolbar />
+        <Toolbar disableGutters sx={{ height: { xs: '56px', sm: '64px' }, display: 'flex', alignItems: 'center', px: 2, py: 0, gap: 0 }} />
         <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: scrollable ? 'auto' : 'hidden', pr: 1 }}>
           {children}
         </Box>

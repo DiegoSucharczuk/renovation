@@ -1,0 +1,6 @@
+# Turbopack cache ignore file
+# Prevents Turbopack from caching these patterns which can cause vendor-chunks errors
+
+.next/dev/server/vendor-chunks/**
+node_modules/.cache/**
+.turbo/**
