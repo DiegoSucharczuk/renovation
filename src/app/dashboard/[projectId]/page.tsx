@@ -267,6 +267,18 @@ export default function DashboardPage() {
     return 'NOT_STARTED';
   };
 
+  // Calculate overdue waiting payments (ממתין with estimatedDate that passed)
+  const overdueWaitingPayments = permissions?.canViewPayments ? payments.filter(p => {
+    if (p.status !== 'ממתין') return false;
+    if (!p.estimatedDate) return false;
+    const estimatedDate = new Date(p.estimatedDate);
+    if (isNaN(estimatedDate.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    estimatedDate.setHours(0, 0, 0, 0);
+    return estimatedDate < today;
+  }) : [];
+
   const relevantTasks = tasks.filter(t => t.status !== 'NOT_RELEVANT');
   const totalTasks = relevantTasks.length;
 
@@ -646,6 +658,22 @@ export default function DashboardPage() {
                     </Stack>
                   </Alert>
                 )}
+                {permissions.canViewPayments && overdueWaitingPayments.length > 0 && (
+                  <Alert severity="error" icon={false} sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" mb={1}>💳 {overdueWaitingPayments.length} תשלומים בממתין שעברו תאריך</Typography>
+                    <Stack spacing={1}>
+                      {overdueWaitingPayments.slice(0, 3).map((payment) => {
+                        const vendor = vendors.find(v => v.id === payment.vendorId);
+                        const daysOverdue = Math.ceil((new Date().getTime() - new Date(payment.estimatedDate as string).getTime()) / (1000 * 60 * 60 * 24));
+                        return (
+                          <Typography key={payment.id} variant="body2">
+                            • {vendor?.name || 'ספק'}: ₪{payment.amount?.toLocaleString()} (אחר {daysOverdue} ימים)
+                          </Typography>
+                        );
+                      })}
+                    </Stack>
+                  </Alert>
+                )}
                 {permissions.canViewPayments && upcomingPayments.length > 0 && (
                   <Alert severity="info" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>💳 {upcomingPayments.length} תשלומים ממתינים</Typography>
@@ -658,7 +686,7 @@ export default function DashboardPage() {
                     <Typography variant="body2">הושלמו {recentlyCompletedTasks.length} משימות השבוע</Typography>
                   </Alert>
                 )}
-                {overdueNotInProgressArr.length === 0 && inProgressOverdueArr.length === 0 && blockedTasksArr.length === 0 && shouldStartTasks.length === 0 && !permissions.canViewPayments && recentlyCompletedTasks.length === 0 && (
+                {overdueNotInProgressArr.length === 0 && inProgressOverdueArr.length === 0 && blockedTasksArr.length === 0 && shouldStartTasks.length === 0 && (!permissions.canViewPayments || overdueWaitingPayments.length === 0) && recentlyCompletedTasks.length === 0 && (
                   <Alert severity="success">אין התראות כרגע - המצב ירוק! 🟢</Alert>
                 )}
               </Stack>
