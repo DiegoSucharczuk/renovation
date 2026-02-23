@@ -574,7 +574,6 @@ export default function RoomsPage() {
   const handleStatusFilter = (status: string) => {
     const newHighlightedStatus = highlightedStatus === status ? null : status;
     setHighlightedStatus(newHighlightedStatus);
-    console.log('Filter clicked:', status, 'New highlighted status:', newHighlightedStatus);
   };
 
   const getHighlightColor = (task: any) => {
@@ -617,7 +616,6 @@ export default function RoomsPage() {
     }
     if (highlightedStatus === 'IN_PROGRESS_OVERDUE') {
       if (isInProgressOverdue(task)) {
-        console.log('IN_PROGRESS_OVERDUE match found for task:', task.name);
         return '#ffcdd2'; // אדום בהיר יותר
       }
     }
