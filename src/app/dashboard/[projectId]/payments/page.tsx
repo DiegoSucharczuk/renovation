@@ -19,6 +19,7 @@ import {
   TextField,
   IconButton,
   Collapse,
+  Tooltip,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -200,54 +201,66 @@ export default function PaymentsPage() {
         <Box sx={{ px: 3, mb: 3 }}>
           <Card sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
             <Box display="flex" justifyContent="space-around" gap={2}>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  סה"כ חוזים
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="primary.main">
-                  {formatCurrency(totalContract)}
-                </Typography>
-              </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  שולם
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="success.main">
-                  {formatCurrency(totalPaid)}
-                </Typography>
-              </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  ממתין
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="warning.main">
-                  {formatCurrency(totalPending)}
-                </Typography>
-              </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  מתוכנן
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="info.main">
-                  {formatCurrency(totalPlanned)}
-                </Typography>
-              </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  יתרה
-                </Typography>
-                <Typography variant="h4" fontWeight="bold" color="error.main">
-                  {formatCurrency(totalBalance)}
-                </Typography>
-              </Box>
-              <Box textAlign="center">
-                <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                  אחוז ביצוע
-                </Typography>
-                <Typography variant="h4" fontWeight="bold">
-                  {totalContract > 0 ? Math.round((totalPaid / totalContract) * 100) : 0}%
-                </Typography>
-              </Box>
+              <Tooltip title="סכום כולל של כל החוזים עם הספקים">
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    סה"כ חוזים
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="primary.main">
+                    {formatCurrency(totalContract)}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              <Tooltip title="סכום כספי שכבר שולם לספקים (סטטוס: שולם)">
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    שולם
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="success.main">
+                    {formatCurrency(totalPaid)}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              <Tooltip title="סכום כספי של תשלומים המתינים לביצוע (סטטוס: ממתין)">
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    ממתין
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="warning.main">
+                    {formatCurrency(totalPending)}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              <Tooltip title="סכום כספי של תשלומים מתוכננים לעתיד (סטטוס: מתוכנן)">
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    מתוכנן
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="info.main">
+                    {formatCurrency(totalPlanned)}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              <Tooltip title="הסכום שנותר לתשלום = סה״כ חוזים פחות סכום שולם">
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    יתרה
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold" color="error.main">
+                    {formatCurrency(totalBalance)}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              <Tooltip title="אחוז מהחוזים שכבר שולם = (סכום שולם / סה״כ חוזים) × 100">
+                <Box textAlign="center">
+                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                    אחוז ששולם
+                  </Typography>
+                  <Typography variant="h4" fontWeight="bold">
+                    {totalContract > 0 ? Math.round((totalPaid / totalContract) * 100) : 0}%
+                  </Typography>
+                </Box>
+              </Tooltip>
             </Box>
           </Card>
         </Box>

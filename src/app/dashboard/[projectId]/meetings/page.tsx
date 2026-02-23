@@ -27,6 +27,7 @@ import {
   Checkbox,
   Tabs,
   Tab,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -347,44 +348,60 @@ export default function MeetingsPage() {
                 {getSortedMeetings().map((meeting) => {
                   const status = getMeetingStatus(meeting);
                   const bgColor = getStatusColor(status);
-                  return (
-                  <TableRow key={meeting.id} sx={{ '&:hover': { backgroundColor: bgColor === 'transparent' ? '#f9f9f9' : bgColor, cursor: 'pointer' }, borderBottom: '1px solid #ddd', backgroundColor: bgColor }} onClick={() => {
-                    setSelectedMeetingDetails(meeting);
-                    setOpenDetailsDialog(true);
-                  }}>
-                    <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.meetingDate)}</TableCell>
-                    <TableCell sx={{ borderRight: '1px solid #ddd' }}>
-                      <Chip
-                        label={MEETING_TYPES.find(t => t.value === meeting.meetingType)?.label || meeting.meetingType}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ borderRight: '1px solid #ddd' }}>
-                      <Typography variant="body2" fontWeight="500">{meeting.title}</Typography>
-                      {meeting.description && (
-                        <Typography variant="caption" color="textSecondary">{meeting.description}</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.dueDate)}</TableCell>
-                    <TableCell align="center" onClick={(e) => e.stopPropagation()}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenDialog(meeting)}
-                        color="primary"
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteMeeting(meeting.id)}
-                        color="error"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
+                  let tooltipText = '';
+                  if (status === 'IN_PROGRESS') {
+                    tooltipText = 'חלק מהמשימות בוצעו אבל הפגישה עדיין לא סומנה כ"בוצע"';
+                  } else if (status === 'PARTIAL') {
+                    tooltipText = 'הפגישה סומנה כ"בוצע" אבל עדיין יש משימות שלא בוצעו - צריך להשלים';
+                  }
+                  
+                  const tableRow = (
+                    <TableRow key={meeting.id} sx={{ '&:hover': { backgroundColor: bgColor === 'transparent' ? '#f9f9f9' : bgColor, cursor: 'pointer' }, borderBottom: '1px solid #ddd', backgroundColor: bgColor }} onClick={() => {
+                      setSelectedMeetingDetails(meeting);
+                      setOpenDetailsDialog(true);
+                    }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.meetingDate)}</TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                        <Chip
+                          label={MEETING_TYPES.find(t => t.value === meeting.meetingType)?.label || meeting.meetingType}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                        <Typography variant="body2" fontWeight="500">{meeting.title}</Typography>
+                        {meeting.description && (
+                          <Typography variant="caption" color="textSecondary">{meeting.description}</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.dueDate)}</TableCell>
+                      <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDialog(meeting)}
+                          color="primary"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteMeeting(meeting.id)}
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
                   );
+                  
+                  if (tooltipText) {
+                    return (
+                      <Tooltip key={meeting.id} title={tooltipText} arrow placement="top">
+                        {tableRow}
+                      </Tooltip>
+                    );
+                  }
+                  return tableRow;
                 })}
               </TableBody>
             </Table>
