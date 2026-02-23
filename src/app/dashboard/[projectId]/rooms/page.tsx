@@ -572,11 +572,14 @@ export default function RoomsPage() {
   };
 
   const handleStatusFilter = (status: string) => {
-    setHighlightedStatus(highlightedStatus === status ? null : status);
+    const newHighlightedStatus = highlightedStatus === status ? null : status;
+    setHighlightedStatus(newHighlightedStatus);
+    console.log('Filter clicked:', status, 'New highlighted status:', newHighlightedStatus);
   };
 
   const getHighlightColor = (task: any) => {
-    if (!task || !highlightedStatus) return 'transparent';
+    if (!task) return 'transparent';
+    if (!highlightedStatus) return 'transparent';
     
     // בדיקת התאמה לסטטוס שנבחר
     if (highlightedStatus === 'DONE' && task.status === 'DONE') {
@@ -612,8 +615,11 @@ export default function RoomsPage() {
     if (highlightedStatus === 'OVERDUE' && isOverdue(task) && !isInProgressOverdue(task)) {
       return '#ffccbc'; // כתום-אדום בהיר
     }
-    if (highlightedStatus === 'IN_PROGRESS_OVERDUE' && isInProgressOverdue(task)) {
-      return '#ffcdd2'; // אדום בהיר יותר
+    if (highlightedStatus === 'IN_PROGRESS_OVERDUE') {
+      if (isInProgressOverdue(task)) {
+        console.log('IN_PROGRESS_OVERDUE match found for task:', task.name);
+        return '#ffcdd2'; // אדום בהיר יותר
+      }
     }
     
     return 'transparent';
@@ -1176,9 +1182,19 @@ export default function RoomsPage() {
                                 sx={{
                                   p: 1.5,
                                   backgroundColor: (() => {
-                                    const highlightColor = highlightedStatus && task ? getHighlightColor(task) : 'transparent';
-                                    if (highlightColor !== 'transparent') return highlightColor;
-                                    // Fallback to default colors for overdue (always visible)
+                                    if (!task) return 'transparent';
+                                    
+                                    // If a filter is active, use highlight colors
+                                    if (highlightedStatus) {
+                                      const highlightColor = getHighlightColor(task);
+                                      if (highlightColor !== 'transparent') {
+                                        return highlightColor;
+                                      }
+                                      // If filter is active but this task doesn't match, make it slightly faded
+                                      return 'rgba(255, 255, 255, 0.3)';
+                                    }
+                                    
+                                    // Default colors for overdue (always visible)
                                     if (inProgressOverdue) return '#ffcdd2';
                                     if (overdue) return '#ffebee';
                                     return 'transparent';
