@@ -1076,6 +1076,20 @@ export default function VendorsPage() {
     }).format(amount);
   };
 
+  const formatDateHE = (dateString: string | undefined | null): string => {
+    if (!dateString) return '—';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '—';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch {
+      return '—';
+    }
+  };
+
   if (!mounted || roleLoading || loading) {
     return (
       <DashboardLayout projectId={projectId} project={project || undefined}>
@@ -2087,7 +2101,7 @@ export default function VendorsPage() {
                           <TableRow key={payment.id} hover>
                             <TableCell>
                               <Typography variant="body2">
-                                {payment.status === 'שולם' ? payment.date : payment.estimatedDate || '—'}
+                                {formatDateHE(payment.status === 'שולם' ? payment.date : payment.estimatedDate)}
                               </Typography>
                               {payment.status !== 'שולם' && (
                                 <Typography variant="caption" color="text.secondary">
