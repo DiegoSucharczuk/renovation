@@ -17,7 +17,11 @@ import {
   LinearProgress,
   MenuItem,
   TextField,
+  IconButton,
+  Collapse,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { doc, getDoc, collection, getDocs, query, where, getDocsFromServer, getDocFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -45,6 +49,7 @@ export default function PaymentsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -139,6 +144,14 @@ export default function PaymentsPage() {
   };
 
   const filteredVendors = getFilteredVendors();
+
+  const formatDateHE = (dateString: string) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' })
+      .split('/').reverse().join('-');
+  };
 
   // Calculate totals from ALL vendors (not filtered)
   const totalContract = vendors.reduce((sum, v) => sum + (v.contractAmount || 0), 0);
@@ -246,6 +259,7 @@ export default function PaymentsPage() {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                  <TableCell sx={{ fontWeight: 'bold', width: 50 }}></TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>שם הספק</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>קטגוריה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>סכום חוזה</TableCell>
@@ -259,7 +273,7 @@ export default function PaymentsPage() {
               <TableBody>
                 {filteredVendors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
+                    <TableCell colSpan={9} align="center">
                       <Typography variant="body2" color="text.secondary" py={3}>
                         אין תשלומים להצגה
                       </Typography>
@@ -278,104 +292,178 @@ export default function PaymentsPage() {
                     const paidCount = vendor.payments.filter(p => p.status === 'שולם').length;
                     const pendingCount = vendor.payments.filter(p => p.status === 'ממתין').length;
                     const plannedCount = vendor.payments.filter(p => p.status === 'מתוכנן').length;
+                    const isExpanded = expandedVendorId === vendor.id;
+                    const hasOverdueWaiting = vendor.payments.some(p => 
+                      p.status === 'ממתין' && p.estimatedDate && 
+                      new Date(p.estimatedDate) < new Date()
+                    );
 
                     return (
-                      <TableRow key={vendor.id} hover>
-                        <TableCell>
-                          <Typography fontWeight={500}>{vendor.name}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={vendor.category} size="small" />
-                        </TableCell>
-                        <TableCell align="center">
-                          <Typography>
-                            {vendor.contractAmount ? formatCurrency(vendor.contractAmount) : '—'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box>
-                            <Typography color="success.main" fontWeight={600} variant="h6">
-                              {formatCurrency(totalPaid)}
+                      <React.Fragment key={vendor.id}>
+                        <TableRow 
+                          hover
+                          sx={{ 
+                            cursor: 'pointer',
+                            backgroundColor: hasOverdueWaiting ? '#ffebee' : 'inherit',
+                            '&:hover': {
+                              backgroundColor: hasOverdueWaiting ? '#ffcdd2' : undefined
+                            }
+                          }}
+                          onClick={() => setExpandedVendorId(isExpanded ? null : vendor.id)}
+                        >
+                          <TableCell sx={{ textAlign: 'center' }}>
+                            <IconButton size="small">
+                              {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            </IconButton>
+                          </TableCell>
+                          <TableCell>
+                            <Typography fontWeight={500}>{vendor.name}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={vendor.category} size="small" />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography>
+                              {vendor.contractAmount ? formatCurrency(vendor.contractAmount) : '—'}
                             </Typography>
-                            {paidCount > 0 && (
-                              <Typography variant="caption" color="text.secondary">
-                                ({paidCount} {paidCount === 1 ? 'תשלום' : 'תשלומים'})
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box>
+                              <Typography color="success.main" fontWeight={600} variant="h6">
+                                {formatCurrency(totalPaid)}
                               </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box>
-                            <Typography color="warning.main" fontWeight={600}>
-                              {totalPending > 0 ? formatCurrency(totalPending) : '—'}
-                            </Typography>
-                            {pendingCount > 0 && (
-                              <Typography variant="caption" color="text.secondary">
-                                ({pendingCount} {pendingCount === 1 ? 'תשלום' : 'תשלומים'})
+                              {paidCount > 0 && (
+                                <Typography variant="caption" color="text.secondary">
+                                  ({paidCount} {paidCount === 1 ? 'תשלום' : 'תשלומים'})
+                                </Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box>
+                              <Typography color="warning.main" fontWeight={600}>
+                                {totalPending > 0 ? formatCurrency(totalPending) : '—'}
                               </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box>
-                            <Typography color="info.main" fontWeight={600}>
-                              {totalPlanned > 0 ? formatCurrency(totalPlanned) : '—'}
-                            </Typography>
-                            {plannedCount > 0 && (
-                              <Typography variant="caption" color="text.secondary">
-                                ({plannedCount} {plannedCount === 1 ? 'תשלום' : 'תשלומים'})
+                              {pendingCount > 0 && (
+                                <Typography variant="caption" color="text.secondary">
+                                  ({pendingCount} {pendingCount === 1 ? 'תשלום' : 'תשלומים'})
+                                </Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box>
+                              <Typography color="info.main" fontWeight={600}>
+                                {totalPlanned > 0 ? formatCurrency(totalPlanned) : '—'}
                               </Typography>
+                              {plannedCount > 0 && (
+                                <Typography variant="caption" color="text.secondary">
+                                  ({plannedCount} {plannedCount === 1 ? 'תשלום' : 'תשלומים'})
+                                </Typography>
+                              )}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            {balance !== null ? (
+                              <Typography 
+                                color={balance > 0 ? 'warning.main' : 'success.main'}
+                                fontWeight={600}
+                              >
+                                {formatCurrency(balance)}
+                              </Typography>
+                            ) : '—'}
+                          </TableCell>
+                          <TableCell align="center">
+                            {vendor.contractAmount ? (
+                              (() => {
+                                const totalPayments = vendor.payments.reduce((sum, p) => sum + p.amount, 0);
+                                const difference = totalPayments - vendor.contractAmount;
+                                
+                                let label = '';
+                                let color: 'success' | 'warning' | 'error' = 'success';
+                                let icon = '✓';
+                                
+                                if (difference === 0) {
+                                  label = 'תואם';
+                                  color = 'success';
+                                  icon = '✓';
+                                } else if (difference < 0) {
+                                  label = `חסר ${formatCurrency(Math.abs(difference))}`;
+                                  color = 'warning';
+                                  icon = '⚠';
+                                } else {
+                                  label = `עודף ${formatCurrency(difference)}`;
+                                  color = 'error';
+                                  icon = '⚠';
+                                }
+                                
+                                return (
+                                  <Chip
+                                    label={label}
+                                    size="small"
+                                    color={color}
+                                    icon={<span>{icon}</span>}
+                                  />
+                                );
+                              })()
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">—</Typography>
                             )}
-                          </Box>
-                        </TableCell>
-                        <TableCell align="center">
-                          {balance !== null ? (
-                            <Typography 
-                              color={balance > 0 ? 'warning.main' : 'success.main'}
-                              fontWeight={600}
-                            >
-                              {formatCurrency(balance)}
-                            </Typography>
-                          ) : '—'}
-                        </TableCell>
-                        <TableCell align="center">
-                          {vendor.contractAmount ? (
-                            (() => {
-                              const totalPayments = vendor.payments.reduce((sum, p) => sum + p.amount, 0);
-                              const difference = totalPayments - vendor.contractAmount;
-                              
-                              let label = '';
-                              let color: 'success' | 'warning' | 'error' = 'success';
-                              let icon = '✓';
-                              
-                              if (difference === 0) {
-                                label = 'תואם';
-                                color = 'success';
-                                icon = '✓';
-                              } else if (difference < 0) {
-                                label = `חסר ${formatCurrency(Math.abs(difference))}`;
-                                color = 'warning';
-                                icon = '⚠';
-                              } else {
-                                label = `עודף ${formatCurrency(difference)}`;
-                                color = 'error';
-                                icon = '⚠';
-                              }
-                              
-                              return (
-                                <Chip
-                                  label={label}
-                                  size="small"
-                                  color={color}
-                                  icon={<span>{icon}</span>}
-                                />
-                              );
-                            })()
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">—</Typography>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                          </TableCell>
+                        </TableRow>
+                        {/* Expanded payments section */}
+                        <TableRow>
+                          <TableCell colSpan={9} sx={{ padding: 0 }}>
+                            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                              <Box sx={{ p: 2, backgroundColor: '#fafafa' }}>
+                                <Typography variant="h6" sx={{ mb: 2 }}>תשלומים פרטניים</Typography>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>תאריך</TableCell>
+                                      <TableCell align="center">סכום</TableCell>
+                                      <TableCell align="center">סטטוס</TableCell>
+                                      <TableCell align="center">תאריך משוער</TableCell>
+                                      <TableCell>הערות</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {vendor.payments.map((payment) => {
+                                      const isOverdueWaiting = payment.status === 'ממתין' && payment.estimatedDate && 
+                                        new Date(payment.estimatedDate) < new Date();
+                                      return (
+                                        <TableRow 
+                                          key={payment.id}
+                                          sx={{ 
+                                            backgroundColor: isOverdueWaiting ? '#ffebee' : 'inherit'
+                                          }}
+                                        >
+                                          <TableCell>{formatDateHE(payment.date || '')}</TableCell>
+                                          <TableCell align="center">{formatCurrency(payment.amount)}</TableCell>
+                                          <TableCell align="center">
+                                            <Chip 
+                                              label={payment.status} 
+                                              size="small" 
+                                              color={
+                                                payment.status === 'שולם' ? 'success' :
+                                                isOverdueWaiting ? 'error' :
+                                                payment.status === 'ממתין' ? 'warning' :
+                                                'default'
+                                              }
+                                            />
+                                          </TableCell>
+                                          <TableCell align="center">{formatDateHE(payment.estimatedDate || '')}</TableCell>
+                                          <TableCell>{payment.notes || '—'}</TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </Box>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      </React.Fragment>
                     );
                   })
                 )}

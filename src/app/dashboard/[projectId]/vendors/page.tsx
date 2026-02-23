@@ -321,9 +321,13 @@ export default function VendorsPage() {
       return imageBlobUrls[fileId];
     }
     
-    // Then, check cache and convert to blob URL
-    const cached = getCachedImage(fileId);
-    return cached || undefined;
+    // Then, check cache - return data URL directly (supports offline)
+    const cached = localStorage.getItem(`logo_${fileId}`);
+    if (cached && cached.startsWith('data:')) {
+      return cached;
+    }
+    
+    return undefined;
   };
 
   // Helper functions for localStorage caching (using base64 for persistence)
@@ -346,15 +350,8 @@ export default function VendorsPage() {
         return null;
       }
       
-      // Convert base64 back to blob URL
-      const byteCharacters = atob(cached.split(',')[1]);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: cached.split(':')[1].split(';')[0] });
-      return URL.createObjectURL(blob);
+      // Return data URL directly (works offline without blob conversion)
+      return cached;
     } catch (error) {
       console.error('Error reading from localStorage:', error);
       return null;
@@ -363,16 +360,16 @@ export default function VendorsPage() {
 
   const cacheImage = async (fileId: string, blobUrl: string) => {
     try {
-      // Convert blob URL to base64 for persistent storage
+      // Convert blob URL to base64 data URL for persistent storage
       const response = await fetch(blobUrl);
       const blob = await response.blob();
       
-      // Convert blob to base64
+      // Convert blob to base64 data URL
       const reader = new FileReader();
       reader.onloadend = () => {
         try {
-          const base64 = reader.result as string;
-          localStorage.setItem(`logo_${fileId}`, base64);
+          const dataUrl = reader.result as string;
+          localStorage.setItem(`logo_${fileId}`, dataUrl);
         } catch (error) {
           console.error('Error saving to localStorage (quota exceeded?):', error);
         }
@@ -405,42 +402,99 @@ export default function VendorsPage() {
       for (const vendor of vendors) {
         if (vendor.logoUrl) {
           const fileData = parseFileData(vendor.logoUrl);
-          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
-            // Store fileId to avoid TypeScript issues in async callbacks
+          if (fileData?.id) {
             const fileId = fileData.id;
             
-            // First, try to load from cache (instant) - converted from base64 to blob URL
+            // Check if already in state
+            if (imageBlobUrls[fileId]) {
+              continue; // Already loaded
+            }
+            
+            // Check if already in new batch
+            if (newBlobUrls[fileId]) {
+              continue; // Already processing
+            }
+            
+            // Try to load from cache first
             const cachedUrl = getCachedImage(fileId);
             if (cachedUrl) {
               newBlobUrls[fileId] = cachedUrl;
+              continue; // Use cached, no need to fetch from Drive
             }
             
-            // Then load from Firebase in background and update cache
-            fetchFileAsBlob(fileId).then(async blobUrl => {
-              if (blobUrl) {
-                // Always update cache with latest version (as base64)
-                await cacheImage(fileId, blobUrl);
-                // Update state with new blob URL
-                setImageBlobUrls(prev => {
-                  // If we already have a URL (from cache), revoke it before replacing
-                  if (prev[fileId] && prev[fileId] !== blobUrl) {
-                    URL.revokeObjectURL(prev[fileId]);
+            // Not in cache, load from Firebase in background
+            // But first check if it's in localStorage (might be stuck)
+            const storedData = localStorage.getItem(`logo_${fileId}`);
+            if (storedData && storedData.startsWith('data:')) {
+              newBlobUrls[fileId] = storedData;
+              continue;
+            }
+            
+            // Load with timeout and retry
+            const loadWithRetry = async (retries = 3) => {
+              for (let i = 0; i < retries; i++) {
+                try {
+                  const controller = new AbortController();
+                  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                  
+                  const blobUrl = await fetchFileAsBlob(fileId);
+                  clearTimeout(timeoutId);
+                  
+                  if (blobUrl) {
+                    // Save to cache
+                    await cacheImage(fileId, blobUrl);
+                    // Update state
+                    setImageBlobUrls(prev => {
+                      if (prev[fileId] && prev[fileId] !== blobUrl) {
+                        URL.revokeObjectURL(prev[fileId]);
+                      }
+                      return { ...prev, [fileId]: blobUrl };
+                    });
+                    return; // Success
                   }
-                  return { ...prev, [fileId]: blobUrl };
-                });
+                } catch (error) {
+                  console.warn(`Error loading logo ${fileId}, attempt ${i + 1}/${retries}:`, error);
+                  if (i < retries - 1) {
+                    // Wait before retry
+                    await new Promise(r => setTimeout(r, 2000));
+                  }
+                }
               }
-            });
+              console.error(`Failed to load logo ${fileId} after ${retries} attempts`);
+            };
+            
+            loadWithRetry();
           }
         }
         
         // Load vendor contracts
         if (vendor.contractFileUrl) {
           const fileData = parseFileData(vendor.contractFileUrl);
-          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
-            const blobUrl = await fetchFileAsBlob(fileData.id);
-            if (blobUrl) {
-              newBlobUrls[fileData.id] = blobUrl;
+          if (fileData?.id) {
+            const fileId = fileData.id;
+            if (imageBlobUrls[fileId] || newBlobUrls[fileId]) {
+              continue; // Already loaded or processing
             }
+            
+            // Use the same retry logic
+            const loadWithRetry = async (retries = 2) => {
+              for (let i = 0; i < retries; i++) {
+                try {
+                  const blobUrl = await fetchFileAsBlob(fileId);
+                  if (blobUrl) {
+                    newBlobUrls[fileId] = blobUrl;
+                    return;
+                  }
+                } catch (error) {
+                  console.warn(`Error loading contract ${fileId}, attempt ${i + 1}/${retries}:`, error);
+                  if (i < retries - 1) {
+                    await new Promise(r => setTimeout(r, 1000));
+                  }
+                }
+              }
+            };
+            
+            loadWithRetry();
           }
         }
       }
@@ -449,21 +503,59 @@ export default function VendorsPage() {
       for (const payment of payments) {
         if (payment.invoiceUrl) {
           const fileData = parseFileData(payment.invoiceUrl);
-          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
-            const blobUrl = await fetchFileAsBlob(fileData.id);
-            if (blobUrl) {
-              newBlobUrls[fileData.id] = blobUrl;
+          if (fileData?.id) {
+            const fileId = fileData.id;
+            if (imageBlobUrls[fileId] || newBlobUrls[fileId]) {
+              continue;
             }
+            
+            const loadWithRetry = async (retries = 2) => {
+              for (let i = 0; i < retries; i++) {
+                try {
+                  const blobUrl = await fetchFileAsBlob(fileId);
+                  if (blobUrl) {
+                    newBlobUrls[fileId] = blobUrl;
+                    return;
+                  }
+                } catch (error) {
+                  console.warn(`Error loading invoice ${fileId}, attempt ${i + 1}/${retries}:`, error);
+                  if (i < retries - 1) {
+                    await new Promise(r => setTimeout(r, 1000));
+                  }
+                }
+              }
+            };
+            
+            loadWithRetry();
           }
         }
         
         if (payment.receiptUrl) {
           const fileData = parseFileData(payment.receiptUrl);
-          if (fileData?.id && !newBlobUrls[fileData.id] && !imageBlobUrls[fileData.id]) {
-            const blobUrl = await fetchFileAsBlob(fileData.id);
-            if (blobUrl) {
-              newBlobUrls[fileData.id] = blobUrl;
+          if (fileData?.id) {
+            const fileId = fileData.id;
+            if (imageBlobUrls[fileId] || newBlobUrls[fileId]) {
+              continue;
             }
+            
+            const loadWithRetry = async (retries = 2) => {
+              for (let i = 0; i < retries; i++) {
+                try {
+                  const blobUrl = await fetchFileAsBlob(fileId);
+                  if (blobUrl) {
+                    newBlobUrls[fileId] = blobUrl;
+                    return;
+                  }
+                } catch (error) {
+                  console.warn(`Error loading receipt ${fileId}, attempt ${i + 1}/${retries}:`, error);
+                  if (i < retries - 1) {
+                    await new Promise(r => setTimeout(r, 1000));
+                  }
+                }
+              }
+            };
+            
+            loadWithRetry();
           }
         }
       }
@@ -481,7 +573,7 @@ export default function VendorsPage() {
     // Cleanup blob URLs on unmount
     return () => {
       Object.values(imageBlobUrls).forEach(url => {
-        if (url.startsWith('blob:')) {
+        if (url && url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       });
@@ -731,8 +823,9 @@ export default function VendorsPage() {
       receiptUrl: paymentFormData.receiptUrl || '',
       receiptDescription: paymentFormData.receiptDescription || '',
       progressPercentage: paymentFormData.progressPercentage ? parseFloat(paymentFormData.progressPercentage) : null,
-      // Set date or estimatedDate based on status
-      date: paymentFormData.status === 'שולם' ? paymentFormData.date : null,
+      // Always preserve the date if it exists
+      date: paymentFormData.date || (paymentFormData.status === 'שולם' ? new Date().toISOString().split('T')[0] : null),
+      // Clear estimatedDate when status is שולם
       estimatedDate: paymentFormData.status !== 'שולם' ? paymentFormData.estimatedDate : null,
     };
 
@@ -1263,7 +1356,19 @@ export default function VendorsPage() {
                                 src={(() => {
                                   if (!vendor.logoUrl) return undefined;
                                   const parsed = parseFileData(vendor.logoUrl);
-                                  return parsed?.id && imageBlobUrls[parsed.id] ? imageBlobUrls[parsed.id] : undefined;
+                                  if (!parsed?.id) return undefined;
+                                  
+                                  // Check state first, then cache
+                                  if (imageBlobUrls[parsed.id]) {
+                                    return imageBlobUrls[parsed.id];
+                                  }
+                                  
+                                  const cached = localStorage.getItem(`logo_${parsed.id}`);
+                                  if (cached?.startsWith('data:')) {
+                                    return cached;
+                                  }
+                                  
+                                  return undefined;
                                 })()}
                                 sx={{ 
                                   width: 32, 
@@ -1276,17 +1381,58 @@ export default function VendorsPage() {
                                 }} 
                               >
                                 {(() => {
-                                  // Show loading spinner if logo exists but not yet loaded
+                                  // Show loading spinner only if logo exists but not in state AND not in cache
                                   if (vendor.logoUrl) {
                                     const parsed = parseFileData(vendor.logoUrl);
-                                    if (parsed?.id && !imageBlobUrls[parsed.id]) {
+                                    if (parsed?.id) {
+                                      // Check if in state
+                                      if (imageBlobUrls[parsed.id]) {
+                                        return vendor.name.charAt(0).toUpperCase();
+                                      }
+                                      // Check if in cache
+                                      const cached = localStorage.getItem(`logo_${parsed.id}`);
+                                      if (cached?.startsWith('data:')) {
+                                        return vendor.name.charAt(0).toUpperCase();
+                                      }
+                                      // Neither in state nor cache, show loading spinner
                                       return <CircularProgress size={16} sx={{ color: 'white' }} />;
                                     }
                                   }
                                   return vendor.name.charAt(0).toUpperCase();
                                 })()}
                               </Avatar>
-                              <Typography fontWeight={500}>{vendor.name}</Typography>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Typography fontWeight={500}>{vendor.name}</Typography>
+                                {(() => {
+                                  const overduePayments = vendor.payments?.filter(p => 
+                                    p.status === 'ממתין' && p.estimatedDate && 
+                                    new Date(p.estimatedDate) < new Date(new Date().toISOString().split('T')[0])
+                                  ) || [];
+                                  
+                                  if (overduePayments.length === 0) return null;
+                                  
+                                  const totalAmount = overduePayments.reduce((sum, p) => sum + p.amount, 0);
+                                  const daysOverdue = Math.ceil(
+                                    (new Date().getTime() - new Date(overduePayments[0].estimatedDate as string).getTime()) / 
+                                    (1000 * 60 * 60 * 24)
+                                  );
+                                  
+                                  return (
+                                    <Tooltip 
+                                      title={`${overduePayments.length} תשלומים בממתין שעברו את תאריכם - סך ₪${totalAmount.toLocaleString()} (${daysOverdue} ימים בעיכוב). כנראה כבר התקבלו - צריך לעדכן ל"שולם"`}
+                                      arrow
+                                    >
+                                      <Chip
+                                        label="תשלום בעיתי"
+                                        size="small"
+                                        color="error"
+                                        variant="filled"
+                                        sx={{ height: 20, fontSize: '0.7rem' }}
+                                      />
+                                    </Tooltip>
+                                  );
+                                })()}
+                              </Box>
                               {vendor.whatsappNumber && (
                                 <IconButton
                                   size="small"
@@ -2314,7 +2460,28 @@ export default function VendorsPage() {
                 required
                 select
                 value={paymentFormData.status}
-                onChange={(e) => setPaymentFormData({ ...paymentFormData, status: e.target.value })}
+                onChange={(e) => {
+                  const newStatus = e.target.value;
+                  // When changing to שולם, preserve or set date
+                  if (newStatus === 'שולם') {
+                    const dateToUse = paymentFormData.date || paymentFormData.estimatedDate || new Date().toISOString().split('T')[0];
+                    setPaymentFormData({ 
+                      ...paymentFormData, 
+                      status: newStatus,
+                      date: dateToUse,
+                      estimatedDate: '' // Clear estimated date when marking as paid
+                    });
+                  } else {
+                    // When changing from שולם to other status, preserve or set estimatedDate
+                    const dateToUse = paymentFormData.estimatedDate || paymentFormData.date || '';
+                    setPaymentFormData({ 
+                      ...paymentFormData, 
+                      status: newStatus,
+                      estimatedDate: dateToUse,
+                      date: paymentFormData.date // Keep original date if it exists
+                    });
+                  }
+                }}
               >
                 {paymentStatuses.map((status) => (
                   <MenuItem key={status.value} value={status.value}>

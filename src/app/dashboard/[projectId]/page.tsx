@@ -677,7 +677,21 @@ export default function DashboardPage() {
                 {permissions.canViewPayments && upcomingPayments.length > 0 && (
                   <Alert severity="info" icon={false} sx={{ borderRadius: 2 }}>
                     <Typography variant="subtitle2" fontWeight="bold" mb={1}>💳 {upcomingPayments.length} תשלומים ממתינים</Typography>
-                    <Typography variant="body2">סך הכל: ₪{upcomingPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()} בשבועיים הקרובים</Typography>
+                    <Stack spacing={1}>
+                      {upcomingPayments.slice(0, 3).map((payment) => {
+                        const vendor = vendors.find(v => v.id === payment.vendorId);
+                        return (
+                          <Typography key={payment.id} variant="body2">
+                            • {vendor?.name || 'ספק'}: ₪{payment.amount?.toLocaleString()}
+                          </Typography>
+                        );
+                      })}
+                    </Stack>
+                    {upcomingPayments.length > 3 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        ועוד {upcomingPayments.length - 3} תשלומים נוספים
+                      </Typography>
+                    )}
                   </Alert>
                 )}
                 {recentlyCompletedTasks.length > 0 && (
