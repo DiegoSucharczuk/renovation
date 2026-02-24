@@ -139,11 +139,11 @@ const statusOptions = [
   { value: 'BLOCKED', label: 'חסום', color: 'error' },
 ];
 
-// Format date from YYYY-MM-DD to DD/MM/YYYY
+// Format date from YYYY-MM-DD to DD-MM-YYYY
 const formatDate = (dateString: string) => {
   if (!dateString) return '';
   const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
 };
 
 export default function RoomsPage() {
