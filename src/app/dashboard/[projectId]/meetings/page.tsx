@@ -257,7 +257,17 @@ export default function MeetingsPage() {
     return 'NOT_STARTED';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, meeting?: Meeting) => {
+    // Check if NOT_STARTED but due date has passed
+    if (status === 'NOT_STARTED' && meeting?.dueDate) {
+      const dueDate = meeting.dueDate instanceof Date ? meeting.dueDate : new Date(meeting.dueDate as string);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+      if (dueDate < today) {
+        return '#ffcdd2'; // Red for overdue NOT_STARTED
+      }
+    }
     if (status === 'COMPLETED') return '#c8e6c9'; // Green
     if (status === 'PARTIAL') return '#ffe0b2'; // Orange
     if (status === 'IN_PROGRESS') return '#fff9c4'; // Yellow
@@ -266,6 +276,16 @@ export default function MeetingsPage() {
 
   const getSortedMeetings = () => {
     let sorted = [...meetings].sort((a, b) => {
+      // Check if meetings are overdue NOT_STARTED
+      const isOverdueA = getMeetingStatus(a) === 'NOT_STARTED' && a.dueDate && 
+        new Date(a.dueDate as string).setHours(0, 0, 0, 0) < new Date(new Date().toISOString().split('T')[0]);
+      const isOverdueB = getMeetingStatus(b) === 'NOT_STARTED' && b.dueDate && 
+        new Date(b.dueDate as string).setHours(0, 0, 0, 0) < new Date(new Date().toISOString().split('T')[0]);
+      
+      // Prioritize overdue NOT_STARTED
+      if (isOverdueA && !isOverdueB) return -1;
+      if (!isOverdueA && isOverdueB) return 1;
+      
       const statusOrder = { NOT_STARTED: 0, IN_PROGRESS: 1, PARTIAL: 2, COMPLETED: 3 };
       const statusA = getMeetingStatus(a);
       const statusB = getMeetingStatus(b);
@@ -354,12 +374,23 @@ export default function MeetingsPage() {
               <TableBody>
                 {getSortedMeetings().map((meeting) => {
                   const status = getMeetingStatus(meeting);
-                  const bgColor = getStatusColor(status);
+                  const bgColor = getStatusColor(status, meeting);
                   let tooltipText = '';
+                  
+                  // Check if overdue NOT_STARTED
+                  const isOverdueNotStarted = status === 'NOT_STARTED' && meeting.dueDate && 
+                    new Date(meeting.dueDate as string).setHours(0, 0, 0, 0) < new Date(new Date().toISOString().split('T')[0]);
+                  
                   if (status === 'IN_PROGRESS') {
                     tooltipText = 'חלק מהמשימות בוצעו אבל הפגישה עדיין לא סומנה כ"בוצע"';
                   } else if (status === 'PARTIAL') {
                     tooltipText = 'הפגישה סומנה כ"בוצע" אבל עדיין יש משימות שלא בוצעו - צריך להשלים';
+                  } else if (isOverdueNotStarted) {
+                    const daysOverdue = Math.ceil(
+                      (new Date().getTime() - new Date(meeting.dueDate as string).getTime()) / 
+                      (1000 * 60 * 60 * 24)
+                    );
+                    tooltipText = `הפגישה עדיין לא התחילה אבל תאריך היעד עבר לפני ${daysOverdue} ימים`;
                   }
                   
                   const tableRow = (
