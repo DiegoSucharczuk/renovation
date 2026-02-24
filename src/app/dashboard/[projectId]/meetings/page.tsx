@@ -277,10 +277,16 @@ export default function MeetingsPage() {
   const getSortedMeetings = () => {
     let sorted = [...meetings].sort((a, b) => {
       // Check if meetings are overdue NOT_STARTED
-      const isOverdueA = getMeetingStatus(a) === 'NOT_STARTED' && a.dueDate && 
-        new Date(a.dueDate as string).setHours(0, 0, 0, 0) < new Date(new Date().toISOString().split('T')[0]);
-      const isOverdueB = getMeetingStatus(b) === 'NOT_STARTED' && b.dueDate && 
-        new Date(b.dueDate as string).setHours(0, 0, 0, 0) < new Date(new Date().toISOString().split('T')[0]);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const dateA = a.dueDate ? new Date(a.dueDate as string) : null;
+      if (dateA) dateA.setHours(0, 0, 0, 0);
+      const dateB = b.dueDate ? new Date(b.dueDate as string) : null;
+      if (dateB) dateB.setHours(0, 0, 0, 0);
+      
+      const isOverdueA = getMeetingStatus(a) === 'NOT_STARTED' && dateA && dateA < today;
+      const isOverdueB = getMeetingStatus(b) === 'NOT_STARTED' && dateB && dateB < today;
       
       // Prioritize overdue NOT_STARTED
       if (isOverdueA && !isOverdueB) return -1;
