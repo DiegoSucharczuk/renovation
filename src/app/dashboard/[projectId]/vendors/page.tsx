@@ -1289,7 +1289,7 @@ export default function VendorsPage() {
                   </Box>
                   <Box textAlign="center">
                     <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                      יתרה
+                      יתרה לתשלום
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" color="error.main">
                       {new Intl.NumberFormat('he-IL', {
@@ -1327,7 +1327,7 @@ export default function VendorsPage() {
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>טלפון</TableCell>
                     {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>סה"כ חוזה</TableCell>}
                     {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>שולם</TableCell>}
-                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>יתרה</TableCell>}
+                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>יתרה לתשלום</TableCell>}
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>קבצים</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>פעולות</TableCell>
                   </TableRow>
@@ -1703,11 +1703,11 @@ export default function VendorsPage() {
                                       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}>
                                         <Box sx={{ p: 1.5, border: 1, borderColor: 'success.main', borderRadius: 1, backgroundColor: 'success.50' }}>
                                           <Typography variant="caption" color="text.secondary" fontWeight={600}>תאריך התחלה</Typography>
-                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{vendor.startDate || '—'}</Typography>
+                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{formatDateHE(vendor.startDate)}</Typography>
                                         </Box>
                                         <Box sx={{ p: 1.5, border: 1, borderColor: 'warning.main', borderRadius: 1, backgroundColor: 'warning.50' }}>
                                           <Typography variant="caption" color="text.secondary" fontWeight={600}>תאריך סיום</Typography>
-                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{vendor.endDate || '—'}</Typography>
+                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{formatDateHE(vendor.endDate)}</Typography>
                                         </Box>
                                       </Box>
                                     </Box>

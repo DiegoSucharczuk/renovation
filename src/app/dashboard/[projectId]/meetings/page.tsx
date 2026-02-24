@@ -280,6 +280,8 @@ export default function MeetingsPage() {
       });
     } else if (currentTab === 2) {
       sorted = sorted.filter(m => getMeetingStatus(m) === 'COMPLETED');
+    } else if (currentTab === 3) {
+      sorted = sorted.filter(m => getMeetingStatus(m) === 'NOT_STARTED');
     }
 
     return sorted;
@@ -327,6 +329,11 @@ export default function MeetingsPage() {
             <Tab 
               label={`בוצעו (${
                 meetings.filter(m => getMeetingStatus(m) === 'COMPLETED').length
+              })`} 
+            />
+            <Tab 
+              label={`לא התחילו (${
+                meetings.filter(m => getMeetingStatus(m) === 'NOT_STARTED').length
               })`} 
             />
           </Tabs>

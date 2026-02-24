@@ -150,8 +150,9 @@ export default function PaymentsPage() {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' })
-      .split('/').reverse().join('-');
+    const formatted = date.toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    // Hebrew locale returns dd.mm.yyyy, convert to dd-mm-yyyy
+    return formatted.replace(/\./g, '-');
   };
 
   // Calculate totals from ALL vendors (not filtered)
@@ -244,7 +245,7 @@ export default function PaymentsPage() {
               <Tooltip title="הסכום שנותר לתשלום = סה״כ חוזים פחות סכום שולם">
                 <Box textAlign="center">
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    יתרה
+                    יתרה לתשלום
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="error.main">
                     {formatCurrency(totalBalance)}
