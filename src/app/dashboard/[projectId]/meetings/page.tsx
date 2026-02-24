@@ -235,7 +235,7 @@ export default function MeetingsPage() {
     if (!date) return '-';
     if (!(date instanceof Date)) date = new Date(date);
     if (isNaN(date.getTime())) return '-';
-    return date.toLocaleDateString('he-IL');
+    return date.toLocaleDateString('he-IL').replace(/\./g, '-');
   };
 
   const getMeetingStatus = (meeting: Meeting) => {
