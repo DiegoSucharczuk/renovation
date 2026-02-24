@@ -280,9 +280,9 @@ export default function MeetingsPage() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const dateA = a.dueDate ? new Date(a.dueDate as string) : null;
+      const dateA = a.dueDate ? new Date(a.dueDate) : null;
       if (dateA) dateA.setHours(0, 0, 0, 0);
-      const dateB = b.dueDate ? new Date(b.dueDate as string) : null;
+      const dateB = b.dueDate ? new Date(b.dueDate) : null;
       if (dateB) dateB.setHours(0, 0, 0, 0);
       
       const isOverdueA = getMeetingStatus(a) === 'NOT_STARTED' && dateA && dateA < today;
