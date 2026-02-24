@@ -396,7 +396,7 @@ export default function MeetingsPage() {
                     tooltipText = 'הפגישה סומנה כ"בוצע" אבל עדיין יש משימות שלא בוצעו - צריך להשלים';
                   } else if (isOverdueNotStarted) {
                     const daysOverdue = Math.ceil(
-                      (new Date().getTime() - new Date(meeting.dueDate as string).getTime()) / 
+                      (new Date().getTime() - (meeting.dueDate instanceof Date ? meeting.dueDate : new Date(meeting.dueDate!)).getTime()) / 
                       (1000 * 60 * 60 * 24)
                     );
                     tooltipText = `הפגישה עדיין לא התחילה אבל תאריך היעד עבר לפני ${daysOverdue} ימים`;
