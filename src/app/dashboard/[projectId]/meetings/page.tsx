@@ -384,8 +384,11 @@ export default function MeetingsPage() {
                   let tooltipText = '';
                   
                   // Check if overdue NOT_STARTED
-                  const isOverdueNotStarted = status === 'NOT_STARTED' && meeting.dueDate && 
-                    new Date(meeting.dueDate as string).setHours(0, 0, 0, 0) < new Date(new Date().toISOString().split('T')[0]);
+                  const meetingDate = meeting.dueDate ? new Date(meeting.dueDate) : null;
+                  if (meetingDate) meetingDate.setHours(0, 0, 0, 0);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isOverdueNotStarted = status === 'NOT_STARTED' && meetingDate && meetingDate < today;
                   
                   if (status === 'IN_PROGRESS') {
                     tooltipText = 'חלק מהמשימות בוצעו אבל הפגישה עדיין לא סומנה כ"בוצע"';
