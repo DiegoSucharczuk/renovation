@@ -237,7 +237,7 @@ export default function PaymentsPage() {
               <Tooltip title="הסכום שנותר לתשלום = סה״כ חוזים פחות סכום שולם">
                 <Box textAlign="center">
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    יתרה
+                    יתרה לתשלום
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="error.main">
                     {formatCurrency(totalBalance)}
