@@ -272,7 +272,7 @@ export default function PaymentsPage() {
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>שולם</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>ממתין</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>מתוכנן</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>יתרה</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>יתרה לתשלום</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>סטטוס</TableCell>
                 </TableRow>
               </TableHead>
