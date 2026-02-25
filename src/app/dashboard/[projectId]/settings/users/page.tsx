@@ -45,6 +45,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
 import AccessDenied from '@/components/AccessDenied';
 import type { Project, ProjectRole } from '@/types';
+import { formatDateMedium } from '@/lib/dateUtils';
 
 interface ProjectMember {
   id: string;
@@ -512,7 +513,7 @@ export default function UsersManagementPage() {
                       <TableCell>{invitation.invitedByName}</TableCell>
                       <TableCell>
                         <Typography variant="caption" color="text.secondary">
-                          {invitation.createdAt.toLocaleDateString('he-IL')}
+                          {formatDateMedium(invitation.createdAt)}
                         </Typography>
                       </TableCell>
                       <TableCell align="left">

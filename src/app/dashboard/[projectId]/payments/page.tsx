@@ -32,6 +32,7 @@ import AccessDenied from '@/components/AccessDenied';
 import { hebrewLabels } from '@/lib/labels';
 import { Vendor, Payment } from '@/types/vendor';
 import type { Project } from '@/types';
+import { formatDateShort } from '@/lib/dateUtils';
 
 const paymentStatuses = [
   { value: 'הכל', label: 'הכל' },
@@ -146,15 +147,6 @@ export default function PaymentsPage() {
 
   const filteredVendors = getFilteredVendors();
 
-  const formatDateHE = (dateString: string) => {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '—';
-    const formatted = date.toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    // Hebrew locale returns dd.mm.yyyy, convert to dd-mm-yyyy
-    return formatted.replace(/\./g, '-');
-  };
-
   // Calculate totals from ALL vendors (not filtered)
   const totalContract = vendors.reduce((sum, v) => sum + (v.contractAmount || 0), 0);
   const totalPaid = vendors.reduce((sum, v) => sum + getTotalPaid(v), 0);
@@ -245,7 +237,7 @@ export default function PaymentsPage() {
               <Tooltip title="הסכום שנותר לתשלום = סה״כ חוזים פחות סכום שולם">
                 <Box textAlign="center">
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    יתרה לתשלום
+                    יתרה
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="error.main">
                     {formatCurrency(totalBalance)}
@@ -452,7 +444,7 @@ export default function PaymentsPage() {
                                             backgroundColor: isOverdueWaiting ? '#ffebee' : 'inherit'
                                           }}
                                         >
-                                          <TableCell>{formatDateHE(payment.date || '')}</TableCell>
+                                          <TableCell>{formatDateShort(payment.date || '')}</TableCell>
                                           <TableCell align="center">{formatCurrency(payment.amount)}</TableCell>
                                           <TableCell align="center">
                                             <Chip 
@@ -466,7 +458,7 @@ export default function PaymentsPage() {
                                               }
                                             />
                                           </TableCell>
-                                          <TableCell align="center">{formatDateHE(payment.estimatedDate || '')}</TableCell>
+                                          <TableCell align="center">{formatDateShort(payment.estimatedDate || '')}</TableCell>
                                           <TableCell>{payment.notes || '—'}</TableCell>
                                         </TableRow>
                                       );

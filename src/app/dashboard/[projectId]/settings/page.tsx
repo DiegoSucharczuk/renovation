@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
 import AccessDenied from '@/components/AccessDenied';
 import type { Project } from '@/types';
+import { formatDateLong } from '@/lib/dateUtils';
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -251,11 +252,7 @@ export default function ProjectSettingsPage() {
                   תאריך יצירה
                 </Typography>
                 <Typography variant="body1" fontWeight="bold" mt={0.5}>
-                  {project?.createdAt.toLocaleDateString('he-IL', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
+                  {formatDateLong(project?.createdAt)}
                 </Typography>
               </Box>
             </Box>

@@ -44,6 +44,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProjectRole } from '@/hooks/useProjectRole';
 import AccessDenied from '@/components/AccessDenied';
 import type { Project, Room, Task, Meeting } from '@/types';
+import { formatDateLong, formatDateMedium, formatDateWithWeekday } from '@/lib/dateUtils';
 
 interface Vendor {
   id: string;
@@ -84,18 +85,6 @@ export default function DashboardPage() {
   const [selectedActionItemMeeting, setSelectedActionItemMeeting] = useState<Meeting | null>(null);
   const [openActionItemDialog, setOpenActionItemDialog] = useState(false);
 
-  // Helper function to safely format dates
-  const formatDate = (date: any) => {
-    if (!date) return '';
-    const dateObj = date instanceof Date ? date : new Date(date);
-    if (isNaN(dateObj.getTime())) return '';
-    return dateObj.toLocaleDateString('he-IL', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   const fetchData = useCallback(async () => {
     const isInitialLoad = loading;
@@ -941,12 +930,7 @@ export default function DashboardPage() {
                                 <strong>תאריך פגישה:</strong>
                               </Typography>
                               <Typography variant="body2" sx={{ color: textColor, fontWeight: 600, fontSize: '0.95rem' }}>
-                                {meetingDate.toLocaleDateString('he-IL', { 
-                                  weekday: 'long', 
-                                  year: 'numeric',
-                                  month: 'long', 
-                                  day: 'numeric' 
-                                })}
+                                {formatDateLong(meetingDate)}
                               </Typography>
                             </Box>
 
@@ -975,12 +959,7 @@ export default function DashboardPage() {
                                     fontWeight: 700, 
                                     fontSize: '0.95rem'
                                   }}>
-                                    {dueDate.toLocaleDateString('he-IL', { 
-                                      weekday: 'long',
-                                      year: 'numeric',
-                                      month: 'long', 
-                                      day: 'numeric' 
-                                    })}
+                                    {formatDateLong(dueDate)}
                                   </Typography>
                                   <Chip 
                                     label={getDaysInfo()} 
@@ -1030,7 +1009,7 @@ export default function DashboardPage() {
                                 {meeting.title}
                               </Typography>
                               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                {meetingDate.toLocaleDateString('he-IL', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                {formatDateWithWeekday(meetingDate)}
                               </Typography>
                             </Box>
                             <Stack spacing={0.5} sx={{ ml: 0.5 }}>
@@ -1068,9 +1047,9 @@ export default function DashboardPage() {
                                       <Typography variant="body2" sx={{ color: '#333', wordBreak: 'break-word', fontSize: '0.85rem', fontWeight: 500 }}>
                                         {action.description}
                                       </Typography>
-                                      {actionDate && formatDate(actionDate) && (
+                                      {actionDate && formatDateMedium(actionDate) && (
                                         <Typography variant="caption" sx={{ color: isOverdue ? '#d32f2f' : isDueSoon ? '#f57c00' : '#888', fontSize: '0.7rem', display: 'block', mt: 0.25 }}>
-                                          {formatDate(actionDate).split(',')[1].trim()}
+                                          {formatDateMedium(actionDate)}
                                         </Typography>
                                       )}
                                     </Box>
@@ -1135,12 +1114,7 @@ export default function DashboardPage() {
                       תאריך הפגישה
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                      {new Date(selectedMeeting.meetingDate).toLocaleDateString('he-IL', { 
-                        weekday: 'long', 
-                        year: 'numeric',
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
+                      {formatDateLong(selectedMeeting.meetingDate)}
                     </Typography>
                   </Box>
 
@@ -1157,13 +1131,13 @@ export default function DashboardPage() {
                   )}
 
                   {/* Due Date */}
-                  {selectedMeeting.dueDate && formatDate(selectedMeeting.dueDate) && (
+                  {selectedMeeting.dueDate && formatDateLong(selectedMeeting.dueDate) && (
                     <Box>
                       <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
                         תאריך יעד
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                        {formatDate(selectedMeeting.dueDate)}
+                        {formatDateLong(selectedMeeting.dueDate)}
                       </Typography>
                     </Box>
                   )}
@@ -1182,9 +1156,9 @@ export default function DashboardPage() {
                                 <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 500 }}>
                                   {item.description}
                                 </Typography>
-                                {item.dueDate && formatDate(item.dueDate) && (
+                                {item.dueDate && formatDateLong(item.dueDate) && (
                                   <Typography variant="caption" sx={{ color: '#666', fontSize: '0.75rem', display: 'block', mt: 0.5 }}>
-                                    יעד: {formatDate(item.dueDate)}
+                                    יעד: {formatDateLong(item.dueDate)}
                                   </Typography>
                                 )}
                               </Box>
@@ -1269,13 +1243,13 @@ export default function DashboardPage() {
                   </Box>
 
                   {/* Due Date */}
-                  {selectedActionItem.dueDate && formatDate(selectedActionItem.dueDate) && (
+                  {selectedActionItem.dueDate && formatDateLong(selectedActionItem.dueDate) && (
                     <Box>
                       <Typography variant="caption" sx={{ color: '#666', fontWeight: 600, fontSize: '0.8rem', display: 'block', mb: 0.5 }}>
                         תאריך יעד
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                        {formatDate(selectedActionItem.dueDate)}
+                        {formatDateLong(selectedActionItem.dueDate)}
                       </Typography>
                     </Box>
                   )}

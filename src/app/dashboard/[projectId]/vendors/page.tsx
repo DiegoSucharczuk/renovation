@@ -56,6 +56,7 @@ import { getTaskCategories } from '@/lib/taskCategories';
 import { ISRAELI_BANKS, getBankLabel } from '@/lib/banks';
 import { Vendor, Payment } from '@/types/vendor';
 import type { Project } from '@/types';
+import { formatDateShort } from '@/lib/dateUtils';
 
 const paymentMethods = [
   'מזומן',
@@ -1169,20 +1170,6 @@ export default function VendorsPage() {
     }).format(amount);
   };
 
-  const formatDateHE = (dateString: string | undefined | null): string => {
-    if (!dateString) return '—';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '—';
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    } catch {
-      return '—';
-    }
-  };
-
   if (!mounted || roleLoading || loading) {
     return (
       <DashboardLayout projectId={projectId} project={project || undefined}>
@@ -1289,7 +1276,7 @@ export default function VendorsPage() {
                   </Box>
                   <Box textAlign="center">
                     <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                      יתרה לתשלום
+                      יתרה
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" color="error.main">
                       {new Intl.NumberFormat('he-IL', {
@@ -1327,7 +1314,7 @@ export default function VendorsPage() {
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>טלפון</TableCell>
                     {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>סה"כ חוזה</TableCell>}
                     {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>שולם</TableCell>}
-                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>יתרה לתשלום</TableCell>}
+                    {canViewFinancials && <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>יתרה</TableCell>}
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>קבצים</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', borderLeft: 1, borderColor: 'divider' }}>פעולות</TableCell>
                   </TableRow>
@@ -1703,11 +1690,11 @@ export default function VendorsPage() {
                                       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}>
                                         <Box sx={{ p: 1.5, border: 1, borderColor: 'success.main', borderRadius: 1, backgroundColor: 'success.50' }}>
                                           <Typography variant="caption" color="text.secondary" fontWeight={600}>תאריך התחלה</Typography>
-                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{formatDateHE(vendor.startDate)}</Typography>
+                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{formatDateShort(vendor.startDate)}</Typography>
                                         </Box>
                                         <Box sx={{ p: 1.5, border: 1, borderColor: 'warning.main', borderRadius: 1, backgroundColor: 'warning.50' }}>
                                           <Typography variant="caption" color="text.secondary" fontWeight={600}>תאריך סיום</Typography>
-                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{formatDateHE(vendor.endDate)}</Typography>
+                                          <Typography variant="body2" fontWeight={500} mt={0.5}>{formatDateShort(vendor.endDate)}</Typography>
                                         </Box>
                                       </Box>
                                     </Box>
@@ -2264,7 +2251,7 @@ export default function VendorsPage() {
                           >
                             <TableCell>
                               <Typography variant="body2">
-                                {formatDateHE(payment.status === 'שולם' ? payment.date : payment.estimatedDate)}
+                                {formatDateShort(payment.status === 'שולם' ? payment.date : payment.estimatedDate)}
                               </Typography>
                               {payment.status !== 'שולם' && (
                                 <Typography variant="caption" color="text.secondary">

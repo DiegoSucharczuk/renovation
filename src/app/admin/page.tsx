@@ -34,6 +34,7 @@ import { isSuperAdmin } from '@/lib/adminConfig';
 import { collection, getDocsFromServer, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Project } from '@/types';
+import { formatDateMedium } from '@/lib/dateUtils';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -432,12 +433,12 @@ export default function AdminPage() {
                       <TableCell>₪{project.budgetPlanned.toLocaleString()}</TableCell>
                       <TableCell>
                         <Typography variant="caption">
-                          {project.createdAt.toLocaleDateString('he-IL')}
+                          {formatDateMedium(project.createdAt)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption">
-                          {updatedAt.toLocaleDateString('he-IL')}
+                          {formatDateMedium(updatedAt)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -521,7 +522,7 @@ export default function AdminPage() {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Typography variant="caption">
-                          {user.createdAt?.toLocaleDateString('he-IL')}
+                          {formatDateMedium(user.createdAt)}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -574,7 +575,7 @@ export default function AdminPage() {
                       <TableCell>{invitation.email}</TableCell>
                       <TableCell>
                         <Typography variant="caption">
-                          {invitation.createdAt?.toLocaleDateString('he-IL')}
+                          {formatDateMedium(invitation.createdAt)}
                         </Typography>
                       </TableCell>
                       <TableCell>

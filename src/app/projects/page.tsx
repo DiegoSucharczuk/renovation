@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Project, ProjectUser } from '@/types';
 import { hebrewLabels } from '@/lib/labels';
 import { isSuperAdmin } from '@/lib/adminConfig';
+import { formatDateMedium } from '@/lib/dateUtils';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -343,7 +344,7 @@ export default function ProjectsPage() {
                       📅 נוצר:
                     </Typography>
                     <Typography variant="body2">
-                      {project.createdAt.toLocaleDateString('he-IL')}
+                      {formatDateMedium(project.createdAt)}
                     </Typography>
                   </Box>
                   

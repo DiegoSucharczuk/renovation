@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import type { Project, Meeting } from '@/types';
+import { formatDateShort } from '@/lib/dateUtils';
 
 
 const MEETING_TYPES = [
@@ -231,12 +232,6 @@ export default function MeetingsPage() {
     }
   };
 
-  const formatDate = (date: Date | null | undefined) => {
-    if (!date) return '-';
-    if (!(date instanceof Date)) date = new Date(date);
-    if (isNaN(date.getTime())) return '-';
-    return date.toLocaleDateString('he-IL').replace(/\./g, '-');
-  };
 
   const getMeetingStatus = (meeting: Meeting) => {
     const totalItems = meeting.actionItems?.length || 0;
@@ -407,7 +402,7 @@ export default function MeetingsPage() {
                       setSelectedMeetingDetails(meeting);
                       setOpenDetailsDialog(true);
                     }}>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.meetingDate)}</TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDateShort(meeting.meetingDate)}</TableCell>
                       <TableCell sx={{ borderRight: '1px solid #ddd' }}>
                         <Chip
                           label={MEETING_TYPES.find(t => t.value === meeting.meetingType)?.label || meeting.meetingType}
@@ -421,7 +416,7 @@ export default function MeetingsPage() {
                           <Typography variant="caption" color="textSecondary">{meeting.description}</Typography>
                         )}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDate(meeting.dueDate)}</TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDateShort(meeting.dueDate)}</TableCell>
                       <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                         <IconButton
                           size="small"
@@ -479,10 +474,10 @@ export default function MeetingsPage() {
                   </Box>
 
                   {/* Meeting Date */}
-                  {selectedMeetingDetails.meetingDate && formatDate(selectedMeetingDetails.meetingDate) && (
+                  {selectedMeetingDetails.meetingDate && formatDateShort(selectedMeetingDetails.meetingDate) && (
                     <Box>
                       <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>תאריך פגישה</Typography>
-                      <Typography>{formatDate(selectedMeetingDetails.meetingDate)}</Typography>
+                      <Typography>{formatDateShort(selectedMeetingDetails.meetingDate)}</Typography>
                     </Box>
                   )}
 
@@ -495,10 +490,10 @@ export default function MeetingsPage() {
                   )}
 
                   {/* Due Date */}
-                  {selectedMeetingDetails.dueDate && formatDate(selectedMeetingDetails.dueDate) && (
+                  {selectedMeetingDetails.dueDate && formatDateShort(selectedMeetingDetails.dueDate) && (
                     <Box>
                       <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>תאריך יעד</Typography>
-                      <Typography>{formatDate(selectedMeetingDetails.dueDate)}</Typography>
+                      <Typography>{formatDateShort(selectedMeetingDetails.dueDate)}</Typography>
                     </Box>
                   )}
 
@@ -510,8 +505,8 @@ export default function MeetingsPage() {
                         {selectedMeetingDetails.actionItems.map((item, idx) => (
                           <Box key={idx} sx={{ p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                             <Typography variant="body2">{item.description}</Typography>
-                            {item.dueDate && formatDate(item.dueDate) && (
-                              <Typography variant="caption" color="textSecondary">תאריך יעד: {formatDate(item.dueDate)}</Typography>
+                            {item.dueDate && formatDateShort(item.dueDate) && (
+                              <Typography variant="caption" color="textSecondary">תאריך יעד: {formatDateShort(item.dueDate)}</Typography>
                             )}
                             <Typography variant="caption" sx={{ display: 'block', color: item.status === 'COMPLETED' ? '#2e7d32' : '#f57c00' }}>
                               סטטוס: {item.status === 'COMPLETED' ? 'הושלמה' : 'בהמתנה'}
