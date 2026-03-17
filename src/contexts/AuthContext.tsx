@@ -44,6 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: userData.email,
             createdAt: userData.createdAt?.toDate() || new Date(),
           });
+        } else {
+          // User doc not yet created (first Google sign-in race condition)
+          // Use Firebase Auth data as fallback
+          setUser({
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'User',
+            email: firebaseUser.email || '',
+            createdAt: new Date(),
+          });
         }
       } else {
         setUser(null);
