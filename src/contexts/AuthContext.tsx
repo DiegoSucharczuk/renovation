@@ -34,19 +34,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setFirebaseUser(firebaseUser);
       
       if (firebaseUser) {
-        // Fetch user data from Firestore
-        const userDoc = await getDoc(doc(firebaseDb, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setUser({
-            id: firebaseUser.uid,
-            name: userData.name,
-            email: userData.email,
-            createdAt: userData.createdAt?.toDate() || new Date(),
-          });
-        } else {
-          // User doc not yet created (first Google sign-in race condition)
-          // Use Firebase Auth data as fallback
+        try {
+          // Fetch user data from Firestore
+          const userDoc = await getDoc(doc(firebaseDb, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUser({
+              id: firebaseUser.uid,
+              name: userData.name,
+              email: userData.email,
+              createdAt: userData.createdAt?.toDate() || new Date(),
+            });
+          } else {
+            // User doc not yet created (first Google sign-in race condition)
+            // Use Firebase Auth data as fallback
+            setUser({
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || 'User',
+              email: firebaseUser.email || '',
+              createdAt: new Date(),
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          // Fallback to Firebase Auth data so the app doesn't get stuck
           setUser({
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'User',
