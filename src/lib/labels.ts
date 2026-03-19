@@ -35,6 +35,7 @@ export const hebrewLabels = {
   
   // Budget
   budget: 'תקציב',
+  budgetPlanning: 'תכנון תקציב',
   budgetPlanned: 'תקציב מתוכנן',
   budgetUsed: 'תקציב מנוצל',
   budgetRemaining: 'תקציב נותר',

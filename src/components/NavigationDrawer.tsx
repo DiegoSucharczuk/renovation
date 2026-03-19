@@ -24,6 +24,7 @@ import GroupIcon from '@mui/icons-material/Group';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import { hebrewLabels } from '@/lib/labels';
 
 const drawerWidth = 240;
@@ -61,6 +62,7 @@ export default function NavigationDrawer({
     { text: hebrewLabels.tasks, icon: <TaskIcon />, path: `/dashboard/${projectId}/tasks` },
     { text: hebrewLabels.vendors, icon: <PeopleIcon />, path: `/dashboard/${projectId}/vendors` },
     { text: hebrewLabels.payments, icon: <PaymentIcon />, path: `/dashboard/${projectId}/payments`, hidden: !canViewPayments },
+    { text: hebrewLabels.budgetPlanning, icon: <CalculateIcon />, path: `/dashboard/${projectId}/budget`, hidden: !canViewPayments },
     { text: 'סיכומי פגישות', icon: <EventNoteIcon />, path: `/dashboard/${projectId}/meetings` },
   ];
 

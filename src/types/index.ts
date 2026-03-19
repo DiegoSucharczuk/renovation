@@ -186,6 +186,37 @@ export interface NotificationSettings {
   daysBeforePaymentDue: number;
 }
 
+// Budget Planning types
+export type BudgetCategory = 
+  | 'ELECTRICITY' 
+  | 'PLUMBING' 
+  | 'FLOORING' 
+  | 'CARPENTRY' 
+  | 'AC' 
+  | 'PAINTING' 
+  | 'ALUMINUM' 
+  | 'GYPSUM' 
+  | 'DESIGN' 
+  | 'KITCHEN' 
+  | 'DOORS'
+  | 'SANITARY'
+  | 'DEMOLITION'
+  | 'OTHER';
+
+export interface BudgetItem {
+  id: string;
+  projectId: string;
+  category: BudgetCategory;
+  description: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  notes?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 // Helper type for role permissions
 export interface RolePermissions {
   canViewBudget: boolean;
