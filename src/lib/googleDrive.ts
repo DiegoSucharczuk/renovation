@@ -3,10 +3,47 @@
 // Security: Token stored in memory only (not localStorage) with short TTL
 
 import { auth } from './firebase';
-import { GoogleAuthProvider } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 // In-memory token cache with expiration
 let cachedToken: { token: string; expiresAt: number } | null = null;
+let isRefreshing = false;
+
+// Silently refresh the Google OAuth token
+const refreshAccessToken = async (): Promise<string> => {
+  if (isRefreshing) {
+    // Wait for ongoing refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (cachedToken && Date.now() < cachedToken.expiresAt) {
+      return cachedToken.token;
+    }
+    throw new Error('Token refresh failed');
+  }
+
+  isRefreshing = true;
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/drive');
+    provider.addScope('https://www.googleapis.com/auth/gmail.send');
+    
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    
+    if (credential?.accessToken) {
+      setDriveAccessToken(credential.accessToken);
+      // Also update sessionStorage for Gmail
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('google_access_token', credential.accessToken);
+      }
+      console.log('✅ Token refreshed successfully');
+      return credential.accessToken;
+    }
+    
+    throw new Error('No access token in refresh result');
+  } finally {
+    isRefreshing = false;
+  }
+};
 
 // Get Access Token with in-memory caching (expires after 50 minutes)
 const getAccessToken = async (): Promise<string> => {
@@ -29,10 +66,16 @@ const getAccessToken = async (): Promise<string> => {
     throw new Error('Please sign in with Google to use file uploads');
   }
 
-  // If no valid token, user needs to sign in again
-  const error = new Error('Drive access expired. Please sign out and sign in again with Google.');
-  (error as any).code = 'TOKEN_EXPIRED';
-  throw error;
+  // Token expired — try to refresh silently
+  console.log('🔄 Token expired, attempting refresh...');
+  try {
+    return await refreshAccessToken();
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    const err = new Error('Drive access expired. Please sign out and sign in again with Google.');
+    (err as any).code = 'TOKEN_EXPIRED';
+    throw err;
+  }
 };
 
 // Set the OAuth Access Token (called after Google Sign-In)
