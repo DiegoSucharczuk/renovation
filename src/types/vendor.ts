@@ -25,6 +25,7 @@ export interface Vendor {
   businessId?: string; // ח.פ / ת.ז
   logoUrl?: string;
   contractFileUrl?: string;
+  contractFiles?: string[]; // Multiple contract files
   
   // פיננסי
   contractAmount?: number;

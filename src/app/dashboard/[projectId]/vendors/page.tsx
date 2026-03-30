@@ -213,7 +213,7 @@ export default function VendorsPage() {
     startDate: '',
     endDate: '',
     logoUrl: '',
-    contractFileUrl: '',
+    contractFiles: [] as string[],
   });
 
   // Payments Dialog
@@ -468,16 +468,16 @@ export default function VendorsPage() {
           }
         }
         
-        // Load vendor contracts
-        if (vendor.contractFileUrl) {
-          const fileData = parseFileData(vendor.contractFileUrl);
+        // Load vendor contracts (support both old contractFileUrl and new contractFiles)
+        const allContracts = vendor.contractFiles || (vendor.contractFileUrl ? [vendor.contractFileUrl] : []);
+        for (const contractStr of allContracts) {
+          const fileData = parseFileData(contractStr);
           if (fileData?.id) {
             const fileId = fileData.id;
             if (imageBlobUrls[fileId] || newBlobUrls[fileId]) {
               continue; // Already loaded or processing
             }
             
-            // Use the same retry logic
             const loadWithRetry = async (retries = 2) => {
               for (let i = 0; i < retries; i++) {
                 try {
@@ -617,7 +617,7 @@ export default function VendorsPage() {
         startDate: vendor.startDate || '',
         endDate: vendor.endDate || '',
         logoUrl: vendor.logoUrl || '',
-        contractFileUrl: vendor.contractFileUrl || '',
+        contractFiles: vendor.contractFiles || (vendor.contractFileUrl ? [vendor.contractFileUrl] : []),
       });
     } else {
       setEditingVendor(null);
@@ -643,7 +643,7 @@ export default function VendorsPage() {
         startDate: '',
         endDate: '',
         logoUrl: '',
-        contractFileUrl: '',
+        contractFiles: [],
       });
     }
     setOpenVendorDialog(true);
@@ -680,7 +680,7 @@ export default function VendorsPage() {
           startDate: vendorFormData.startDate || '',
           endDate: vendorFormData.endDate || '',
           logoUrl: vendorFormData.logoUrl || '',
-          contractFileUrl: vendorFormData.contractFileUrl || '',
+          contractFiles: vendorFormData.contractFiles || [],
           updatedAt: new Date(),
         });
       } else {
@@ -708,7 +708,7 @@ export default function VendorsPage() {
           startDate: vendorFormData.startDate || '',
           endDate: vendorFormData.endDate || '',
           logoUrl: vendorFormData.logoUrl || '',
-          contractFileUrl: vendorFormData.contractFileUrl || '',
+          contractFiles: vendorFormData.contractFiles || [],
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -938,9 +938,9 @@ export default function VendorsPage() {
         if (type === 'logo' && vendorFormData.logoUrl) {
           const oldFileData = parseFileData(vendorFormData.logoUrl);
           if (oldFileData?.id) oldFileId = oldFileData.id;
-        } else if (type === 'contract' && vendorFormData.contractFileUrl) {
-          const oldFileData = parseFileData(vendorFormData.contractFileUrl);
-          if (oldFileData?.id) oldFileId = oldFileData.id;
+        } else if (type === 'contract' && vendorFormData.contractFiles.length > 0) {
+          // For contracts, we delete the old file from the last uploaded
+          // Actually, old file deletion is handled in handleDeleteContractFile
         } else if (type === 'invoice' && paymentFormData.invoiceUrl) {
           const oldFileData = parseFileData(paymentFormData.invoiceUrl);
           if (oldFileData?.id) oldFileId = oldFileData.id;
@@ -1022,7 +1022,7 @@ export default function VendorsPage() {
       if (type === 'logo') {
         setVendorFormData({ ...vendorFormData, logoUrl: JSON.stringify(fileData) });
       } else if (type === 'contract') {
-        setVendorFormData({ ...vendorFormData, contractFileUrl: JSON.stringify(fileData) });
+        setVendorFormData({ ...vendorFormData, contractFiles: [...vendorFormData.contractFiles, JSON.stringify(fileData)] });
       } else if (type === 'invoice') {
         setPaymentFormData({ ...paymentFormData, invoiceUrl: JSON.stringify(fileData) });
       } else if (type === 'receipt') {
@@ -1129,11 +1129,12 @@ export default function VendorsPage() {
           await fetchData();
         }
       } else if (type === 'contract') {
-        setVendorFormData({ ...vendorFormData, contractFileUrl: '' });
+        const updatedFiles = vendorFormData.contractFiles.filter(f => f !== dataStr);
+        setVendorFormData({ ...vendorFormData, contractFiles: updatedFiles });
         // If editing existing vendor, also update DB
         if (editingVendor) {
-          console.log('Updating contract in DB');
-          await updateDoc(doc(db, 'vendors', editingVendor.id), { contractFileUrl: '' });
+          console.log('Updating contracts in DB');
+          await updateDoc(doc(db, 'vendors', editingVendor.id), { contractFiles: updatedFiles });
           await fetchData();
         }
       } else if (type === 'invoice') {
@@ -1472,17 +1473,17 @@ export default function VendorsPage() {
                         )}
                         <TableCell sx={{ borderLeft: 1, borderColor: 'divider', textAlign: 'center' }}>
                           {(() => {
-                            const hasContract = !!vendor.contractFileUrl;
+                            const contractsCount = (vendor.contractFiles || (vendor.contractFileUrl ? [vendor.contractFileUrl] : [])).length;
                             const invoicesCount = vendor.payments.filter(p => p.invoiceUrl).length;
                             const receiptsCount = vendor.payments.filter(p => p.receiptUrl).length;
-                            const totalCount = (hasContract ? 1 : 0) + invoicesCount + receiptsCount;
+                            const totalCount = contractsCount + invoicesCount + receiptsCount;
                             
                             if (totalCount === 0) {
                               return <Typography variant="body2" color="text.secondary">—</Typography>;
                             }
                             
                             const parts = [];
-                            if (hasContract) parts.push('חוזה');
+                            if (contractsCount > 0) parts.push(`${contractsCount} חוזים`);
                             if (invoicesCount > 0) parts.push(`${invoicesCount} חשבוניות`);
                             if (receiptsCount > 0) parts.push(`${receiptsCount} קבלות`);
                             
@@ -1699,35 +1700,44 @@ export default function VendorsPage() {
                                       </Box>
                                     </Box>
 
-                                    {/* חוזה */}
-                                    {vendor.contractFileUrl && (
-                                      <>
-                                        <Divider />
-                                        <Box>
-                                          <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
-                                            חוזה
-                                          </Typography>
-                                          <Chip
-                                            label={(() => {
-                                              const fileData = parseFileData(vendor.contractFileUrl);
-                                              return fileData?.name || 'חוזה';
-                                            })()}
-                                            icon={<AttachFileIcon />}
-                                            variant="outlined"
-                                            size="small"
-                                            onClick={() => {
-                                              setViewingFile({
-                                                type: 'contract',
-                                                url: vendor.contractFileUrl!,
-                                                vendor: vendor
-                                              });
-                                              setOpenFileViewerDialog(true);
-                                            }}
-                                            sx={{ cursor: 'pointer' }}
-                                          />
-                                        </Box>
-                                      </>
-                                    )}
+                                    {/* חוזים */}
+                                    {(() => {
+                                      const allContracts = vendor.contractFiles || (vendor.contractFileUrl ? [vendor.contractFileUrl] : []);
+                                      if (allContracts.length === 0) return null;
+                                      return (
+                                        <>
+                                          <Divider />
+                                          <Box>
+                                            <Typography variant="subtitle1" color="primary" sx={{ mb: 0.8, fontWeight: 700, fontSize: '1rem' }}>
+                                              חוזים ({allContracts.length})
+                                            </Typography>
+                                            <Box display="flex" gap={1} flexWrap="wrap">
+                                              {allContracts.map((contractStr, idx) => (
+                                                <Chip
+                                                  key={idx}
+                                                  label={(() => {
+                                                    const fileData = parseFileData(contractStr);
+                                                    return fileData?.name || `חוזה ${idx + 1}`;
+                                                  })()}
+                                                  icon={<AttachFileIcon />}
+                                                  variant="outlined"
+                                                  size="small"
+                                                  onClick={() => {
+                                                    setViewingFile({
+                                                      type: 'contract',
+                                                      url: contractStr,
+                                                      vendor: vendor
+                                                    });
+                                                    setOpenFileViewerDialog(true);
+                                                  }}
+                                                  sx={{ cursor: 'pointer' }}
+                                                />
+                                              ))}
+                                            </Box>
+                                          </Box>
+                                        </>
+                                      );
+                                    })()}
 
                                     {/* הערות */}
                                     {vendor.notes && (
@@ -1812,15 +1822,15 @@ export default function VendorsPage() {
               {/* Contract Upload */}
               <Box>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  חוזה
+                  חוזים ({vendorFormData.contractFiles.length})
                 </Typography>
-                <Box display="flex" gap={2} alignItems="center">
+                <Box display="flex" gap={1} alignItems="center" flexWrap="wrap">
                   <Button
                     variant="outlined"
                     component="label"
                     startIcon={<AttachFileIcon />}
                     size="small"
-                    disabled={!!vendorFormData.contractFileUrl || isUploadingFile}
+                    disabled={isUploadingFile}
                   >
                     {isUploadingFile ? 'מעלה...' : 'העלה חוזה'}
                     <input
@@ -1831,17 +1841,18 @@ export default function VendorsPage() {
                       disabled={isUploadingFile}
                     />
                   </Button>
-                  {vendorFormData.contractFileUrl && (() => {
-                    const fileData = parseFileData(vendorFormData.contractFileUrl);
+                  {vendorFormData.contractFiles.map((contractFileStr, index) => {
+                    const fileData = parseFileData(contractFileStr);
                     return (
                       <Chip
-                        label={fileData?.name || 'חוזה'}
-                        onDelete={() => handleDeleteFile(vendorFormData.contractFileUrl, 'contract')}
+                        key={index}
+                        label={fileData?.name || `חוזה ${index + 1}`}
+                        onDelete={() => handleDeleteFile(contractFileStr, 'contract')}
                         size="small"
                         icon={<AttachFileIcon />}
                       />
                     );
-                  })()}
+                  })}
                 </Box>
               </Box>
 
@@ -2661,40 +2672,49 @@ export default function VendorsPage() {
         <DialogContent>
           {selectedVendorForFiles && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* חוזה */}
-              {selectedVendorForFiles.contractFileUrl && (
-                <Box>
-                  <Typography variant="subtitle2" color="primary" gutterBottom fontWeight={600}>
-                    חוזה
-                  </Typography>
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      p: 1.5, 
-                      cursor: 'pointer',
-                      '&:hover': { bgcolor: '#f5f5f5' }
-                    }}
-                    onClick={() => {
-                      setViewingFile({
-                        type: 'contract',
-                        url: selectedVendorForFiles.contractFileUrl!,
-                        vendor: selectedVendorForFiles
-                      });
-                      setOpenFileViewerDialog(true);
-                    }}
-                  >
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <AttachFileIcon color="primary" />
-                      <Typography variant="body2">
-                        {(() => {
-                          const fileData = parseFileData(selectedVendorForFiles.contractFileUrl!);
-                          return fileData?.name || 'חוזה';
-                        })()}
-                      </Typography>
+              {/* חוזים */}
+              {(() => {
+                const allContracts = selectedVendorForFiles.contractFiles || (selectedVendorForFiles.contractFileUrl ? [selectedVendorForFiles.contractFileUrl] : []);
+                if (allContracts.length === 0) return null;
+                return (
+                  <Box>
+                    <Typography variant="subtitle2" color="primary" gutterBottom fontWeight={600}>
+                      חוזים ({allContracts.length})
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {allContracts.map((contractStr, idx) => (
+                        <Card 
+                          key={idx}
+                          variant="outlined" 
+                          sx={{ 
+                            p: 1.5, 
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: '#f5f5f5' }
+                          }}
+                          onClick={() => {
+                            setViewingFile({
+                              type: 'contract',
+                              url: contractStr,
+                              vendor: selectedVendorForFiles
+                            });
+                            setOpenFileViewerDialog(true);
+                          }}
+                        >
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <AttachFileIcon color="primary" />
+                            <Typography variant="body2">
+                              {(() => {
+                                const fileData = parseFileData(contractStr);
+                                return fileData?.name || `חוזה ${idx + 1}`;
+                              })()}
+                            </Typography>
+                          </Box>
+                        </Card>
+                      ))}
                     </Box>
-                  </Card>
-                </Box>
-              )}
+                  </Box>
+                );
+              })()}
 
               {/* חשבוניות וקבלות */}
               {canViewFinancials && selectedVendorForFiles.payments.some(p => p.invoiceUrl || p.receiptUrl) && (
@@ -2798,7 +2818,7 @@ export default function VendorsPage() {
               )}
 
               {/* אם אין קבצים */}
-              {!selectedVendorForFiles.contractFileUrl && 
+              {(selectedVendorForFiles.contractFiles || (selectedVendorForFiles.contractFileUrl ? [selectedVendorForFiles.contractFileUrl] : [])).length === 0 && 
                (!canViewFinancials || !selectedVendorForFiles.payments.some(p => p.invoiceUrl || p.receiptUrl)) && (
                 <Box textAlign="center" py={3}>
                   <Typography color="text.secondary">אין קבצים מצורפים</Typography>
