@@ -1171,6 +1171,23 @@ export default function VendorsPage() {
     }).format(amount);
   };
 
+  // Generate display names for contract files, adding (1), (2) for duplicates
+  const getContractDisplayNames = (contractFiles: string[]): string[] => {
+    const names = contractFiles.map(f => parseFileData(f)?.name || 'חוזה');
+    const nameCount: Record<string, number> = {};
+    const nameSeen: Record<string, number> = {};
+    for (const name of names) {
+      nameCount[name] = (nameCount[name] || 0) + 1;
+    }
+    return names.map(name => {
+      if (nameCount[name] > 1) {
+        nameSeen[name] = (nameSeen[name] || 0) + 1;
+        return `${name} (${nameSeen[name]})`;
+      }
+      return name;
+    });
+  };
+
   if (!mounted || roleLoading || loading) {
     return (
       <DashboardLayout projectId={projectId} project={project || undefined}>
@@ -1704,6 +1721,7 @@ export default function VendorsPage() {
                                     {(() => {
                                       const allContracts = vendor.contractFiles || (vendor.contractFileUrl ? [vendor.contractFileUrl] : []);
                                       if (allContracts.length === 0) return null;
+                                      const displayNames = getContractDisplayNames(allContracts);
                                       return (
                                         <>
                                           <Divider />
@@ -1715,10 +1733,7 @@ export default function VendorsPage() {
                                               {allContracts.map((contractStr, idx) => (
                                                 <Chip
                                                   key={idx}
-                                                  label={(() => {
-                                                    const fileData = parseFileData(contractStr);
-                                                    return fileData?.name || `חוזה ${idx + 1}`;
-                                                  })()}
+                                                  label={displayNames[idx]}
                                                   icon={<AttachFileIcon />}
                                                   variant="outlined"
                                                   size="small"
@@ -1841,18 +1856,18 @@ export default function VendorsPage() {
                       disabled={isUploadingFile}
                     />
                   </Button>
-                  {vendorFormData.contractFiles.map((contractFileStr, index) => {
-                    const fileData = parseFileData(contractFileStr);
-                    return (
+                  {(() => {
+                    const displayNames = getContractDisplayNames(vendorFormData.contractFiles);
+                    return vendorFormData.contractFiles.map((contractFileStr, index) => (
                       <Chip
                         key={index}
-                        label={fileData?.name || `חוזה ${index + 1}`}
+                        label={displayNames[index]}
                         onDelete={() => handleDeleteFile(contractFileStr, 'contract')}
                         size="small"
                         icon={<AttachFileIcon />}
                       />
-                    );
-                  })}
+                    ));
+                  })()}
                 </Box>
               </Box>
 
@@ -2676,6 +2691,7 @@ export default function VendorsPage() {
               {(() => {
                 const allContracts = selectedVendorForFiles.contractFiles || (selectedVendorForFiles.contractFileUrl ? [selectedVendorForFiles.contractFileUrl] : []);
                 if (allContracts.length === 0) return null;
+                const displayNames = getContractDisplayNames(allContracts);
                 return (
                   <Box>
                     <Typography variant="subtitle2" color="primary" gutterBottom fontWeight={600}>
@@ -2703,10 +2719,7 @@ export default function VendorsPage() {
                           <Box display="flex" alignItems="center" gap={1}>
                             <AttachFileIcon color="primary" />
                             <Typography variant="body2">
-                              {(() => {
-                                const fileData = parseFileData(contractStr);
-                                return fileData?.name || `חוזה ${idx + 1}`;
-                              })()}
+                              {displayNames[idx]}
                             </Typography>
                           </Box>
                         </Card>
