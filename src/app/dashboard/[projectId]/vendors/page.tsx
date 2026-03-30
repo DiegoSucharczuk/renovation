@@ -162,7 +162,7 @@ export default function VendorsPage() {
   // Google Drive Consent Dialog
   const [showDriveConsent, setShowDriveConsent] = useState(false);
   const [pendingFileUpload, setPendingFileUpload] = useState<{
-    file: File;
+    file: File | File[];
     type: 'logo' | 'contract' | 'invoice' | 'receipt';
   } | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -898,11 +898,11 @@ export default function VendorsPage() {
   };
 
   const handleContractUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    // Show consent dialog
-    setPendingFileUpload({ file, type: 'contract' });
+    // Show consent dialog with all selected files
+    setPendingFileUpload({ file: Array.from(files), type: 'contract' });
     setShowDriveConsent(true);
   };
 
@@ -929,18 +929,16 @@ export default function VendorsPage() {
     if (!pendingFileUpload) return;
 
     const { file, type } = pendingFileUpload;
+    const files = Array.isArray(file) ? file : [file];
 
     setIsUploadingFile(true);
     try {
-      // Delete old file from Drive if exists
+      // Delete old file from Drive if exists (only for single-file types)
       let oldFileId: string | null = null;
       try {
         if (type === 'logo' && vendorFormData.logoUrl) {
           const oldFileData = parseFileData(vendorFormData.logoUrl);
           if (oldFileData?.id) oldFileId = oldFileData.id;
-        } else if (type === 'contract' && vendorFormData.contractFiles.length > 0) {
-          // For contracts, we delete the old file from the last uploaded
-          // Actually, old file deletion is handled in handleDeleteContractFile
         } else if (type === 'invoice' && paymentFormData.invoiceUrl) {
           const oldFileData = parseFileData(paymentFormData.invoiceUrl);
           if (oldFileData?.id) oldFileId = oldFileData.id;
@@ -952,7 +950,6 @@ export default function VendorsPage() {
         if (oldFileId) {
           await deleteFromDrive(oldFileId);
           console.log('Old file deleted from Drive:', oldFileId);
-          // Remove old blob URL from cache
           setImageBlobUrls(prev => {
             const newUrls = { ...prev };
             delete newUrls[oldFileId!];
@@ -961,83 +958,81 @@ export default function VendorsPage() {
         }
       } catch (error) {
         console.error('Error deleting old file from Drive:', error);
-        // Continue with upload even if deletion fails
       }
 
       // Get project members' emails for sharing
       let memberEmails: string[] = [];
       if (project && projectId) {
         try {
-          // Get project owner email
           const allUserIds: string[] = [];
           if (project.ownerId) {
             allUserIds.push(project.ownerId);
           }
           
-          // Get project members from projectUsers collection
           const usersSnapshot = await getDocs(
             query(collection(db, 'projectUsers'), where('projectId', '==', projectId))
           );
           const memberUserIds = usersSnapshot.docs.map(doc => doc.data().userId).filter(Boolean);
           allUserIds.push(...memberUserIds);
           
-          // Remove duplicates
           const uniqueUserIds = Array.from(new Set(allUserIds));
           
-          // Get emails from users collection using userId
           const emailPromises = uniqueUserIds.map(async (userId) => {
             const userDoc = await getDoc(doc(db, 'users', userId));
             return userDoc.exists() ? userDoc.data().email : null;
           });
           
           const emails = await Promise.all(emailPromises);
-          memberEmails = emails.filter(email => email && email !== user?.email) as string[]; // Exclude current user
+          memberEmails = emails.filter(email => email && email !== user?.email) as string[];
         } catch (error) {
           console.error('Error fetching project members:', error);
         }
       }
 
-      // Upload to user's Google Drive and share with project members
-      const result = await uploadToDrive(file, 'שיפוץ-קבצים', memberEmails);
-      
-      // Store the file data with both view and download links
-      const fileData = {
-        id: result.id,
-        name: file.name,
-        url: result.webViewLink, // For viewing
-        downloadUrl: result.webContentLink, // For downloading
-      };
+      // Upload all files (multiple for contracts, single for others)
+      const newContractFiles: string[] = [];
+      for (const singleFile of files) {
+        const result = await uploadToDrive(singleFile, 'שיפוץ-קבצים', memberEmails);
+        
+        const fileData = {
+          id: result.id,
+          name: singleFile.name,
+          url: result.webViewLink,
+          downloadUrl: result.webContentLink,
+        };
 
-      // Load blob URL immediately after upload
-      const blobUrl = await fetchFileAsBlob(result.id);
-      if (blobUrl) {
-        setImageBlobUrls(prev => ({ ...prev, [result.id]: blobUrl }));
-        // Cache the logo as base64 for persistence
+        const blobUrl = await fetchFileAsBlob(result.id);
+        if (blobUrl) {
+          setImageBlobUrls(prev => ({ ...prev, [result.id]: blobUrl }));
+          if (type === 'logo') {
+            await cacheImage(result.id, blobUrl);
+          }
+        }
+
         if (type === 'logo') {
-          await cacheImage(result.id, blobUrl);
+          setVendorFormData(prev => ({ ...prev, logoUrl: JSON.stringify(fileData) }));
+        } else if (type === 'contract') {
+          newContractFiles.push(JSON.stringify(fileData));
+        } else if (type === 'invoice') {
+          setPaymentFormData(prev => ({ ...prev, invoiceUrl: JSON.stringify(fileData) }));
+        } else if (type === 'receipt') {
+          setPaymentFormData(prev => ({ ...prev, receiptUrl: JSON.stringify(fileData) }));
         }
       }
 
-      // Update form data based on type
-      if (type === 'logo') {
-        setVendorFormData({ ...vendorFormData, logoUrl: JSON.stringify(fileData) });
-      } else if (type === 'contract') {
-        setVendorFormData({ ...vendorFormData, contractFiles: [...vendorFormData.contractFiles, JSON.stringify(fileData)] });
-      } else if (type === 'invoice') {
-        setPaymentFormData({ ...paymentFormData, invoiceUrl: JSON.stringify(fileData) });
-      } else if (type === 'receipt') {
-        setPaymentFormData({ ...paymentFormData, receiptUrl: JSON.stringify(fileData) });
+      // Add all new contract files at once
+      if (type === 'contract' && newContractFiles.length > 0) {
+        setVendorFormData(prev => ({ ...prev, contractFiles: [...prev.contractFiles, ...newContractFiles] }));
       }
 
       const sharedWith = memberEmails.length > 0 ? ` ושותף עם ${memberEmails.length} חברים` : '';
-      alert(`הקובץ הועלה בהצלחה ל-Google Drive שלך${sharedWith}!`);
+      const fileCount = files.length > 1 ? `${files.length} קבצים הועלו` : 'הקובץ הועלה';
+      alert(`${fileCount} בהצלחה ל-Google Drive שלך${sharedWith}!`);
       
-      // Update project timestamp
       await updateProjectTimestamp();
     } catch (error: any) {
       console.error('Error uploading to Drive:', error);
       
-      // Check if this is a token expiration error
       if (error?.code === 'TOKEN_EXPIRED' || error?.message?.includes('Drive access expired')) {
         setTokenExpiredDialogOpen(true);
       } else {
@@ -1847,10 +1842,11 @@ export default function VendorsPage() {
                     size="small"
                     disabled={isUploadingFile}
                   >
-                    {isUploadingFile ? 'מעלה...' : 'העלה חוזה'}
+                    {isUploadingFile ? 'מעלה...' : 'העלה חוזים'}
                     <input
                       type="file"
                       hidden
+                      multiple
                       accept=".pdf,.doc,.docx,image/*"
                       onChange={handleContractUpload}
                       disabled={isUploadingFile}
