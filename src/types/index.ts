@@ -201,6 +201,7 @@ export type BudgetCategory =
   | 'DOORS'
   | 'SANITARY'
   | 'DEMOLITION'
+  | 'LIGHTING'
   | 'OTHER';
 
 export interface BudgetItem {

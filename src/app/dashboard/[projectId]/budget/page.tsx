@@ -50,6 +50,7 @@ const budgetCategories: { value: BudgetCategory; label: string; icon: string }[]
   { value: 'DOORS', label: 'דלתות', icon: '🚪' },
   { value: 'SANITARY', label: 'סניטריה', icon: '🚿' },
   { value: 'DEMOLITION', label: 'הריסה / פינוי', icon: '🔨' },
+  { value: 'LIGHTING', label: 'תאורה', icon: '💡' },
   { value: 'OTHER', label: 'אחר', icon: '📦' },
 ];
 

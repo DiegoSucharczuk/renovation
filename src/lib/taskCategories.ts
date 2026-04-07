@@ -19,6 +19,7 @@ export const defaultTaskCategories: TaskCategory[] = [
   { id: '8', name: 'גבס', icon: '⬜', description: 'קירות וגבס תקרה', startDate: '', endDate: '' },
   { id: '9', name: 'מיזוג אוויר', icon: '❄️', description: 'התקנת מערכות מיזוג אוויר', startDate: '', endDate: '' },
   { id: '10', name: 'עיצוב', icon: '✨', description: 'שירותי עיצוב פנים', startDate: '', endDate: '' },
+  { id: '11', name: 'תאורה', icon: '💡', description: 'גופי תאורה ותכנון תאורה', startDate: '', endDate: '' },
 ];
 
 // Simply return default categories (no localStorage)
