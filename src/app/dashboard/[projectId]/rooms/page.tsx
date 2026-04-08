@@ -1179,7 +1179,7 @@ export default function RoomsPage() {
                           return (
                             <Tooltip 
                               key={category}
-                              title={task ? `${statusDisplay.label}${tasksArr.length > 1 ? ` (${tasksArr.length} משימות)` : ''}${task.updatedAt ? ' | עודכן: ' + formatDate(task.updatedAt.split('T')[0]) : ''}` : 'אין משימה'}
+                              title={task ? `${statusDisplay.label}${tasksArr.length > 1 ? ` (${tasksArr.length} משימות)` : ''}${task.updatedAt ? ' | עודכן: ' + formatDate(typeof task.updatedAt === 'string' ? task.updatedAt.split('T')[0] : (task.updatedAt instanceof Date ? task.updatedAt.toISOString().split('T')[0] : (task.updatedAt as any).toDate?.().toISOString().split('T')[0] || '')) : ''}` : 'אין משימה'}
                               arrow
                             >
                               <TableCell
