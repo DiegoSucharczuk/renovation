@@ -38,6 +38,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import type { Project, Meeting } from '@/types';
+import { Vendor } from '@/types/vendor';
 import { formatDateShort } from '@/lib/dateUtils';
 
 
@@ -62,6 +63,7 @@ export default function MeetingsPage() {
   const [currentTab, setCurrentTab] = useState(0);
   const [selectedMeetingDetails, setSelectedMeetingDetails] = useState<Meeting | null>(null);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -70,7 +72,7 @@ export default function MeetingsPage() {
     meetingType: 'SITE_VISIT' as any,
     completed: false,
     decisions: [''],
-    actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', status: 'PENDING' as any }],
+    actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' as any }],
   });
 
   useEffect(() => {
@@ -114,6 +116,11 @@ export default function MeetingsPage() {
         }).sort((a, b) => a.meetingDate.getTime() - b.meetingDate.getTime());
         
         setMeetings(meetingsData);
+
+        // Load vendors
+        const vendorsQuery = query(collection(db, 'vendors'), where('projectId', '==', projectId));
+        const vendorsSnapshot = await getDocs(vendorsQuery);
+        setVendors(vendorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vendor)));
       } catch (error) {
         console.error('Error fetching meetings:', error);
       } finally {
@@ -141,8 +148,9 @@ export default function MeetingsPage() {
           description: a.description,
           dueDate: a.dueDate ? (a.dueDate instanceof Date ? a.dueDate : new Date(a.dueDate)).toISOString().split('T')[0] : '',
           assigneeVendorId: a.assigneeVendorId || '',
+          assigneeName: a.assigneeName || '',
           status: a.status || 'PENDING',
-        })) : [{ id: '', description: '', dueDate: '', assigneeVendorId: '', status: 'PENDING' }],
+        })) : [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' }],
       });
     } else {
       setEditingMeeting(null);
@@ -154,7 +162,7 @@ export default function MeetingsPage() {
         meetingType: 'SITE_VISIT',
         completed: false,
         decisions: [''],
-        actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', status: 'PENDING' }],
+        actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' }],
       });
     }
     setOpenDialog(true);
@@ -187,6 +195,7 @@ export default function MeetingsPage() {
           id: a.id || `action_${Date.now()}_${Math.random()}`,
           description: a.description,
           assigneeVendorId: a.assigneeVendorId || '',
+          assigneeName: a.assigneeName || '',
           dueDate: a.dueDate ? new Date(a.dueDate) : null,
           status: a.status || 'PENDING',
         })),
@@ -505,6 +514,16 @@ export default function MeetingsPage() {
                         {selectedMeetingDetails.actionItems.map((item, idx) => (
                           <Box key={idx} sx={{ p: 1, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
                             <Typography variant="body2">{item.description}</Typography>
+                            {item.assigneeVendorId && (
+                              <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                                ספק: {vendors.find(v => v.id === item.assigneeVendorId)?.name || item.assigneeVendorId}
+                              </Typography>
+                            )}
+                            {item.assigneeName && (
+                              <Typography variant="caption" color="textSecondary" sx={{ display: 'block' }}>
+                                אחראי: {item.assigneeName}
+                              </Typography>
+                            )}
                             {item.dueDate && formatDateShort(item.dueDate) && (
                               <Typography variant="caption" color="textSecondary">תאריך יעד: {formatDateShort(item.dueDate)}</Typography>
                             )}
@@ -650,6 +669,37 @@ export default function MeetingsPage() {
                       sx={{ mb: 1 }}
                     />
                     <TextField
+                      label="ספק"
+                      select
+                      value={item.assigneeVendorId}
+                      onChange={(e) => {
+                        const newItems = [...formData.actionItems];
+                        newItems[idx].assigneeVendorId = e.target.value;
+                        setFormData({ ...formData, actionItems: newItems });
+                      }}
+                      fullWidth
+                      size="small"
+                      sx={{ mb: 1 }}
+                    >
+                      <MenuItem value="">ללא ספק</MenuItem>
+                      {vendors.map(v => (
+                        <MenuItem key={v.id} value={v.id}>{v.name}</MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      label="אחראי על המשימה"
+                      value={item.assigneeName || ''}
+                      onChange={(e) => {
+                        const newItems = [...formData.actionItems];
+                        newItems[idx].assigneeName = e.target.value;
+                        setFormData({ ...formData, actionItems: newItems });
+                      }}
+                      fullWidth
+                      size="small"
+                      placeholder="מי מדבר עם הספק / מי אחראי"
+                      sx={{ mb: 1 }}
+                    />
+                    <TextField
                       label="תאריך יעד"
                       type="date"
                       value={item.dueDate}
@@ -679,7 +729,7 @@ export default function MeetingsPage() {
                   </Box>
                 ))}
                 <Button
-                  onClick={() => setFormData({ ...formData, actionItems: [...formData.actionItems, { id: '', description: '', dueDate: '', assigneeVendorId: '', status: 'PENDING' }] })}
+                  onClick={() => setFormData({ ...formData, actionItems: [...formData.actionItems, { id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' }] })}
                   size="small"
                   variant="outlined"
                 >
