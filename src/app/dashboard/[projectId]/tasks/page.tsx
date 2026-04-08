@@ -481,10 +481,11 @@ export default function TasksPage() {
                   // Apply filters
                   let filteredTasks = tasks;
                   
-                  // Filter by room
+                  // Filter by room (selectedRooms stores room names, match all IDs with that name)
                   if (selectedRooms.length > 0) {
+                    const matchingRoomIds = rooms.filter(r => selectedRooms.includes(r.name)).map(r => r.id);
                     filteredTasks = filteredTasks.filter(task => 
-                      task.roomId && selectedRooms.includes(task.roomId)
+                      task.roomId && matchingRoomIds.includes(task.roomId)
                     );
                   }
                   
@@ -711,9 +712,9 @@ export default function TasksPage() {
                       selected.length === 0 ? 'כל החדרים' : `${selected.length} חדרים`
                     }
                   >
-                    {rooms.map((room) => (
-                      <MenuItem key={room.id} value={room.id}>
-                        <Checkbox checked={selectedRooms.includes(room.id)} />
+                    {Array.from(new Map(rooms.map(r => [r.name, r])).values()).map((room) => (
+                      <MenuItem key={room.name} value={room.name}>
+                        <Checkbox checked={selectedRooms.includes(room.name)} />
                         <Box display="flex" alignItems="center" gap={1}>
                           {room.icon && (
                             <Typography sx={{ fontSize: 18 }}>
