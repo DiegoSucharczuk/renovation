@@ -1100,7 +1100,7 @@ export default function RoomsPage() {
             sx={{
               overflow: 'scroll',
               direction: 'rtl',
-              flex: 1,
+              maxHeight: 'calc(100vh - 350px)',
               '&::-webkit-scrollbar': {
                 width: 10,
                 height: 10,
