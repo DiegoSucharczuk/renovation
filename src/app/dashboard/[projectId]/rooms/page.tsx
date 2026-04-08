@@ -1104,7 +1104,7 @@ export default function RoomsPage() {
             }}
           >
             <Box sx={{ direction: 'ltr' }}>
-              <Table stickyHeader sx={{ direction: 'ltr', tableLayout: 'fixed' }}>
+              <Table stickyHeader sx={{ direction: 'ltr', tableLayout: 'fixed', minWidth: 'max-content' }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ width: 200, minWidth: 200, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
