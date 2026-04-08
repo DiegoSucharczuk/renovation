@@ -231,7 +231,7 @@ export default function RoomsPage() {
       const roomsData = roomsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })).sort((a: any, b: any) => (a.order ?? 999) - (b.order ?? 999));
 
       // Load tasks
       const tasksQuery = query(
