@@ -351,7 +351,7 @@ export default function TasksPage() {
 
   return (
     <DashboardLayout projectId={projectId} project={project || undefined}>
-      <Box sx={{ pr: 3, height: 'calc(100% - 16px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+      <Box sx={{ pr: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, flexShrink: 0 }}>
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.tasks}

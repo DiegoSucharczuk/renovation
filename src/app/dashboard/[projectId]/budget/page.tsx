@@ -255,7 +255,7 @@ export default function BudgetPlanningPage() {
 
   return (
     <DashboardLayout projectId={projectId} project={project || undefined}>
-      <Box sx={{ p: { xs: 2, sm: 3 }, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h5" fontWeight={700}>
             📊 תכנון תקציב

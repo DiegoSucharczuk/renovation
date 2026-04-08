@@ -748,7 +748,7 @@ export default function RoomsPage() {
 
   return (
     <DashboardLayout projectId={projectId}>
-      <Box sx={{ overflow: 'hidden', height: 'calc(100% - 16px)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <Box sx={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, pr: 3, flexShrink: 0 }}>
           <Typography variant="h3" fontWeight="bold">
