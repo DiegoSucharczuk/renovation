@@ -1158,6 +1158,51 @@ export default function VendorsPage() {
     }
   };
 
+  // Delete file directly from DB (for read-only views, not inside edit forms)
+  const handleDeleteFileDirectly = async (dataStr: string, type: 'contract' | 'invoice' | 'receipt', vendorId?: string, paymentId?: string) => {
+    if (!dataStr) {
+      alert('לא נמצא קובץ למחיקה');
+      return;
+    }
+    if (!confirm('האם אתה בטוח שברצונך למחוק קובץ זה?')) return;
+
+    try {
+      const fileData = parseFileData(dataStr);
+      if (fileData?.id) {
+        try {
+          await deleteFromDrive(fileData.id);
+        } catch (driveError: any) {
+          console.warn('Could not delete from Drive:', driveError);
+          if (driveError?.code === 'TOKEN_EXPIRED' || driveError?.message?.includes('Drive access expired')) {
+            setTokenExpiredDialogOpen(true);
+            return;
+          }
+        }
+      }
+
+      if (type === 'contract' && vendorId) {
+        const vendor = vendors.find(v => v.id === vendorId);
+        if (vendor) {
+          const updatedFiles = (vendor.contractFiles || []).filter(f => f !== dataStr);
+          await updateDoc(doc(db, 'vendors', vendorId), { contractFiles: updatedFiles });
+        }
+      } else if (type === 'invoice' && paymentId) {
+        await updateDoc(doc(db, 'payments', paymentId), { invoiceUrl: '', invoiceDescription: '' });
+      } else if (type === 'receipt' && paymentId) {
+        await updateDoc(doc(db, 'payments', paymentId), { receiptUrl: '', receiptDescription: '' });
+      }
+
+      // Close file viewer if open
+      setOpenFileViewerDialog(false);
+      setViewingFile(null);
+      await fetchData();
+      alert('הקובץ נמחק בהצלחה');
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('שגיאה במחיקת הקובץ: ' + ((error as any).message || 'שגיאה לא ידועה'));
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('he-IL', {
       style: 'currency',
@@ -1740,6 +1785,7 @@ export default function VendorsPage() {
                                                     });
                                                     setOpenFileViewerDialog(true);
                                                   }}
+                                                  onDelete={canEditVendors ? () => handleDeleteFileDirectly(contractStr, 'contract', vendor.id) : undefined}
                                                   sx={{ cursor: 'pointer' }}
                                                 />
                                               ))}
@@ -2325,6 +2371,7 @@ export default function VendorsPage() {
                                       });
                                       setOpenFileViewerDialog(true);
                                     }}
+                                    onDelete={canEditVendors ? () => handleDeleteFileDirectly(payment.invoiceUrl!, 'invoice', undefined, payment.id) : undefined}
                                     sx={{ cursor: 'pointer' }}
                                   />
                                 </Tooltip>
@@ -2350,6 +2397,7 @@ export default function VendorsPage() {
                                       });
                                       setOpenFileViewerDialog(true);
                                     }}
+                                    onDelete={canEditVendors ? () => handleDeleteFileDirectly(payment.receiptUrl!, 'receipt', undefined, payment.id) : undefined}
                                     sx={{ cursor: 'pointer' }}
                                   />
                                 </Tooltip>
@@ -3083,6 +3131,23 @@ export default function VendorsPage() {
           )}
         </DialogContent>
         <DialogActions>
+          {canEditVendors && viewingFile && (
+            <Button
+              color="error"
+              onClick={() => {
+                if (viewingFile.type === 'contract') {
+                  handleDeleteFileDirectly(viewingFile.url, 'contract', viewingFile.vendor?.id);
+                } else if (viewingFile.type === 'invoice') {
+                  handleDeleteFileDirectly(viewingFile.url, 'invoice', undefined, viewingFile.payment?.id);
+                } else if (viewingFile.type === 'receipt') {
+                  handleDeleteFileDirectly(viewingFile.url, 'receipt', undefined, viewingFile.payment?.id);
+                }
+              }}
+              startIcon={<DeleteIcon />}
+            >
+              מחק קובץ
+            </Button>
+          )}
           <Button onClick={() => setOpenFileViewerDialog(false)}>סגור</Button>
         </DialogActions>
       </Dialog>
