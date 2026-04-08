@@ -429,12 +429,19 @@ export default function PaymentsPage() {
                                       <TableCell>תאריך</TableCell>
                                       <TableCell align="center">סכום</TableCell>
                                       <TableCell align="center">סטטוס</TableCell>
-                                      <TableCell align="center">תאריך משוער</TableCell>
                                       <TableCell>הערות</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {vendor.payments.map((payment) => {
+                                    {[...vendor.payments].sort((a, b) => {
+                                      const statusOrder: Record<string, number> = { 'שולם': 0, 'ממתין': 1, 'מתוכנן': 2 };
+                                      const orderA = statusOrder[a.status] ?? 3;
+                                      const orderB = statusOrder[b.status] ?? 3;
+                                      if (orderA !== orderB) return orderA - orderB;
+                                      const dateA = a.status === 'שולם' ? a.date : a.estimatedDate;
+                                      const dateB = b.status === 'שולם' ? b.date : b.estimatedDate;
+                                      return (dateA || '').localeCompare(dateB || '');
+                                    }).map((payment) => {
                                       const isOverdueWaiting = payment.status === 'ממתין' && payment.estimatedDate && 
                                         new Date(payment.estimatedDate) < new Date();
                                       return (
@@ -444,7 +451,7 @@ export default function PaymentsPage() {
                                             backgroundColor: isOverdueWaiting ? '#ffebee' : 'inherit'
                                           }}
                                         >
-                                          <TableCell>{formatDateShort(payment.date || '')}</TableCell>
+                                          <TableCell>{formatDateShort(payment.status === 'שולם' ? (payment.date || '') : (payment.estimatedDate || ''))}</TableCell>
                                           <TableCell align="center">{formatCurrency(payment.amount)}</TableCell>
                                           <TableCell align="center">
                                             <Chip 
@@ -458,7 +465,6 @@ export default function PaymentsPage() {
                                               }
                                             />
                                           </TableCell>
-                                          <TableCell align="center">{formatDateShort(payment.estimatedDate || '')}</TableCell>
                                           <TableCell>{payment.notes || '—'}</TableCell>
                                         </TableRow>
                                       );
