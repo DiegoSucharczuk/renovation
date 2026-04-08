@@ -748,7 +748,7 @@ export default function RoomsPage() {
 
   return (
     <DashboardLayout projectId={projectId}>
-      <Box sx={{ overflow: 'hidden', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ overflow: 'hidden', height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3, pr: 3 }}>
           <Typography variant="h3" fontWeight="bold">
@@ -1088,13 +1088,17 @@ export default function RoomsPage() {
             boxShadow: 3,
             '&:hover': { boxShadow: 4 },
             transition: 'box-shadow 0.2s',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           <TableContainer
             sx={{
               overflow: 'auto',
               direction: 'rtl',
-              maxHeight: 'calc(100vh - 200px)',
+              flex: 1,
             }}
           >
             <Box sx={{ direction: 'ltr' }}>
