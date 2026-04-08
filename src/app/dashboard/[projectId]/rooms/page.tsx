@@ -1486,25 +1486,58 @@ export default function RoomsPage() {
                   <Select
                     multiple
                     value={selectedRooms}
-                    onChange={(e) => setSelectedRooms(e.target.value as string[])}
+                    onChange={(e) => {
+                      const values = e.target.value as string[];
+                      // When a room name is toggled, include/exclude all room IDs with that name
+                      const lastValue = values[values.length - 1];
+                      if (lastValue && !selectedRooms.includes(lastValue)) {
+                        // Adding: find the room name and add all IDs with that name
+                        const room = rooms.find(r => r.id === lastValue);
+                        if (room) {
+                          const allIds = rooms.filter(r => r.name === room.name).map(r => r.id);
+                          setSelectedRooms([...new Set([...selectedRooms, ...allIds])]);
+                        }
+                      } else {
+                        // Removing: find the room name and remove all IDs with that name
+                        const room = rooms.find(r => r.id === lastValue);
+                        if (room) {
+                          const allIds = rooms.filter(r => r.name === room.name).map(r => r.id);
+                          setSelectedRooms(selectedRooms.filter(id => !allIds.includes(id)));
+                        } else {
+                          setSelectedRooms(values);
+                        }
+                      }
+                    }}
                     input={<OutlinedInput label="חדרים" />}
                     renderValue={(selected) => 
                       selected.length === 0 ? 'כל החדרים' : `${selected.length} חדרים`
                     }
                   >
-                    {rooms.map((room) => (
-                      <MenuItem key={room.id} value={room.id}>
-                        <Checkbox checked={selectedRooms.includes(room.id)} />
-                        <Box display="flex" alignItems="center" gap={1}>
-                          {(room.icon ? iconMap[room.icon] : roomIcons[room.name]) && (
-                            <Typography sx={{ fontSize: 18 }}>
-                              {room.icon ? iconMap[room.icon] : roomIcons[room.name]}
-                            </Typography>
-                          )}
-                          <Typography>{room.name}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
+                    {(() => {
+                      const seen = new Set<string>();
+                      return rooms.filter(room => {
+                        if (seen.has(room.name)) return false;
+                        seen.add(room.name);
+                        return true;
+                      }).map((room) => {
+                        const count = rooms.filter(r => r.name === room.name).length;
+                        const allIds = rooms.filter(r => r.name === room.name).map(r => r.id);
+                        const isChecked = allIds.some(id => selectedRooms.includes(id));
+                        return (
+                          <MenuItem key={room.id} value={room.id}>
+                            <Checkbox checked={isChecked} />
+                            <Box display="flex" alignItems="center" gap={1}>
+                              {(room.icon ? iconMap[room.icon] : roomIcons[room.name]) && (
+                                <Typography sx={{ fontSize: 18 }}>
+                                  {room.icon ? iconMap[room.icon] : roomIcons[room.name]}
+                                </Typography>
+                              )}
+                              <Typography>{room.name}{count > 1 ? ` (${count})` : ''}</Typography>
+                            </Box>
+                          </MenuItem>
+                        );
+                      });
+                    })()}
                   </Select>
                 </FormControl>
               </Box>
