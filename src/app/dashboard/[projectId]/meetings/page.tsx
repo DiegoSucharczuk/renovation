@@ -377,6 +377,8 @@ export default function MeetingsPage() {
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>תאריך פגישה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>סוג</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>כותרת</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>ספק</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>אחראי</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>תאריך יעד</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>פעולות</TableCell>
                 </TableRow>
@@ -424,6 +426,30 @@ export default function MeetingsPage() {
                         {meeting.description && (
                           <Typography variant="caption" color="textSecondary" sx={{ whiteSpace: 'pre-line' }}>{meeting.description}</Typography>
                         )}
+                      </TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                        {(() => {
+                          const vendorNames = meeting.actionItems
+                            ?.map(a => a.assigneeVendorId ? vendors.find(v => v.id === a.assigneeVendorId)?.name : null)
+                            .filter(Boolean);
+                          const unique = [...new Set(vendorNames)];
+                          return unique.length > 0 ? (
+                            <Box display="flex" gap={0.5} flexWrap="wrap">
+                              {unique.map((name, i) => <Chip key={i} label={name} size="small" variant="outlined" />)}
+                            </Box>
+                          ) : '—';
+                        })()}
+                      </TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                        {(() => {
+                          const names = meeting.actionItems
+                            ?.map(a => a.assigneeName)
+                            .filter(Boolean);
+                          const unique = [...new Set(names)];
+                          return unique.length > 0 ? (
+                            <Typography variant="body2">{unique.join(', ')}</Typography>
+                          ) : '—';
+                        })()}
                       </TableCell>
                       <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDateShort(meeting.dueDate)}</TableCell>
                       <TableCell align="center" onClick={(e) => e.stopPropagation()}>
