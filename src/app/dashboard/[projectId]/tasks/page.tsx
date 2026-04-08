@@ -351,8 +351,8 @@ export default function TasksPage() {
 
   return (
     <DashboardLayout projectId={projectId} project={project || undefined}>
-      <Box sx={{ pr: 3, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
+      <Box sx={{ pr: 3, height: 'calc(100% - 16px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, flexShrink: 0 }}>
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.tasks}
           </Typography>
@@ -398,7 +398,7 @@ export default function TasksPage() {
         </Box>
 
         {/* Summary Cards */}
-        <Box sx={{ px: 3, mb: 3, display: 'grid', gap: 2, gridAutoFlow: 'column', gridAutoColumns: '1fr', overflowX: 'auto', pb: 1 }}>
+        <Box sx={{ px: 3, mb: 2, display: 'grid', gap: 2, gridAutoFlow: 'column', gridAutoColumns: '1fr', overflowX: 'auto', pb: 1, flexShrink: 0 }}>
           <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>סה"כ משימות</Typography>
@@ -450,6 +450,7 @@ export default function TasksPage() {
         {/* Tasks Table */}
         <Card sx={{ 
           mx: 3,
+          mb: 1,
           boxShadow: 3,
           '&:hover': {
             boxShadow: 4,
@@ -461,6 +462,7 @@ export default function TasksPage() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          minHeight: 0,
         }}>
           <TableContainer sx={{ direction: 'rtl', flex: 1, overflow: 'auto', width: '100%' }}>
             <Box sx={{ direction: 'ltr' }}>
