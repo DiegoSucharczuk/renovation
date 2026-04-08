@@ -2277,7 +2277,7 @@ export default function VendorsPage() {
                       <Table stickyHeader size="small" sx={{ minWidth: 900 }}>
                         <TableHead>
                           <TableRow>
-                        <TableCell sx={{ fontWeight: 'bold', minWidth: 100, whiteSpace: 'nowrap' }}>תאריך</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', minWidth: 130, whiteSpace: 'nowrap' }}>תאריך</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', minWidth: 100, whiteSpace: 'nowrap' }}>סכום</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', minWidth: 120, whiteSpace: 'nowrap' }}>אמצעי תשלום</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', minWidth: 90, whiteSpace: 'nowrap' }}>סטטוס</TableCell>
