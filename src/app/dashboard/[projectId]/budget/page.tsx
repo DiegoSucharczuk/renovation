@@ -314,8 +314,8 @@ export default function BudgetPlanningPage() {
 
         {/* Budget Items Table */}
         <Card>
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' }}>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                   <TableCell sx={{ fontWeight: 700 }}>קטגוריה</TableCell>
