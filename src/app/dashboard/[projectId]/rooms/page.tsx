@@ -1098,9 +1098,25 @@ export default function RoomsPage() {
         >
           <TableContainer
             sx={{
-              overflow: 'auto',
+              overflow: 'scroll',
               direction: 'rtl',
               flex: 1,
+              '&::-webkit-scrollbar': {
+                width: 10,
+                height: 10,
+                display: 'block',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#f1f1f1',
+                borderRadius: 4,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#888',
+                borderRadius: 4,
+                '&:hover': {
+                  backgroundColor: '#555',
+                },
+              },
             }}
           >
             <Box sx={{ direction: 'ltr' }}>
