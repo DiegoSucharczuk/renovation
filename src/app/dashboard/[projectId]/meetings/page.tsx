@@ -413,7 +413,7 @@ export default function MeetingsPage() {
                       <TableCell sx={{ borderRight: '1px solid #ddd' }}>
                         <Typography variant="body2" fontWeight="500">{meeting.title}</Typography>
                         {meeting.description && (
-                          <Typography variant="caption" color="textSecondary">{meeting.description}</Typography>
+                          <Typography variant="caption" color="textSecondary" sx={{ whiteSpace: 'pre-line' }}>{meeting.description}</Typography>
                         )}
                       </TableCell>
                       <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDateShort(meeting.dueDate)}</TableCell>
@@ -485,7 +485,7 @@ export default function MeetingsPage() {
                   {selectedMeetingDetails.description && (
                     <Box>
                       <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>תיאור</Typography>
-                      <Typography>{selectedMeetingDetails.description}</Typography>
+                      <Typography sx={{ whiteSpace: 'pre-line' }}>{selectedMeetingDetails.description}</Typography>
                     </Box>
                   )}
 
