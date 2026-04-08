@@ -748,9 +748,9 @@ export default function RoomsPage() {
 
   return (
     <DashboardLayout projectId={projectId}>
-      <Box sx={{ overflow: 'hidden', height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ overflow: 'hidden', height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3, pr: 3 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, pr: 3, flexShrink: 0 }}>
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.rooms}
           </Typography>
@@ -796,7 +796,7 @@ export default function RoomsPage() {
         </Box>
 
         {/* Statistics Grid */}
-        <Box sx={{ px: 3, pr: 3, mb: 3 }}>
+        <Box sx={{ px: 3, pr: 3, mb: 2, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
             {/* Total Tasks Card */}
             <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
@@ -1092,6 +1092,7 @@ export default function RoomsPage() {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            minHeight: 0,
           }}
         >
           <TableContainer
