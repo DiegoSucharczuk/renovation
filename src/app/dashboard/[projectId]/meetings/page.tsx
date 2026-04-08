@@ -370,17 +370,17 @@ export default function MeetingsPage() {
         </Box>
 
         <Card sx={{ borderRadius: 2 }}>
-          <TableContainer>
-            <Table sx={{ borderCollapse: 'collapse' }}>
+          <TableContainer sx={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', overflowX: 'hidden' }}>
+            <Table stickyHeader sx={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
               <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>תאריך פגישה</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>סוג</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך פגישה</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>סוג</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>כותרת</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>ספק</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>אחראי</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>תאריך יעד</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>פעולות</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך יעד</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap' }}>פעולות</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
