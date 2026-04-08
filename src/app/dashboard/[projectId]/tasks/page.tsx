@@ -159,7 +159,7 @@ export default function TasksPage() {
             startActual: data.startActual?.toDate ? data.startActual.toDate() : data.startActual,
             endActual: data.endActual?.toDate ? data.endActual.toDate() : data.endActual,
           } as unknown as Task;
-        });
+        }).sort((a: any, b: any) => (a.order ?? 999) - (b.order ?? 999));
         setTasks(tasksData);
         console.log('Loaded tasks:', tasksData.length, tasksData);
         console.log('Loading state before finally:', loading);
@@ -269,7 +269,7 @@ export default function TasksPage() {
     }
   };
 
-  const handleMoveTask = (event: React.MouseEvent, index: number, direction: 'up' | 'down') => {
+  const handleMoveTask = async (event: React.MouseEvent, index: number, direction: 'up' | 'down') => {
     event.stopPropagation();
     const newTasks = [...tasks];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
@@ -278,6 +278,16 @@ export default function TasksPage() {
     
     [newTasks[index], newTasks[targetIndex]] = [newTasks[targetIndex], newTasks[index]];
     setTasks(newTasks);
+
+    try {
+      await Promise.all(
+        newTasks.map((task, idx) => 
+          updateDoc(doc(db, 'tasks', task.id), { order: idx })
+        )
+      );
+    } catch (error) {
+      console.error('Error saving task order:', error);
+    }
   };
 
   if (loading) {
@@ -341,7 +351,7 @@ export default function TasksPage() {
 
   return (
     <DashboardLayout projectId={projectId} project={project || undefined}>
-      <Box sx={{ pr: 3 }}>
+      <Box sx={{ pr: 3, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} sx={{ px: 3 }}>
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.tasks}
@@ -447,8 +457,12 @@ export default function TasksPage() {
           transition: 'box-shadow 0.2s',
           direction: 'ltr',
           position: 'relative',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}>
-          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 350px)', overflow: 'auto', width: '100%' }}>
+          <TableContainer sx={{ direction: 'rtl', flex: 1, overflow: 'auto', width: '100%' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
               <TableHead>
