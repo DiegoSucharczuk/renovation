@@ -221,7 +221,7 @@ export default function BudgetPlanningPage() {
 
   if (!mounted || loading || roleLoading) {
     return (
-      <DashboardLayout projectId={projectId} scrollable>
+      <DashboardLayout projectId={projectId}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress />
         </Box>
@@ -254,8 +254,8 @@ export default function BudgetPlanningPage() {
   }, {} as Record<string, number>);
 
   return (
-    <DashboardLayout projectId={projectId} project={project || undefined} scrollable>
-      <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <DashboardLayout projectId={projectId} project={project || undefined}>
+      <Box sx={{ p: { xs: 2, sm: 3 }, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h5" fontWeight={700}>
             📊 תכנון תקציב
@@ -313,8 +313,8 @@ export default function BudgetPlanningPage() {
         )}
 
         {/* Budget Items Table */}
-        <Card>
-          <TableContainer sx={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' }}>
+        <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <TableContainer sx={{ flex: 1, overflowY: 'auto' }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
