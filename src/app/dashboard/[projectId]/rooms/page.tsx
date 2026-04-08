@@ -252,14 +252,14 @@ export default function RoomsPage() {
 
       // Build rooms with tasks matrix
       const roomsWithTasks = roomsData.map(room => {
-        const roomTasks: Record<string, any> = {};
+        const roomTasks: Record<string, any[]> = {};
         categories.forEach(category => {
-          const task = tasksData.find(t => t.roomId === room.id && t.category === category);
-          if (task) {
-            roomTasks[category] = {
+          const matchingTasks = tasksData.filter(t => t.roomId === room.id && t.category === category);
+          if (matchingTasks.length > 0) {
+            roomTasks[category] = matchingTasks.map(task => ({
               ...task,
               status: task.status || 'NOT_STARTED',
-            };
+            }));
           }
         });
         return {
@@ -697,8 +697,8 @@ export default function RoomsPage() {
     
     // Status filter - show room if ANY task matches ANY selected status
     if (selectedStatuses.length > 0) {
-      const hasMatchingStatus = Object.values(room.tasks).some((task: any) => 
-        task && selectedStatuses.includes(task.status)
+      const hasMatchingStatus = Object.values(room.tasks).some((tasks: any) => 
+        Array.isArray(tasks) && tasks.some((task: any) => task && selectedStatuses.includes(task.status))
       );
       if (!hasMatchingStatus) return false;
     }
@@ -727,8 +727,8 @@ export default function RoomsPage() {
 
   const handleShowProblems = () => {
     const problematicRooms = rooms.filter(room => 
-      Object.values(room.tasks).some((task: any) => 
-        task && (task.status === 'BLOCKED' || isOverdue(task) || isInProgressOverdue(task))
+      Object.values(room.tasks).some((tasks: any) => 
+        Array.isArray(tasks) && tasks.some((task: any) => task && (task.status === 'BLOCKED' || isOverdue(task) || isInProgressOverdue(task)))
       )
     ).map(r => r.id);
     setSelectedRooms(problematicRooms);
@@ -1168,7 +1168,8 @@ export default function RoomsPage() {
 
                         {/* Task Status Cells */}
                         {filteredCategories.map((category) => {
-                          const task = room.tasks[category];
+                          const tasksArr = room.tasks[category] || [];
+                          const task = tasksArr[0] || null;
                           const statusDisplay = getStatusDisplay(task);
                           const overdue = isOverdue(task);
                           const inProgressOverdue = isInProgressOverdue(task);
@@ -1176,7 +1177,7 @@ export default function RoomsPage() {
                           return (
                             <Tooltip 
                               key={category}
-                              title={task ? `${statusDisplay.label}${task.updatedAt ? ' | עודכן: ' + formatDate(task.updatedAt.split('T')[0]) : ''}` : 'אין משימה'}
+                              title={task ? `${statusDisplay.label}${tasksArr.length > 1 ? ` (${tasksArr.length} משימות)` : ''}${task.updatedAt ? ' | עודכן: ' + formatDate(task.updatedAt.split('T')[0]) : ''}` : 'אין משימה'}
                               arrow
                             >
                               <TableCell
@@ -1213,49 +1214,48 @@ export default function RoomsPage() {
                               >
                                 {task ? (
                                   <Box>
-                                    <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
-                                      <Typography
-                                        sx={{
-                                          fontSize: '24px',
-                                          color: statusDisplay.color,
-                                          lineHeight: 1,
-                                          fontWeight: 'bold',
-                                        }}
-                                      >
-                                        {statusDisplay.icon}
-                                      </Typography>
-                                      {inProgressOverdue && (
-                                        <Typography sx={{ fontSize: '16px' }}>⚠️</Typography>
-                                      )}
-                                      {task.progress > 0 && (
-                                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 'bold' }} color="primary">
-                                          {task.progress}%
-                                        </Typography>
-                                      )}
-                                    </Box>
-                                    {task.startDate && (
-                                      <Typography variant="caption" display="block" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
-                                        {formatDate(task.startDate)}
-                                      </Typography>
-                                    )}
-                                    {task.endDate && (
-                                      <Typography
-                                        variant="caption"
-                                        display="block"
-                                        sx={{
-                                          color: (overdue || inProgressOverdue) ? '#d32f2f' : 'text.secondary',
-                                          fontWeight: (overdue || inProgressOverdue) ? 'bold' : 'normal',
-                                          fontSize: '0.75rem',
-                                        }}
-                                      >
-                                        {formatDate(task.endDate)}
-                                      </Typography>
-                                    )}
-                                    {task.updatedAt && (
-                                      <Typography variant="caption" display="block" sx={{ color: '#999', fontSize: '0.65rem', mt: 0.5 }} suppressHydrationWarning>
-                                        עודכן: {formatDate(task.updatedAt.split('T')[0])}
-                                      </Typography>
-                                    )}
+                                    {tasksArr.map((t: any, tIdx: number) => {
+                                      const tStatus = getStatusDisplay(t);
+                                      const tOverdue = isOverdue(t);
+                                      const tInProgressOverdue = isInProgressOverdue(t);
+                                      return (
+                                        <Box key={tIdx} sx={{ mb: tIdx < tasksArr.length - 1 ? 0.5 : 0, pb: tIdx < tasksArr.length - 1 ? 0.5 : 0, borderBottom: tIdx < tasksArr.length - 1 ? '1px dashed #ccc' : 'none', cursor: 'pointer' }} onClick={(e) => { if (tIdx > 0) { e.stopPropagation(); handleOpenTaskDialog(room.id, category, t); } }}>
+                                          <Box display="flex" alignItems="center" justifyContent="center" gap={0.5} mb={0.5}>
+                                            <Typography
+                                              sx={{
+                                                fontSize: tasksArr.length > 1 ? '18px' : '24px',
+                                                color: tStatus.color,
+                                                lineHeight: 1,
+                                                fontWeight: 'bold',
+                                              }}
+                                            >
+                                              {tStatus.icon}
+                                            </Typography>
+                                            {tInProgressOverdue && (
+                                              <Typography sx={{ fontSize: tasksArr.length > 1 ? '12px' : '16px' }}>⚠️</Typography>
+                                            )}
+                                            {t.progress > 0 && (
+                                              <Typography sx={{ fontSize: '0.75rem', fontWeight: 'bold' }} color="primary">
+                                                {t.progress}%
+                                              </Typography>
+                                            )}
+                                          </Box>
+                                          {t.endDate && (
+                                            <Typography
+                                              variant="caption"
+                                              display="block"
+                                              sx={{
+                                                color: (tOverdue || tInProgressOverdue) ? '#d32f2f' : 'text.secondary',
+                                                fontWeight: (tOverdue || tInProgressOverdue) ? 'bold' : 'normal',
+                                                fontSize: '0.7rem',
+                                              }}
+                                            >
+                                              {formatDate(t.endDate)}
+                                            </Typography>
+                                          )}
+                                        </Box>
+                                      );
+                                    })}
                                   </Box>
                                 ) : (
                                   <Typography variant="body2" color="text.disabled">—</Typography>
