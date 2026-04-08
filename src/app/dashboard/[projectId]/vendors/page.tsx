@@ -2298,7 +2298,15 @@ export default function VendorsPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        selectedVendor.payments.map((payment) => (
+                        [...selectedVendor.payments].sort((a, b) => {
+                          const statusOrder: Record<string, number> = { 'שולם': 0, 'ממתין': 1, 'מתוכנן': 2 };
+                          const orderA = statusOrder[a.status] ?? 3;
+                          const orderB = statusOrder[b.status] ?? 3;
+                          if (orderA !== orderB) return orderA - orderB;
+                          const dateA = a.status === 'שולם' ? a.date : a.estimatedDate;
+                          const dateB = b.status === 'שולם' ? b.date : b.estimatedDate;
+                          return (dateA || '').localeCompare(dateB || '');
+                        }).map((payment) => (
                           <TableRow 
                             key={payment.id} 
                             hover
