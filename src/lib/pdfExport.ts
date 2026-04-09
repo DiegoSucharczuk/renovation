@@ -34,9 +34,11 @@ export const exportMeetingsToPDF = (
         body {
           font-family: 'Heebo', 'Assistant', Arial, sans-serif;
           direction: rtl;
-          padding: 30px;
+          padding: 20px;
           color: #1a1a1a;
           background-color: #ffffff;
+          max-width: 100%;
+          overflow-x: hidden;
         }
         .header {
           text-align: right;
@@ -61,6 +63,7 @@ export const exportMeetingsToPDF = (
           border-radius: 8px;
           overflow: hidden;
           box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+          max-width: 100%;
         }
         .meeting-header {
           background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
@@ -70,15 +73,19 @@ export const exportMeetingsToPDF = (
           font-weight: 700;
         }
         .meeting-body {
-          padding: 16px;
+          padding: 12px;
           background-color: #fafafa;
+          max-width: 100%;
+          box-sizing: border-box;
         }
         .meeting-details {
           background-color: white;
-          padding: 12px;
+          padding: 10px;
           border-radius: 6px;
           margin-bottom: 12px;
           border-right: 4px solid #1565c0;
+          max-width: 100%;
+          box-sizing: border-box;
         }
         .meeting-details .detail-row {
           font-size: 12px;
@@ -115,48 +122,62 @@ export const exportMeetingsToPDF = (
           line-height: 1.7;
           margin-bottom: 12px;
           white-space: pre-wrap;
-          padding: 12px;
+          padding: 10px;
           background-color: white;
           border-radius: 6px;
           color: #333;
+          max-width: 100%;
+          box-sizing: border-box;
+          word-wrap: break-word;
         }
         .action-item {
           font-size: 11px;
           margin-bottom: 8px;
-          padding: 10px 12px;
+          padding: 10px;
           background-color: white;
           border-radius: 6px;
           line-height: 1.6;
           border: 1px solid #e0e0e0;
           page-break-inside: avoid;
+          max-width: 100%;
+          box-sizing: border-box;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         .action-item-title {
           font-weight: 600;
           color: #1a1a1a;
           margin-bottom: 6px;
+          word-wrap: break-word;
         }
         .action-item-detail {
-          margin-right: 12px;
+          margin-right: 8px;
           color: #666;
           margin-bottom: 3px;
           display: flex;
           align-items: center;
+          word-wrap: break-word;
         }
         .action-item-detail::before {
           content: "•";
           margin-left: 6px;
           color: #1565c0;
           font-weight: bold;
+          flex-shrink: 0;
         }
         .decision-item {
           font-size: 11px;
           margin-bottom: 6px;
           line-height: 1.6;
-          padding: 8px 12px;
+          padding: 8px 10px;
           background-color: white;
           border-radius: 6px;
           border-right: 3px solid #4caf50;
           page-break-inside: avoid;
+          max-width: 100%;
+          box-sizing: border-box;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         .separator {
           height: 2px;
@@ -238,7 +259,9 @@ export const exportMeetingsToPDF = (
   // Create a temporary container
   const element = document.createElement('div');
   element.innerHTML = htmlContent;
-  element.style.width = '210mm'; // A4 width
+  element.style.width = '180mm'; // A4 width minus margins
+  element.style.maxWidth = '100%';
+  element.style.boxSizing = 'border-box';
 
   // Configure html2pdf options
   const opt = {
