@@ -729,22 +729,6 @@ export default function MeetingsPage() {
                     </Box>
                   )}
 
-                  {/* Decisions */}
-                  {selectedMeetingDetails.decisions && selectedMeetingDetails.decisions.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>החלטות</Typography>
-                      <Stack spacing={1}>
-                        {selectedMeetingDetails.decisions.map((decision, idx) => (
-                          decision && (
-                            <Typography key={idx} variant="body2" sx={{ display: 'flex', gap: 1 }}>
-                              <span>•</span> {decision}
-                            </Typography>
-                          )
-                        ))}
-                      </Stack>
-                    </Box>
-                  )}
-
                   {/* Status */}
                   <Box>
                     <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>סטטוס</Typography>
@@ -926,21 +910,35 @@ export default function MeetingsPage() {
                         עדכוני התקדמות
                       </Typography>
                       {(item.progressUpdates || []).map((update: any, pIdx: number) => (
-                        <Box key={pIdx} sx={{ display: 'flex', gap: 1, mb: 0.5, mt: 0.5, alignItems: 'center' }}>
-                          <TextField
-                            value={update.date}
-                            type="date"
-                            onChange={(e) => {
-                              const newItems = [...formData.actionItems];
-                              const updates = [...(newItems[idx].progressUpdates || [])];
-                              updates[pIdx] = { ...updates[pIdx], date: e.target.value };
-                              newItems[idx].progressUpdates = updates;
-                              setFormData({ ...formData, actionItems: newItems });
-                            }}
-                            size="small"
-                            sx={{ width: 200, minWidth: 200 }}
-                            InputLabelProps={{ shrink: true }}
-                          />
+                        <Box key={pIdx} sx={{ mb: 1, mt: 0.5 }}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5 }}>
+                            <TextField
+                              value={update.date}
+                              type="date"
+                              onChange={(e) => {
+                                const newItems = [...formData.actionItems];
+                                const updates = [...(newItems[idx].progressUpdates || [])];
+                                updates[pIdx] = { ...updates[pIdx], date: e.target.value };
+                                newItems[idx].progressUpdates = updates;
+                                setFormData({ ...formData, actionItems: newItems });
+                              }}
+                              size="small"
+                              sx={{ width: 200, minWidth: 200 }}
+                              InputLabelProps={{ shrink: true }}
+                            />
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                const newItems = [...formData.actionItems];
+                                const updates = (newItems[idx].progressUpdates || []).filter((_: any, i: number) => i !== pIdx);
+                                newItems[idx].progressUpdates = updates;
+                                setFormData({ ...formData, actionItems: newItems });
+                              }}
+                              color="error"
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
                           <TextField
                             value={update.text}
                             onChange={(e) => {
@@ -953,19 +951,9 @@ export default function MeetingsPage() {
                             placeholder="מה קרה?"
                             fullWidth
                             size="small"
+                            multiline
+                            minRows={2}
                           />
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              const newItems = [...formData.actionItems];
-                              const updates = (newItems[idx].progressUpdates || []).filter((_: any, i: number) => i !== pIdx);
-                              newItems[idx].progressUpdates = updates;
-                              setFormData({ ...formData, actionItems: newItems });
-                            }}
-                            color="error"
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
                         </Box>
                       ))}
                       <Button
