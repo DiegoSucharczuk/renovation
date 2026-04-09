@@ -129,6 +129,9 @@ const taskCategoryIcons: Record<string, string> = {
   'אריחים': '🏗️',
   'גבס': '🧱',
   'דלתות': '🚪',
+  'מיקלחונים': '🚿',
+  'תאורה': '💡',
+  'אלומיניום': '🪟',
 };
 
 const statusOptions = [
