@@ -374,13 +374,13 @@ export default function MeetingsPage() {
             <Table stickyHeader sx={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
               <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך פגישה</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>סוג</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>כותרת</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>ספק</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>אחראי</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך יעד</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap' }}>פעולות</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap', width: 100 }}>תאריך פגישה</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap', width: 80 }}>סוג</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd' }}>תיאור</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', width: 100 }}>ספק</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', width: 100 }}>אחראי</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap', width: 100 }}>תאריך יעד</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center', whiteSpace: 'nowrap', width: 80 }}>פעולות</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
