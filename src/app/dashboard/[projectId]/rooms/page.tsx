@@ -1092,7 +1092,7 @@ export default function RoomsPage() {
         >
           <TableContainer
             sx={{
-              overflowX: 'scroll',
+              overflowX: 'auto',
               overflowY: 'auto',
               maxHeight: '60vh',
               direction: 'rtl',
@@ -1114,7 +1114,8 @@ export default function RoomsPage() {
               },
             }}
           >
-            <Table stickyHeader sx={{ direction: 'rtl', tableLayout: 'fixed', minWidth: '2000px' }}>
+            <Box sx={{ direction: 'ltr', display: 'inline-block', minWidth: '100%' }}>
+              <Table stickyHeader sx={{ direction: 'ltr', tableLayout: 'fixed', minWidth: 'max-content' }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ width: 200, minWidth: 200, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
@@ -1336,6 +1337,7 @@ export default function RoomsPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </Box>
             </TableContainer>
         </Card>
 
