@@ -80,6 +80,7 @@ export default function TasksPage() {
     'דלתות': '🚪',
     'מיקלחונים': '🚿',
     'אלומיניום': '🪟',
+    'תאורה': '💡',
   };
 
   // Room icon mapping
@@ -118,6 +119,7 @@ export default function TasksPage() {
     { name: 'תקרה', emoji: '🔺' },
     { name: 'מיקלחונים', emoji: '🚿' },
     { name: 'אלומיניום', emoji: '🪟' },
+    { name: 'תאורה', emoji: '💡' },
     { name: 'אחר', emoji: '📝' },
   ].sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
