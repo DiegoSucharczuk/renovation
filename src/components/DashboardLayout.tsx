@@ -133,7 +133,7 @@ export default function DashboardLayout({ children, projectId, project, scrollab
         }}
       >
         <Toolbar disableGutters sx={{ height: { xs: '56px', sm: '64px' }, display: 'flex', alignItems: 'center', px: 2, py: 0, gap: 0 }} />
-        <Box sx={{ contain: 'layout', height: 'calc(100vh - 64px)', overflow: scrollable ? 'auto' : 'hidden', pr: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ height: 'calc(100vh - 72px)', overflow: scrollable ? 'auto' : 'hidden', pr: 1, display: 'flex', flexDirection: 'column' }}>
           {children}
         </Box>
       </Box>

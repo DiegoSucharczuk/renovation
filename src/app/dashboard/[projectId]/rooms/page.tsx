@@ -1098,13 +1098,14 @@ export default function RoomsPage() {
         >
           <TableContainer
             sx={{
-              overflow: 'scroll',
+              overflowX: 'auto',
+              overflowY: 'auto',
               direction: 'rtl',
-              maxHeight: 'calc(100vh - 350px)',
+              maxHeight: 'calc(100vh - 400px)',
+              scrollbarWidth: 'thin',
               '&::-webkit-scrollbar': {
-                width: 10,
-                height: 10,
-                display: 'block',
+                width: 12,
+                height: 12,
               },
               '&::-webkit-scrollbar-track': {
                 backgroundColor: '#f1f1f1',
