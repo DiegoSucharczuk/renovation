@@ -216,11 +216,24 @@ export default function MeetingsPage() {
         // Update
         console.log('Updating meeting:', editingMeeting.id, 'with data:', meetingData);
         await updateDoc(doc(db, 'meetings', editingMeeting.id), meetingData);
-        setMeetings(meetings.map(m => 
-          m.id === editingMeeting.id 
-            ? { ...m, ...meetingData }
-            : m
-        ));
+        // Re-read from Firebase to ensure state is synced
+        const updatedDoc = await getDocs(query(collection(db, 'meetings'), where('projectId', '==', projectId)));
+        const updatedMeetings = updatedDoc.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            ...data,
+            meetingDate: data.meetingDate?.toDate ? data.meetingDate.toDate() : new Date(data.meetingDate),
+            dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : (data.dueDate ? new Date(data.dueDate) : null),
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+            actionItems: (data.actionItems || []).map((item: any) => ({
+              ...item,
+              dueDate: item.dueDate?.toDate ? item.dueDate.toDate() : (item.dueDate ? new Date(item.dueDate) : null),
+            })),
+          } as Meeting;
+        }).sort((a, b) => a.meetingDate.getTime() - b.meetingDate.getTime());
+        setMeetings(updatedMeetings);
       } else {
         // Add new
         const newMeeting = {
@@ -486,7 +499,20 @@ export default function MeetingsPage() {
                           ) : '—';
                         })()}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDateShort(meeting.dueDate)}</TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                        {(() => {
+                          // Show meeting dueDate, or latest action item dueDate as fallback
+                          if (meeting.dueDate) return formatDateShort(meeting.dueDate);
+                          const actionDates = meeting.actionItems
+                            ?.map(a => a.dueDate ? new Date(a.dueDate) : null)
+                            .filter(Boolean) as Date[];
+                          if (actionDates.length > 0) {
+                            const latest = actionDates.reduce((a, b) => a > b ? a : b);
+                            return formatDateShort(latest);
+                          }
+                          return '—';
+                        })()}
+                      </TableCell>
                       <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                         <IconButton
                           size="small"
