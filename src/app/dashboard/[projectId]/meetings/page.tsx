@@ -37,6 +37,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ClearIcon from '@mui/icons-material/Clear';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { Fab } from '@mui/material';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
@@ -44,6 +46,7 @@ import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } 
 import type { Project, Meeting } from '@/types';
 import { Vendor } from '@/types/vendor';
 import { formatDateShort } from '@/lib/dateUtils';
+import { exportMeetingsToPDF } from '@/lib/pdfExport';
 
 
 const MEETING_TYPES = [
@@ -72,6 +75,7 @@ export default function MeetingsPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedMeetingsForExport, setSelectedMeetingsForExport] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -376,6 +380,27 @@ export default function MeetingsPage() {
     setSelectedAssignees([]);
   };
 
+  // Checkbox selection handlers
+  const handleSelectAllMeetings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const allMeetingIds = getSortedMeetings().map(m => m.id);
+      setSelectedMeetingsForExport(allMeetingIds);
+    } else {
+      setSelectedMeetingsForExport([]);
+    }
+  };
+
+  const handleSelectMeeting = (meetingId: string) => {
+    setSelectedMeetingsForExport(prev =>
+      prev.includes(meetingId)
+        ? prev.filter(id => id !== meetingId)
+        : [...prev, meetingId]
+    );
+  };
+
+  const isAllSelected = getSortedMeetings().length > 0 &&
+    selectedMeetingsForExport.length === getSortedMeetings().length;
+
   if (loading) {
     return (
       <DashboardLayout projectId={projectId} project={project || undefined}>
@@ -429,6 +454,13 @@ export default function MeetingsPage() {
             <Table stickyHeader sx={{ borderCollapse: 'collapse' }}>
               <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableRow>
+                  <TableCell padding="checkbox" sx={{ borderRight: '1px solid #ddd' }}>
+                    <Checkbox
+                      indeterminate={selectedMeetingsForExport.length > 0 && selectedMeetingsForExport.length < getSortedMeetings().length}
+                      checked={isAllSelected}
+                      onChange={handleSelectAllMeetings}
+                    />
+                  </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך פגישה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>סוג</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', width: '40%' }}>תיאור</TableCell>
@@ -464,25 +496,40 @@ export default function MeetingsPage() {
                   }
                   
                   const tableRow = (
-                    <TableRow key={meeting.id} sx={{ '&:hover': { backgroundColor: bgColor === 'transparent' ? '#f9f9f9' : bgColor, cursor: 'pointer' }, borderBottom: '1px solid #ddd', backgroundColor: bgColor }} onClick={() => {
-                      setSelectedMeetingDetails(meeting);
-                      setOpenDetailsDialog(true);
-                    }}>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>{formatDateShort(meeting.meetingDate)}</TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                    <TableRow key={meeting.id} sx={{ '&:hover': { backgroundColor: bgColor === 'transparent' ? '#f9f9f9' : bgColor, cursor: 'pointer' }, borderBottom: '1px solid #ddd', backgroundColor: bgColor }}>
+                      <TableCell padding="checkbox" sx={{ borderRight: '1px solid #ddd' }} onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedMeetingsForExport.includes(meeting.id)}
+                          onChange={() => handleSelectMeeting(meeting.id)}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }} onClick={() => {
+                        setSelectedMeetingDetails(meeting);
+                        setOpenDetailsDialog(true);
+                      }}>{formatDateShort(meeting.meetingDate)}</TableCell>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }} onClick={() => {
+                        setSelectedMeetingDetails(meeting);
+                        setOpenDetailsDialog(true);
+                      }}>
                         <Chip
                           label={MEETING_TYPES.find(t => t.value === meeting.meetingType)?.label || meeting.meetingType}
                           size="small"
                           variant="outlined"
                         />
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }} onClick={() => {
+                        setSelectedMeetingDetails(meeting);
+                        setOpenDetailsDialog(true);
+                      }}>
                         <Typography variant="body2" fontWeight="500">{meeting.title}</Typography>
                         {meeting.description && (
                           <Typography variant="caption" color="textSecondary" sx={{ whiteSpace: 'pre-line' }}>{meeting.description}</Typography>
                         )}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd', maxWidth: 120 }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd', maxWidth: 120 }} onClick={() => {
+                        setSelectedMeetingDetails(meeting);
+                        setOpenDetailsDialog(true);
+                      }}>
                         {(() => {
                           const vendorNames = meeting.actionItems
                             ?.map(a => a.assigneeVendorId ? vendors.find(v => v.id === a.assigneeVendorId)?.name : null)
@@ -495,7 +542,10 @@ export default function MeetingsPage() {
                           ) : '—';
                         })()}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd', maxWidth: 120 }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd', maxWidth: 120 }} onClick={() => {
+                        setSelectedMeetingDetails(meeting);
+                        setOpenDetailsDialog(true);
+                      }}>
                         {(() => {
                           const names = meeting.actionItems
                             ?.map(a => a.assigneeName)
@@ -506,7 +556,10 @@ export default function MeetingsPage() {
                           ) : '—';
                         })()}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd' }} onClick={() => {
+                        setSelectedMeetingDetails(meeting);
+                        setOpenDetailsDialog(true);
+                      }}>
                         {(() => {
                           // Show meeting dueDate, or latest action item dueDate as fallback
                           if (meeting.dueDate) return formatDateShort(meeting.dueDate);
@@ -552,6 +605,30 @@ export default function MeetingsPage() {
             </Table>
           </TableContainer>
         </Card>
+
+        {/* Export to PDF Floating Button */}
+        {selectedMeetingsForExport.length > 0 && (
+          <Fab
+            variant="extended"
+            color="primary"
+            sx={{
+              position: 'fixed',
+              bottom: 32,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1000,
+              boxShadow: 4,
+            }}
+            onClick={() => {
+              const selectedMeetings = meetings.filter(m => selectedMeetingsForExport.includes(m.id));
+              exportMeetingsToPDF(selectedMeetings, vendors, project?.name || 'פרויקט');
+              setSelectedMeetingsForExport([]);
+            }}
+          >
+            <PictureAsPdfIcon sx={{ mr: 1 }} />
+            ייצוא ל-PDF ({selectedMeetingsForExport.length})
+          </Fab>
+        )}
 
         {/* Meeting Details Dialog */}
         <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="sm" fullWidth>
