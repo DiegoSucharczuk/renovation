@@ -1118,11 +1118,11 @@ export default function RoomsPage() {
               <Table stickyHeader sx={{ direction: 'ltr', tableLayout: 'fixed', minWidth: 'max-content' }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ width: 200, minWidth: 200, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                      <TableCell sx={{ width: 150, minWidth: 150, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
                         <Typography variant="subtitle2" fontWeight="bold">חדר</Typography>
                       </TableCell>
                       {filteredCategories.map((category) => (
-                        <TableCell key={category} sx={{ width: 140, minWidth: 140, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                        <TableCell key={category} sx={{ width: 100, minWidth: 100, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
                           <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
                             <Typography sx={{ fontSize: 18 }}>
                               {taskCategoryIcons[category] || '📝'}
@@ -1133,7 +1133,7 @@ export default function RoomsPage() {
                           </Box>
                         </TableCell>
                       ))}
-                      <TableCell sx={{ width: 140, minWidth: 140, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                      <TableCell sx={{ width: 100, minWidth: 100, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
                         <Typography variant="subtitle2" fontWeight="bold">פעולות</Typography>
                       </TableCell>
                     </TableRow>
