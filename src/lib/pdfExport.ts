@@ -184,20 +184,6 @@ export const exportMeetingsToPDF = (
           line-height: 1.4;
           word-wrap: break-word;
         }
-        .decision-item {
-          font-size: 11px;
-          margin-bottom: 6px;
-          line-height: 1.6;
-          padding: 8px 10px;
-          background-color: white;
-          border-radius: 6px;
-          border-right: 3px solid #4caf50;
-          page-break-inside: avoid;
-          max-width: 100%;
-          box-sizing: border-box;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
         .separator {
           height: 2px;
           background: linear-gradient(to left, #e0e0e0, transparent);
@@ -207,7 +193,7 @@ export const exportMeetingsToPDF = (
           .section-title {
             page-break-after: avoid;
           }
-          .action-item, .decision-item, .detail-row {
+          .action-item, .detail-row {
             page-break-inside: avoid;
           }
         }
@@ -271,12 +257,6 @@ export const exportMeetingsToPDF = (
               }).join('')}
             ` : ''}
 
-            ${meeting.decisions && meeting.decisions.length > 0 && meeting.decisions.some(d => d) ? `
-              <div class="section-title">החלטות</div>
-              ${meeting.decisions.filter(d => d).map(decision => `
-                <div class="decision-item">${decision}</div>
-              `).join('')}
-            ` : ''}
           </div>
         </div>
 
@@ -314,7 +294,7 @@ export const exportMeetingsToPDF = (
     },
     pagebreak: {
       mode: ['css', 'legacy'] as any,
-      avoid: ['.action-item', '.decision-item', '.detail-row']
+      avoid: ['.action-item', '.detail-row']
     }
   };
 
