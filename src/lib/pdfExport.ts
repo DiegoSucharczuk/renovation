@@ -165,6 +165,25 @@ export const exportMeetingsToPDF = (
           font-weight: bold;
           flex-shrink: 0;
         }
+        .progress-updates {
+          margin-top: 8px;
+          padding-right: 8px;
+          border-right: 2px solid #bbb;
+          max-width: 100%;
+        }
+        .progress-updates-title {
+          font-weight: 600;
+          color: #666;
+          font-size: 10px;
+          margin-bottom: 4px;
+        }
+        .progress-update-item {
+          font-size: 10px;
+          color: #555;
+          margin-bottom: 3px;
+          line-height: 1.4;
+          word-wrap: break-word;
+        }
         .decision-item {
           font-size: 11px;
           margin-bottom: 6px;
@@ -229,6 +248,7 @@ export const exportMeetingsToPDF = (
               <div class="section-title">משימות פעולה</div>
               ${meeting.actionItems.map((item, idx) => {
                 const vendor = item.assigneeVendorId ? vendors.find(v => v.id === item.assigneeVendorId) : null;
+                const hasProgressUpdates = item.progressUpdates && item.progressUpdates.length > 0;
                 return `
                   <div class="action-item">
                     <div class="action-item-title">${idx + 1}. ${item.description}</div>
@@ -236,6 +256,16 @@ export const exportMeetingsToPDF = (
                     ${item.assigneeName ? `<div class="action-item-detail">אחראי: ${item.assigneeName}</div>` : ''}
                     ${item.dueDate ? `<div class="action-item-detail">תאריך יעד: ${formatDateShort(item.dueDate)}</div>` : ''}
                     <div class="action-item-detail">סטטוס: ${item.status === 'COMPLETED' ? '✓ הושלמה' : '○ בהמתנה'}</div>
+                    ${hasProgressUpdates ? `
+                      <div class="progress-updates">
+                        <div class="progress-updates-title">עדכוני התקדמות:</div>
+                        ${(item.progressUpdates || []).map((p: any) => `
+                          <div class="progress-update-item">
+                            ${p.date ? formatDateShort(p.date) : ''} — ${p.text}
+                          </div>
+                        `).join('')}
+                      </div>
+                    ` : ''}
                   </div>
                 `;
               }).join('')}
