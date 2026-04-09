@@ -464,7 +464,7 @@ export default function TasksPage() {
           overflow: 'hidden',
           minHeight: 0,
         }}>
-          <TableContainer sx={{ direction: 'rtl', flex: 1, overflow: 'auto', width: '100%' }}>
+          <TableContainer sx={{ direction: 'rtl', overflow: 'auto', width: '100%', maxHeight: 'calc(100vh - 400px)' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
               <TableHead>
