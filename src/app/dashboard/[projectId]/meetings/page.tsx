@@ -473,7 +473,7 @@ export default function MeetingsPage() {
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>בחירה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך פגישה</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>סוג</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>סוג פגישה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', width: '40%' }}>תיאור</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>ספק</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>אחראי</TableCell>
@@ -656,7 +656,7 @@ export default function MeetingsPage() {
 
                   {/* Meeting Type */}
                   <Box>
-                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>סוג</Typography>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>סוג פגישה</Typography>
                     <Chip
                       label={MEETING_TYPES.find(t => t.value === selectedMeetingDetails.meetingType)?.label || selectedMeetingDetails.meetingType}
                       size="small"
@@ -809,7 +809,7 @@ export default function MeetingsPage() {
               />
               <TextField
                 select
-                label="סוג"
+                label="סוג פגישה"
                 value={formData.meetingType}
                 onChange={(e) => setFormData({ ...formData, meetingType: e.target.value as any })}
                 fullWidth
@@ -938,7 +938,7 @@ export default function MeetingsPage() {
                               setFormData({ ...formData, actionItems: newItems });
                             }}
                             size="small"
-                            sx={{ width: 160 }}
+                            sx={{ width: 200, minWidth: 200 }}
                             InputLabelProps={{ shrink: true }}
                           />
                           <TextField
