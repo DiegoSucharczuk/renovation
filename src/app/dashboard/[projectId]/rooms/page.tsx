@@ -1085,7 +1085,6 @@ export default function RoomsPage() {
             mx: 3,
             mb: 2,
             position: 'relative',
-            direction: 'ltr',
             boxShadow: 3,
             '&:hover': { boxShadow: 4 },
             transition: 'box-shadow 0.2s',
@@ -1095,7 +1094,7 @@ export default function RoomsPage() {
             sx={{
               overflowX: 'auto',
               overflowY: 'auto',
-              direction: 'rtl',
+              direction: 'ltr',
               maxHeight: '60vh',
               '&::-webkit-scrollbar': {
                 width: 10,
@@ -1113,8 +1112,7 @@ export default function RoomsPage() {
               },
             }}
           >
-            <Box sx={{ direction: 'ltr' }}>
-              <Table stickyHeader sx={{ direction: 'ltr', tableLayout: 'fixed', minWidth: 'max-content' }}>
+            <Table stickyHeader sx={{ direction: 'rtl', tableLayout: 'fixed', minWidth: 'max-content' }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ width: 200, minWidth: 200, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
@@ -1336,7 +1334,6 @@ export default function RoomsPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </Box>
             </TableContainer>
         </Card>
 
