@@ -1,7 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(curl -s https://renovation-eight.vercel.app/dashboard/cH0wwkiWVqsTcbE8LyW0/rooms)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(brew install:*)",
+      "Bash(npm list:*)",
+      "Bash(npm search:*)",
+      "Bash(curl -s \"https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap\")",
+      "Read(//private/tmp/**)",
+      "Bash(curl -L -o DavidLibre-Regular.ttf \"https://github.com/google/fonts/raw/main/ofl/davidlibre/DavidLibre-Regular.ttf\")",
+      "Bash(base64 -i /tmp/DavidLibre-Regular.ttf -o /tmp/DavidLibre-Regular-base64.txt)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/sphilee/jsPDF-CustomFonts-support/master/dist/default_vfs.js\")",
+      "Bash(npm uninstall:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

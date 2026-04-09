@@ -106,6 +106,12 @@ export interface Vendor {
 // Meeting types
 export type MeetingType = 'SITE_VISIT' | 'PLANNING' | 'SUPPLIER' | 'HANDOVER' | 'OTHER';
 
+export interface ProgressUpdate {
+  id: string;
+  text: string;
+  date: Date;
+}
+
 export interface MeetingActionItem {
   id: string;
   description: string;
@@ -114,6 +120,7 @@ export interface MeetingActionItem {
   dueDate: Date | null;
   status: 'PENDING' | 'COMPLETED';
   createdAsTaskId?: string;
+  progressUpdates?: ProgressUpdate[];
 }
 
 export interface Meeting {

@@ -84,7 +84,7 @@ export default function MeetingsPage() {
     meetingType: 'SITE_VISIT' as any,
     completed: false,
     decisions: [''],
-    actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' as any }],
+    actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' as any, progressUpdates: [] as Array<{id: string, text: string, date: string}> }],
   });
 
   useEffect(() => {
@@ -118,10 +118,13 @@ export default function MeetingsPage() {
             createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
             updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
             actionItems: (data.actionItems || []).map((item: any) => {
-              console.log('Loaded actionItem from Firestore:', item);
               return {
                 ...item,
                 dueDate: item.dueDate?.toDate ? item.dueDate.toDate() : (item.dueDate ? new Date(item.dueDate) : null),
+                progressUpdates: (item.progressUpdates || []).map((p: any) => ({
+                  ...p,
+                  date: p.date?.toDate ? p.date.toDate() : (p.date ? new Date(p.date) : new Date()),
+                })),
               };
             }),
           } as Meeting;
@@ -169,7 +172,12 @@ export default function MeetingsPage() {
           assigneeVendorId: a.assigneeVendorId || '',
           assigneeName: a.assigneeName || '',
           status: a.status || 'PENDING',
-        })) : [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' }],
+          progressUpdates: (a.progressUpdates || []).map((p: any) => ({
+            id: p.id,
+            text: p.text,
+            date: p.date ? toLocalDateString(p.date instanceof Date ? p.date : new Date(p.date)) : '',
+          })),
+        })) : [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING', progressUpdates: [] }],
       });
     } else {
       setEditingMeeting(null);
@@ -181,7 +189,7 @@ export default function MeetingsPage() {
         meetingType: 'SITE_VISIT',
         completed: false,
         decisions: [''],
-        actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' }],
+        actionItems: [{ id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING', progressUpdates: [] }],
       });
     }
     setOpenDialog(true);
@@ -217,6 +225,11 @@ export default function MeetingsPage() {
           assigneeName: a.assigneeName || '',
           dueDate: a.dueDate ? new Date(a.dueDate + 'T12:00:00') : null,
           status: a.status || 'PENDING',
+          progressUpdates: (a.progressUpdates || []).map((p: any) => ({
+            id: p.id,
+            text: p.text,
+            date: p.date ? new Date(p.date + 'T12:00:00') : new Date(),
+          })),
         })),
         updatedAt: new Date(),
       };
@@ -241,6 +254,10 @@ export default function MeetingsPage() {
             actionItems: (data.actionItems || []).map((item: any) => ({
               ...item,
               dueDate: item.dueDate?.toDate ? item.dueDate.toDate() : (item.dueDate ? new Date(item.dueDate) : null),
+              progressUpdates: (item.progressUpdates || []).map((p: any) => ({
+                ...p,
+                date: p.date?.toDate ? p.date.toDate() : (p.date ? new Date(p.date) : new Date()),
+              })),
             })),
           } as Meeting;
         }).sort((a, b) => a.meetingDate.getTime() - b.meetingDate.getTime());
@@ -695,6 +712,17 @@ export default function MeetingsPage() {
                             <Typography variant="caption" sx={{ display: 'block', color: item.status === 'COMPLETED' ? '#2e7d32' : '#f57c00' }}>
                               סטטוס: {item.status === 'COMPLETED' ? 'הושלמה' : 'בהמתנה'}
                             </Typography>
+                            {/* Progress Updates */}
+                            {item.progressUpdates && item.progressUpdates.length > 0 && (
+                              <Box sx={{ mt: 1, pl: 1, borderRight: '2px solid #bbb' }}>
+                                <Typography variant="caption" fontWeight="bold" color="text.secondary">עדכוני התקדמות:</Typography>
+                                {item.progressUpdates.map((p: any, pIdx: number) => (
+                                  <Typography key={pIdx} variant="caption" sx={{ display: 'block', color: '#555' }}>
+                                    {p.date ? formatDateShort(p.date) : ''} — {p.text}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            )}
                           </Box>
                         ))}
                       </Stack>
@@ -891,10 +919,73 @@ export default function MeetingsPage() {
                       }
                       label="הושלמה"
                     />
+                    
+                    {/* Progress Updates */}
+                    <Box sx={{ mt: 1, pl: 1, borderRight: '3px solid #e0e0e0', pr: 1 }}>
+                      <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                        עדכוני התקדמות
+                      </Typography>
+                      {(item.progressUpdates || []).map((update: any, pIdx: number) => (
+                        <Box key={pIdx} sx={{ display: 'flex', gap: 1, mb: 0.5, mt: 0.5, alignItems: 'center' }}>
+                          <TextField
+                            value={update.date}
+                            type="date"
+                            onChange={(e) => {
+                              const newItems = [...formData.actionItems];
+                              const updates = [...(newItems[idx].progressUpdates || [])];
+                              updates[pIdx] = { ...updates[pIdx], date: e.target.value };
+                              newItems[idx].progressUpdates = updates;
+                              setFormData({ ...formData, actionItems: newItems });
+                            }}
+                            size="small"
+                            sx={{ width: 160 }}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                          <TextField
+                            value={update.text}
+                            onChange={(e) => {
+                              const newItems = [...formData.actionItems];
+                              const updates = [...(newItems[idx].progressUpdates || [])];
+                              updates[pIdx] = { ...updates[pIdx], text: e.target.value };
+                              newItems[idx].progressUpdates = updates;
+                              setFormData({ ...formData, actionItems: newItems });
+                            }}
+                            placeholder="מה קרה?"
+                            fullWidth
+                            size="small"
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              const newItems = [...formData.actionItems];
+                              const updates = (newItems[idx].progressUpdates || []).filter((_: any, i: number) => i !== pIdx);
+                              newItems[idx].progressUpdates = updates;
+                              setFormData({ ...formData, actionItems: newItems });
+                            }}
+                            color="error"
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          const newItems = [...formData.actionItems];
+                          const updates = [...(newItems[idx].progressUpdates || [])];
+                          updates.push({ id: `prog_${Date.now()}`, text: '', date: toLocalDateString(new Date()) });
+                          newItems[idx].progressUpdates = updates;
+                          setFormData({ ...formData, actionItems: newItems });
+                        }}
+                        sx={{ mt: 0.5, fontSize: '0.75rem' }}
+                      >
+                        + עדכון
+                      </Button>
+                    </Box>
                   </Box>
                 ))}
                 <Button
-                  onClick={() => setFormData({ ...formData, actionItems: [...formData.actionItems, { id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING' }] })}
+                  onClick={() => setFormData({ ...formData, actionItems: [...formData.actionItems, { id: '', description: '', dueDate: '', assigneeVendorId: '', assigneeName: '', status: 'PENDING', progressUpdates: [] }] })}
                   size="small"
                   variant="outlined"
                 >
@@ -902,46 +993,6 @@ export default function MeetingsPage() {
                 </Button>
               </Box>
 
-              <Box>
-                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                  החלטות
-                </Typography>
-                {formData.decisions.map((decision, idx) => (
-                  <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'flex-start' }}>
-                    <TextField
-                      value={decision}
-                      onChange={(e) => {
-                        const newDecisions = [...formData.decisions];
-                        newDecisions[idx] = e.target.value;
-                        setFormData({ ...formData, decisions: newDecisions });
-                      }}
-                      placeholder={`החלטה ${idx + 1}`}
-                      fullWidth
-                      size="small"
-                    />
-                    {formData.decisions.length > 1 && (
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          const newDecisions = formData.decisions.filter((_, i) => i !== idx);
-                          setFormData({ ...formData, decisions: newDecisions });
-                        }}
-                        color="error"
-                        sx={{ mt: 0.5 }}
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </Box>
-                ))}
-                <Button
-                  onClick={() => setFormData({ ...formData, decisions: [...formData.decisions, ''] })}
-                  size="small"
-                  variant="outlined"
-                >
-                  + החלטה
-                </Button>
-              </Box>
             </Stack>
           </DialogContent>
           <DialogActions>
