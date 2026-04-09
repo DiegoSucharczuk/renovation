@@ -1,8 +1,11 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import pdfMake from 'pdfmake/build/pdfmake';
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import type { Meeting } from '@/types';
 import type { Vendor } from '@/types/vendor';
 import { formatDateShort } from './dateUtils';
+
+// Register fonts
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 const MEETING_TYPES_MAP: Record<string, string> = {
   SITE_VISIT: 'ביקור באתר',
@@ -24,228 +27,169 @@ export const exportMeetingsToPDF = (
   vendors: Vendor[],
   projectName: string
 ) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  });
-
-  // Set RTL direction
-  doc.setR2L(true);
+  const content: any[] = [];
 
   // Add title
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  const title = `פגישות - ${projectName}`;
-  const titleWidth = doc.getTextWidth(title);
-  doc.text(title, doc.internal.pageSize.getWidth() - titleWidth - 15, 20);
+  content.push({
+    text: `פגישות - ${projectName}`,
+    style: 'header',
+    alignment: 'right',
+    margin: [0, 0, 0, 10],
+  });
 
   // Add date
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const dateText = `תאריך: ${formatDateShort(new Date())}`;
-  const dateWidth = doc.getTextWidth(dateText);
-  doc.text(dateText, doc.internal.pageSize.getWidth() - dateWidth - 15, 28);
+  content.push({
+    text: `תאריך: ${formatDateShort(new Date())}`,
+    alignment: 'right',
+    margin: [0, 0, 0, 20],
+    fontSize: 10,
+  });
 
-  let yPosition = 40;
-
+  // Add each meeting
   meetings.forEach((meeting, index) => {
-    // Check if we need a new page
-    if (yPosition > 250) {
-      doc.addPage();
-      yPosition = 20;
-    }
-
-    // Meeting header box
-    doc.setFillColor(240, 240, 240);
-    doc.rect(15, yPosition - 5, doc.internal.pageSize.getWidth() - 30, 8, 'F');
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    const meetingTitle = `${index + 1}. ${meeting.title}`;
-    const meetingTitleWidth = doc.getTextWidth(meetingTitle);
-    doc.text(meetingTitle, doc.internal.pageSize.getWidth() - meetingTitleWidth - 20, yPosition);
-
-    yPosition += 10;
+    // Meeting header
+    content.push({
+      text: `${index + 1}. ${meeting.title}`,
+      style: 'meetingTitle',
+      alignment: 'right',
+      margin: [0, 10, 0, 5],
+      fillColor: '#f0f0f0',
+    });
 
     // Meeting details
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-
     const details = [
-      { label: 'תאריך פגישה:', value: formatDateShort(meeting.meetingDate) },
-      {
-        label: 'סוג פגישה:',
-        value: MEETING_TYPES_MAP[meeting.meetingType] || meeting.meetingType,
-      },
-      {
-        label: 'תאריך יעד:',
-        value: meeting.dueDate ? formatDateShort(meeting.dueDate) : 'לא הוגדר',
-      },
+      `תאריך פגישה: ${formatDateShort(meeting.meetingDate)}`,
+      `סוג פגישה: ${MEETING_TYPES_MAP[meeting.meetingType] || meeting.meetingType}`,
+      `תאריך יעד: ${meeting.dueDate ? formatDateShort(meeting.dueDate) : 'לא הוגדר'}`,
     ];
 
     details.forEach((detail) => {
-      const text = `${detail.label} ${detail.value}`;
-      const textWidth = doc.getTextWidth(text);
-      doc.text(text, doc.internal.pageSize.getWidth() - textWidth - 20, yPosition);
-      yPosition += 6;
+      content.push({
+        text: detail,
+        alignment: 'right',
+        margin: [0, 2, 0, 2],
+        fontSize: 10,
+      });
     });
 
     // Description
     if (meeting.description) {
-      yPosition += 2;
-      doc.setFont('helvetica', 'bold');
-      const descLabel = 'תיאור:';
-      const descLabelWidth = doc.getTextWidth(descLabel);
-      doc.text(descLabel, doc.internal.pageSize.getWidth() - descLabelWidth - 20, yPosition);
-      yPosition += 6;
+      content.push({
+        text: 'תיאור:',
+        bold: true,
+        alignment: 'right',
+        margin: [0, 5, 0, 2],
+        fontSize: 10,
+      });
 
-      doc.setFont('helvetica', 'normal');
-      // Split description into lines to fit page width
-      const maxWidth = doc.internal.pageSize.getWidth() - 40;
-      const descLines = doc.splitTextToSize(meeting.description, maxWidth);
-
-      descLines.forEach((line: string) => {
-        // Check if we need a new page
-        if (yPosition > 270) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        const lineWidth = doc.getTextWidth(line);
-        doc.text(line, doc.internal.pageSize.getWidth() - lineWidth - 20, yPosition);
-        yPosition += 5;
+      content.push({
+        text: meeting.description,
+        alignment: 'right',
+        margin: [0, 2, 0, 5],
+        fontSize: 10,
       });
     }
 
     // Action Items
     if (meeting.actionItems && meeting.actionItems.length > 0) {
-      yPosition += 4;
-
-      // Check if we need a new page
-      if (yPosition > 240) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      doc.setFont('helvetica', 'bold');
-      const actionLabel = 'משימות פעולה:';
-      const actionLabelWidth = doc.getTextWidth(actionLabel);
-      doc.text(actionLabel, doc.internal.pageSize.getWidth() - actionLabelWidth - 20, yPosition);
-      yPosition += 7;
+      content.push({
+        text: 'משימות פעולה:',
+        bold: true,
+        alignment: 'right',
+        margin: [0, 5, 0, 3],
+        fontSize: 10,
+      });
 
       meeting.actionItems.forEach((item, idx) => {
-        // Check if we need a new page
-        if (yPosition > 260) {
-          doc.addPage();
-          yPosition = 20;
-        }
+        const itemDetails: string[] = [`${idx + 1}. ${item.description}`];
 
-        doc.setFont('helvetica', 'normal');
-
-        // Action item number and description
-        const itemText = `${idx + 1}. ${item.description}`;
-        const maxWidth = doc.internal.pageSize.getWidth() - 45;
-        const itemLines = doc.splitTextToSize(itemText, maxWidth);
-
-        itemLines.forEach((line: string) => {
-          if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-          }
-          const lineWidth = doc.getTextWidth(line);
-          doc.text(line, doc.internal.pageSize.getWidth() - lineWidth - 25, yPosition);
-          yPosition += 5;
-        });
-
-        // Vendor
         if (item.assigneeVendorId) {
           const vendor = vendors.find((v) => v.id === item.assigneeVendorId);
           if (vendor) {
-            const vendorText = `   ספק: ${vendor.name}`;
-            const vendorWidth = doc.getTextWidth(vendorText);
-            doc.text(vendorText, doc.internal.pageSize.getWidth() - vendorWidth - 25, yPosition);
-            yPosition += 5;
+            itemDetails.push(`   ספק: ${vendor.name}`);
           }
         }
 
-        // Assignee
         if (item.assigneeName) {
-          const assigneeText = `   אחראי: ${item.assigneeName}`;
-          const assigneeWidth = doc.getTextWidth(assigneeText);
-          doc.text(assigneeText, doc.internal.pageSize.getWidth() - assigneeWidth - 25, yPosition);
-          yPosition += 5;
+          itemDetails.push(`   אחראי: ${item.assigneeName}`);
         }
 
-        // Due date
         if (item.dueDate) {
-          const dueDateText = `   תאריך יעד: ${formatDateShort(item.dueDate)}`;
-          const dueDateWidth = doc.getTextWidth(dueDateText);
-          doc.text(dueDateText, doc.internal.pageSize.getWidth() - dueDateWidth - 25, yPosition);
-          yPosition += 5;
+          itemDetails.push(`   תאריך יעד: ${formatDateShort(item.dueDate)}`);
         }
 
-        // Status
-        const statusText = `   סטטוס: ${item.status === 'COMPLETED' ? 'הושלמה' : 'בהמתנה'}`;
-        const statusWidth = doc.getTextWidth(statusText);
-        doc.text(statusText, doc.internal.pageSize.getWidth() - statusWidth - 25, yPosition);
-        yPosition += 6;
+        itemDetails.push(`   סטטוס: ${item.status === 'COMPLETED' ? 'הושלמה' : 'בהמתנה'}`);
+
+        content.push({
+          text: itemDetails.join('\n'),
+          alignment: 'right',
+          margin: [0, 2, 0, 3],
+          fontSize: 9,
+        });
       });
     }
 
     // Decisions
-    if (meeting.decisions && meeting.decisions.length > 0) {
-      yPosition += 2;
+    if (meeting.decisions && meeting.decisions.length > 0 && meeting.decisions.some(d => d)) {
+      content.push({
+        text: 'החלטות:',
+        bold: true,
+        alignment: 'right',
+        margin: [0, 5, 0, 3],
+        fontSize: 10,
+      });
 
-      // Check if we need a new page
-      if (yPosition > 250) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      doc.setFont('helvetica', 'bold');
-      const decisionsLabel = 'החלטות:';
-      const decisionsLabelWidth = doc.getTextWidth(decisionsLabel);
-      doc.text(decisionsLabel, doc.internal.pageSize.getWidth() - decisionsLabelWidth - 20, yPosition);
-      yPosition += 7;
-
-      doc.setFont('helvetica', 'normal');
-      meeting.decisions.forEach((decision, idx) => {
+      meeting.decisions.forEach((decision) => {
         if (decision) {
-          // Check if we need a new page
-          if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-          }
-
-          const decisionText = `• ${decision}`;
-          const maxWidth = doc.internal.pageSize.getWidth() - 45;
-          const decisionLines = doc.splitTextToSize(decisionText, maxWidth);
-
-          decisionLines.forEach((line: string) => {
-            if (yPosition > 270) {
-              doc.addPage();
-              yPosition = 20;
-            }
-            const lineWidth = doc.getTextWidth(line);
-            doc.text(line, doc.internal.pageSize.getWidth() - lineWidth - 25, yPosition);
-            yPosition += 5;
+          content.push({
+            text: `• ${decision}`,
+            alignment: 'right',
+            margin: [0, 2, 0, 2],
+            fontSize: 9,
           });
         }
       });
     }
 
-    // Add spacing between meetings
-    yPosition += 10;
-
-    // Add separator line if not last meeting
+    // Add separator between meetings
     if (index < meetings.length - 1) {
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, yPosition, doc.internal.pageSize.getWidth() - 20, yPosition);
-      yPosition += 10;
+      content.push({
+        canvas: [
+          {
+            type: 'line',
+            x1: 0,
+            y1: 5,
+            x2: 515,
+            y2: 5,
+            lineWidth: 1,
+            lineColor: '#cccccc',
+          },
+        ],
+        margin: [0, 10, 0, 10],
+      });
     }
   });
 
-  // Save the PDF
+  const docDefinition: any = {
+    pageSize: 'A4',
+    pageOrientation: 'portrait',
+    content: content,
+    defaultStyle: {
+      font: 'Roboto',
+    },
+    styles: {
+      header: {
+        fontSize: 18,
+        bold: true,
+      },
+      meetingTitle: {
+        fontSize: 14,
+        bold: true,
+      },
+    },
+  };
+
+  // Generate and download PDF
   const fileName = `פגישות_${projectName}_${formatDateShort(new Date())}.pdf`;
-  doc.save(fileName);
+  pdfMake.createPdf(docDefinition).download(fileName);
 };

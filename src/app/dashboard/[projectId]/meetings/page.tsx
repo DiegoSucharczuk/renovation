@@ -454,13 +454,7 @@ export default function MeetingsPage() {
             <Table stickyHeader sx={{ borderCollapse: 'collapse' }}>
               <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableRow>
-                  <TableCell padding="checkbox" sx={{ borderRight: '1px solid #ddd' }}>
-                    <Checkbox
-                      indeterminate={selectedMeetingsForExport.length > 0 && selectedMeetingsForExport.length < getSortedMeetings().length}
-                      checked={isAllSelected}
-                      onChange={handleSelectAllMeetings}
-                    />
-                  </TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>בחירה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>תאריך פגישה</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', whiteSpace: 'nowrap' }}>סוג</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', borderRight: '1px solid #ddd', width: '40%' }}>תיאור</TableCell>
