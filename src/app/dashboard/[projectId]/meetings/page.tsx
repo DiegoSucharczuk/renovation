@@ -842,6 +842,8 @@ export default function MeetingsPage() {
                         setFormData({ ...formData, actionItems: newItems });
                       }}
                       fullWidth
+                      multiline
+                      minRows={2}
                       size="small"
                       sx={{ mb: 1 }}
                     />
