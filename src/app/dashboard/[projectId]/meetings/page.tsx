@@ -139,6 +139,13 @@ export default function MeetingsPage() {
     fetchData();
   }, [firebaseUser, router, projectId]);
 
+  const toLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleOpenDialog = (meeting?: Meeting) => {
     if (meeting) {
       console.log('Opening meeting for edit, actionItems from meeting:', meeting.actionItems);
@@ -146,15 +153,15 @@ export default function MeetingsPage() {
       setFormData({
         title: meeting.title,
         description: meeting.description,
-        meetingDate: meeting.meetingDate.toISOString().split('T')[0],
-        dueDate: meeting.dueDate ? (meeting.dueDate instanceof Date ? meeting.dueDate : new Date(meeting.dueDate)).toISOString().split('T')[0] : '',
+        meetingDate: toLocalDateString(meeting.meetingDate instanceof Date ? meeting.meetingDate : new Date(meeting.meetingDate)),
+        dueDate: meeting.dueDate ? toLocalDateString(meeting.dueDate instanceof Date ? meeting.dueDate : new Date(meeting.dueDate)) : '',
         meetingType: String(meeting.meetingType) as any,
         completed: meeting.completed || false,
         decisions: meeting.decisions.length > 0 ? meeting.decisions : [''],
         actionItems: meeting.actionItems.length > 0 ? meeting.actionItems.map(a => ({
           id: a.id,
           description: a.description,
-          dueDate: a.dueDate ? (a.dueDate instanceof Date ? a.dueDate : new Date(a.dueDate)).toISOString().split('T')[0] : '',
+          dueDate: a.dueDate ? toLocalDateString(a.dueDate instanceof Date ? a.dueDate : new Date(a.dueDate)) : '',
           assigneeVendorId: a.assigneeVendorId || '',
           assigneeName: a.assigneeName || '',
           status: a.status || 'PENDING',
@@ -194,8 +201,8 @@ export default function MeetingsPage() {
         projectId,
         title: formData.title,
         description: formData.description,
-        meetingDate: new Date(formData.meetingDate),
-        dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
+        meetingDate: formData.meetingDate ? new Date(formData.meetingDate + 'T12:00:00') : new Date(),
+        dueDate: formData.dueDate ? new Date(formData.dueDate + 'T12:00:00') : null,
         meetingType: formData.meetingType,
         completed: formData.completed,
         decisions: formData.decisions.filter(d => d.trim()),
@@ -204,7 +211,7 @@ export default function MeetingsPage() {
           description: a.description,
           assigneeVendorId: a.assigneeVendorId || '',
           assigneeName: a.assigneeName || '',
-          dueDate: a.dueDate ? new Date(a.dueDate) : null,
+          dueDate: a.dueDate ? new Date(a.dueDate + 'T12:00:00') : null,
           status: a.status || 'PENDING',
         })),
         updatedAt: new Date(),
