@@ -1133,7 +1133,7 @@ export default function RoomsPage() {
                           </Box>
                         </TableCell>
                       ))}
-                      <TableCell sx={{ width: 100, minWidth: 100, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
+                      <TableCell sx={{ width: 130, minWidth: 130, textAlign: 'center', backgroundColor: '#f5f5f5', borderBottom: '2px solid #e0e0e0', borderRight: '1px solid #e0e0e0' }}>
                         <Typography variant="subtitle2" fontWeight="bold">פעולות</Typography>
                       </TableCell>
                     </TableRow>
