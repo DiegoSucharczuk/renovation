@@ -173,6 +173,7 @@ export default function RoomsPage() {
     description: '',
     icon: '',
   });
+  const [roomCategories, setRoomCategories] = useState<string[]>([]);
   const [highlightedStatus, setHighlightedStatus] = useState<string | null>(null);
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -247,16 +248,14 @@ export default function RoomsPage() {
 
       setTasks(tasksData);
 
-      // Extract unique task categories - merge from tasks AND default category list
-      const categoriesFromTasks = [...new Set(tasksData.map(t => t.category))].filter(Boolean) as string[];
-      const defaultCategoryNames = Object.keys(taskCategoryIcons);
-      const allCategories = [...new Set([...defaultCategoryNames, ...categoriesFromTasks])];
-      setTaskCategories(allCategories);
+      // Extract unique task categories from actual tasks only
+      const categories = [...new Set(tasksData.map(t => t.category))].filter(Boolean) as string[];
+      setTaskCategories(categories);
 
       // Build rooms with tasks matrix
       const roomsWithTasks = roomsData.map(room => {
         const roomTasks: Record<string, any[]> = {};
-        allCategories.forEach(category => {
+        categories.forEach(category => {
           const matchingTasks = tasksData.filter(t => t.roomId === room.id && t.category === category);
           if (matchingTasks.length > 0) {
             roomTasks[category] = matchingTasks.map(task => ({
@@ -287,6 +286,9 @@ export default function RoomsPage() {
         description: room.description,
         icon: room.icon || '',
       });
+      // Get existing categories for this room from tasks
+      const existingCategories = [...new Set(tasks.filter(t => t.roomId === room.id).map(t => t.category))].filter(Boolean) as string[];
+      setRoomCategories(existingCategories);
     } else {
       setEditingRoom(null);
       setFormData({
@@ -294,6 +296,7 @@ export default function RoomsPage() {
         description: '',
         icon: '',
       });
+      setRoomCategories([]);
     }
     setOpenDialog(true);
   };
@@ -306,22 +309,59 @@ export default function RoomsPage() {
       description: '',
       icon: '',
     });
+    setRoomCategories([]);
   };
 
   const handleSaveRoom = async () => {
     try {
+      let roomId = editingRoom?.id;
+
       if (editingRoom) {
         // Update existing room
         await updateDoc(doc(db, 'rooms', editingRoom.id), formData);
       } else {
         // Add new room
-        await addDoc(collection(db, 'rooms'), {
+        const newRoomRef = await addDoc(collection(db, 'rooms'), {
           ...formData,
           projectId,
           order: rooms.length,
           createdAt: new Date().toISOString(),
         });
+        roomId = newRoomRef.id;
       }
+
+      // Sync categories: create tasks for new categories, delete tasks for removed ones
+      if (roomId) {
+        const existingCategories = [...new Set(tasks.filter(t => t.roomId === roomId).map(t => t.category))].filter(Boolean) as string[];
+        
+        // Categories to add (selected but don't have tasks yet)
+        const categoriesToAdd = roomCategories.filter(cat => !existingCategories.includes(cat));
+        // Categories to remove (had tasks but were deselected)
+        const categoriesToRemove = existingCategories.filter(cat => !roomCategories.includes(cat));
+
+        // Create tasks for new categories
+        for (const category of categoriesToAdd) {
+          await addDoc(collection(db, 'tasks'), {
+            title: category,
+            category,
+            status: 'NOT_STARTED',
+            roomId,
+            projectId,
+            progress: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+
+        // Delete tasks for removed categories
+        for (const category of categoriesToRemove) {
+          const tasksToDelete = tasks.filter(t => t.roomId === roomId && t.category === category);
+          for (const task of tasksToDelete) {
+            await deleteDoc(doc(db, 'tasks', task.id));
+          }
+        }
+      }
+
       handleCloseDialog();
       await loadData();
     } catch (error) {
@@ -1390,6 +1430,30 @@ export default function RoomsPage() {
                   </MenuItem>
                 ))}
               </TextField>
+
+              <FormControl fullWidth>
+                <InputLabel>קטגוריות</InputLabel>
+                <Select
+                  multiple
+                  value={roomCategories}
+                  onChange={(e) => setRoomCategories(e.target.value as string[])}
+                  input={<OutlinedInput label="קטגוריות" />}
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {(selected as string[]).map((value) => (
+                        <Chip key={value} label={`${taskCategoryIcons[value] || '📝'} ${value}`} size="small" />
+                      ))}
+                    </Box>
+                  )}
+                >
+                  {[...new Set([...Object.keys(taskCategoryIcons), ...taskCategories])].sort((a, b) => a.localeCompare(b, 'he')).map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      <Checkbox checked={roomCategories.includes(cat)} />
+                      <Typography>{taskCategoryIcons[cat] || '📝'} {cat}</Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
           </DialogContent>
           <DialogActions>
@@ -1420,7 +1484,7 @@ export default function RoomsPage() {
                 value={taskFormData.category}
                 onChange={(e) => setTaskFormData({ ...taskFormData, category: e.target.value })}
               >
-                {taskCategories.map((cat) => (
+                {[...new Set([...Object.keys(taskCategoryIcons), ...taskCategories])].sort((a, b) => a.localeCompare(b, 'he')).map((cat) => (
                   <MenuItem key={cat} value={cat}>
                     {taskCategoryIcons[cat] || '📝'} {cat}
                   </MenuItem>
