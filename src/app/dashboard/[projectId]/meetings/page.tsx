@@ -25,14 +25,18 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
-  Tabs,
-  Tab,
   Tooltip,
+  Select,
+  OutlinedInput,
+  InputLabel,
+  FormControl,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
@@ -60,10 +64,14 @@ export default function MeetingsPage() {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
-  const [currentTab, setCurrentTab] = useState(0);
   const [selectedMeetingDetails, setSelectedMeetingDetails] = useState<Meeting | null>(null);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -283,38 +291,69 @@ export default function MeetingsPage() {
       // Check if meetings are overdue NOT_STARTED
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const dateA = a.dueDate ? new Date(a.dueDate) : null;
       if (dateA) dateA.setHours(0, 0, 0, 0);
       const dateB = b.dueDate ? new Date(b.dueDate) : null;
       if (dateB) dateB.setHours(0, 0, 0, 0);
-      
+
       const isOverdueA = getMeetingStatus(a) === 'NOT_STARTED' && dateA && dateA < today;
       const isOverdueB = getMeetingStatus(b) === 'NOT_STARTED' && dateB && dateB < today;
-      
+
       // Prioritize overdue NOT_STARTED
       if (isOverdueA && !isOverdueB) return -1;
       if (!isOverdueA && isOverdueB) return 1;
-      
+
       const statusOrder = { NOT_STARTED: 0, IN_PROGRESS: 1, PARTIAL: 2, COMPLETED: 3 };
       const statusA = getMeetingStatus(a);
       const statusB = getMeetingStatus(b);
       return statusOrder[statusA as keyof typeof statusOrder] - statusOrder[statusB as keyof typeof statusOrder];
     });
 
-    // Filter by tab
-    if (currentTab === 1) {
-      sorted = sorted.filter(m => {
-        const status = getMeetingStatus(m);
-        return status === 'IN_PROGRESS' || status === 'PARTIAL';
-      });
-    } else if (currentTab === 2) {
-      sorted = sorted.filter(m => getMeetingStatus(m) === 'COMPLETED');
-    } else if (currentTab === 3) {
-      sorted = sorted.filter(m => getMeetingStatus(m) === 'NOT_STARTED');
+    // Filter by status
+    if (selectedStatuses.length > 0) {
+      sorted = sorted.filter(m => selectedStatuses.includes(getMeetingStatus(m)));
+    }
+
+    // Filter by meeting type
+    if (selectedTypes.length > 0) {
+      sorted = sorted.filter(m => selectedTypes.includes(m.meetingType));
+    }
+
+    // Filter by vendor
+    if (selectedVendors.length > 0) {
+      sorted = sorted.filter(m =>
+        m.actionItems?.some(item => item.assigneeVendorId && selectedVendors.includes(item.assigneeVendorId))
+      );
+    }
+
+    // Filter by assignee
+    if (selectedAssignees.length > 0) {
+      sorted = sorted.filter(m =>
+        m.actionItems?.some(item => item.assigneeName && selectedAssignees.includes(item.assigneeName))
+      );
     }
 
     return sorted;
+  };
+
+  // Get unique assignees for filter
+  const getUniqueAssignees = () => {
+    const assignees = new Set<string>();
+    meetings.forEach(m => {
+      m.actionItems?.forEach(item => {
+        if (item.assigneeName) assignees.add(item.assigneeName);
+      });
+    });
+    return Array.from(assignees).sort();
+  };
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setSelectedStatuses([]);
+    setSelectedTypes([]);
+    setSelectedVendors([]);
+    setSelectedAssignees([]);
   };
 
   if (loading) {
@@ -332,41 +371,37 @@ export default function MeetingsPage() {
       <Box sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" fontWeight="bold">פגישות</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-          >
-            פגישה חדשה
-          </Button>
-        </Box>
-
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs 
-            value={currentTab} 
-            onChange={(e, newValue) => setCurrentTab(newValue)}
-            sx={{ minHeight: 'auto' }}
-          >
-            <Tab label={`כל הפגישות (${meetings.length})`} />
-            <Tab 
-              label={`בתהליך (${
-                meetings.filter(m => {
-                  const status = getMeetingStatus(m);
-                  return status === 'IN_PROGRESS' || status === 'PARTIAL';
-                }).length
-              })`} 
-            />
-            <Tab 
-              label={`בוצעו (${
-                meetings.filter(m => getMeetingStatus(m) === 'COMPLETED').length
-              })`} 
-            />
-            <Tab 
-              label={`לא התחילו (${
-                meetings.filter(m => getMeetingStatus(m) === 'NOT_STARTED').length
-              })`} 
-            />
-          </Tabs>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              startIcon={<FilterListIcon />}
+              onClick={() => setFilterModalOpen(true)}
+              sx={{
+                boxShadow: 1,
+                '&:hover': {
+                  boxShadow: 3,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s',
+              }}
+            >
+              סינון
+              {(selectedStatuses.length > 0 || selectedTypes.length > 0 || selectedVendors.length > 0 || selectedAssignees.length > 0) && (
+                <Chip
+                  label={selectedStatuses.length + selectedTypes.length + selectedVendors.length + selectedAssignees.length}
+                  size="small"
+                  sx={{ ml: 1, backgroundColor: 'primary.main', color: 'white' }}
+                />
+              )}
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              פגישה חדשה
+            </Button>
+          </Box>
         </Box>
 
         <Card sx={{ borderRadius: 2 }}>
@@ -808,6 +843,136 @@ export default function MeetingsPage() {
           <DialogActions>
             <Button onClick={handleCloseDialog}>ביטול</Button>
             <Button onClick={handleSaveMeeting} variant="contained">שמור</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Filter Modal Dialog */}
+        <Dialog
+          open={filterModalOpen}
+          onClose={() => setFilterModalOpen(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle fontWeight="bold" display="flex" alignItems="center" gap={1}>
+            <FilterListIcon color="primary" />
+            סינון פגישות
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Box display="flex" gap={2} flexWrap="wrap">
+              {/* Status Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>סטטוס</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedStatuses}
+                    onChange={(e) => setSelectedStatuses(e.target.value as string[])}
+                    input={<OutlinedInput label="סטטוס" />}
+                    renderValue={(selected) =>
+                      selected.length === 0 ? 'כל הסטטוסים' : `${selected.length} סטטוסים`
+                    }
+                  >
+                    <MenuItem value="NOT_STARTED">
+                      <Checkbox checked={selectedStatuses.includes('NOT_STARTED')} />
+                      <Typography>לא התחילו</Typography>
+                    </MenuItem>
+                    <MenuItem value="IN_PROGRESS">
+                      <Checkbox checked={selectedStatuses.includes('IN_PROGRESS')} />
+                      <Typography>בתהליך</Typography>
+                    </MenuItem>
+                    <MenuItem value="PARTIAL">
+                      <Checkbox checked={selectedStatuses.includes('PARTIAL')} />
+                      <Typography>חלקי</Typography>
+                    </MenuItem>
+                    <MenuItem value="COMPLETED">
+                      <Checkbox checked={selectedStatuses.includes('COMPLETED')} />
+                      <Typography>הושלמו</Typography>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Meeting Type Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>סוג פגישה</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedTypes}
+                    onChange={(e) => setSelectedTypes(e.target.value as string[])}
+                    input={<OutlinedInput label="סוג פגישה" />}
+                    renderValue={(selected) =>
+                      selected.length === 0 ? 'כל הסוגים' : `${selected.length} סוגים`
+                    }
+                  >
+                    {MEETING_TYPES.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
+                        <Checkbox checked={selectedTypes.includes(type.value)} />
+                        <Typography>{type.label}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Vendor Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>ספק</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedVendors}
+                    onChange={(e) => setSelectedVendors(e.target.value as string[])}
+                    input={<OutlinedInput label="ספק" />}
+                    renderValue={(selected) =>
+                      selected.length === 0 ? 'כל הספקים' : `${selected.length} ספקים`
+                    }
+                  >
+                    {vendors.map((vendor) => (
+                      <MenuItem key={vendor.id} value={vendor.id}>
+                        <Checkbox checked={selectedVendors.includes(vendor.id)} />
+                        <Typography>{vendor.name}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Assignee Filter */}
+              <Box sx={{ flex: '1 1 280px', minWidth: 250 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>אחראי</InputLabel>
+                  <Select
+                    multiple
+                    value={selectedAssignees}
+                    onChange={(e) => setSelectedAssignees(e.target.value as string[])}
+                    input={<OutlinedInput label="אחראי" />}
+                    renderValue={(selected) =>
+                      selected.length === 0 ? 'כל האחראים' : `${selected.length} אחראים`
+                    }
+                  >
+                    {getUniqueAssignees().map((assignee) => (
+                      <MenuItem key={assignee} value={assignee}>
+                        <Checkbox checked={selectedAssignees.includes(assignee)} />
+                        <Typography>{assignee}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              startIcon={<ClearIcon />}
+              onClick={handleResetFilters}
+              disabled={selectedStatuses.length === 0 && selectedTypes.length === 0 && selectedVendors.length === 0 && selectedAssignees.length === 0}
+            >
+              איפוס
+            </Button>
+            <Button onClick={() => setFilterModalOpen(false)} variant="contained">
+              סגור
+            </Button>
           </DialogActions>
         </Dialog>
       </Box>
