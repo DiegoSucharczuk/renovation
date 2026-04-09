@@ -247,14 +247,16 @@ export default function RoomsPage() {
 
       setTasks(tasksData);
 
-      // Extract unique task categories
-      const categories = [...new Set(tasksData.map(t => t.category))].filter(Boolean);
-      setTaskCategories(categories as string[]);
+      // Extract unique task categories - merge from tasks AND default category list
+      const categoriesFromTasks = [...new Set(tasksData.map(t => t.category))].filter(Boolean) as string[];
+      const defaultCategoryNames = Object.keys(taskCategoryIcons);
+      const allCategories = [...new Set([...defaultCategoryNames, ...categoriesFromTasks])];
+      setTaskCategories(allCategories);
 
       // Build rooms with tasks matrix
       const roomsWithTasks = roomsData.map(room => {
         const roomTasks: Record<string, any[]> = {};
-        categories.forEach(category => {
+        allCategories.forEach(category => {
           const matchingTasks = tasksData.filter(t => t.roomId === room.id && t.category === category);
           if (matchingTasks.length > 0) {
             roomTasks[category] = matchingTasks.map(task => ({
