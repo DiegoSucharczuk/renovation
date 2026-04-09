@@ -747,10 +747,10 @@ export default function RoomsPage() {
   }
 
   return (
-    <DashboardLayout projectId={projectId}>
-      <Box sx={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <DashboardLayout projectId={projectId} scrollable>
+      <Box sx={{ pb: 2 }}>
         {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, pr: 3, flexShrink: 0 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, pr: 3 }}>
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.rooms}
           </Typography>
@@ -796,7 +796,7 @@ export default function RoomsPage() {
         </Box>
 
         {/* Statistics Grid */}
-        <Box sx={{ px: 3, pr: 3, mb: 2, flexShrink: 0 }}>
+        <Box sx={{ px: 3, pr: 3, mb: 2 }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
             {/* Total Tasks Card */}
             <Box sx={{ flex: '0 0 calc(11% - 4px)', minWidth: '90px', maxWidth: '125px' }}>
@@ -1083,17 +1083,12 @@ export default function RoomsPage() {
         <Card
           sx={{
             mx: 3,
-            mb: 1,
+            mb: 2,
             position: 'relative',
             direction: 'ltr',
             boxShadow: 3,
             '&:hover': { boxShadow: 4 },
             transition: 'box-shadow 0.2s',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            minHeight: 0,
           }}
         >
           <TableContainer
@@ -1101,15 +1096,13 @@ export default function RoomsPage() {
               overflowX: 'auto',
               overflowY: 'auto',
               direction: 'rtl',
-              maxHeight: 'calc(100vh - 400px)',
-              scrollbarWidth: 'thin',
+              maxHeight: '60vh',
               '&::-webkit-scrollbar': {
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
               },
               '&::-webkit-scrollbar-track': {
                 backgroundColor: '#f1f1f1',
-                borderRadius: 4,
               },
               '&::-webkit-scrollbar-thumb': {
                 backgroundColor: '#888',

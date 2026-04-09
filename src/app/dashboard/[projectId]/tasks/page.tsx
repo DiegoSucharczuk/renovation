@@ -350,9 +350,9 @@ export default function TasksPage() {
   const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
-    <DashboardLayout projectId={projectId} project={project || undefined}>
-      <Box sx={{ pr: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3, flexShrink: 0 }}>
+    <DashboardLayout projectId={projectId} project={project || undefined} scrollable>
+      <Box sx={{ pr: 3, pb: 2 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ px: 3 }}>
           <Typography variant="h3" fontWeight="bold">
             {hebrewLabels.tasks}
           </Typography>
@@ -398,7 +398,7 @@ export default function TasksPage() {
         </Box>
 
         {/* Summary Cards */}
-        <Box sx={{ px: 3, mb: 2, display: 'grid', gap: 2, gridAutoFlow: 'column', gridAutoColumns: '1fr', overflowX: 'auto', pb: 1, flexShrink: 0 }}>
+        <Box sx={{ px: 3, mb: 2, display: 'grid', gap: 2, gridAutoFlow: 'column', gridAutoColumns: '1fr', overflowX: 'auto', pb: 1 }}>
           <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', transition: 'transform 0.2s, boxShadow 0.2s', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } }}>
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.95rem', display: 'block' }}>סה"כ משימות</Typography>
@@ -450,7 +450,7 @@ export default function TasksPage() {
         {/* Tasks Table */}
         <Card sx={{ 
           mx: 3,
-          mb: 1,
+          mb: 2,
           boxShadow: 3,
           '&:hover': {
             boxShadow: 4,
@@ -458,13 +458,8 @@ export default function TasksPage() {
           transition: 'box-shadow 0.2s',
           direction: 'ltr',
           position: 'relative',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          minHeight: 0,
         }}>
-          <TableContainer sx={{ direction: 'rtl', overflow: 'auto', width: '100%', maxHeight: 'calc(100vh - 400px)' }}>
+          <TableContainer sx={{ direction: 'rtl', overflow: 'auto', width: '100%', maxHeight: '60vh' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
               <TableHead>
