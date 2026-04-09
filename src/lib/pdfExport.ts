@@ -56,9 +56,7 @@ export const exportMeetingsToPDF = (
           font-weight: 500;
         }
         .meeting {
-          margin-bottom: 25px;
-          page-break-inside: avoid;
-          page-break-after: auto;
+          margin-bottom: 20px;
           border: 1px solid #e0e0e0;
           border-radius: 8px;
           overflow: hidden;
@@ -70,12 +68,10 @@ export const exportMeetingsToPDF = (
           padding: 12px 16px;
           font-size: 17px;
           font-weight: 700;
-          page-break-after: avoid;
         }
         .meeting-body {
           padding: 16px;
           background-color: #fafafa;
-          page-break-before: avoid;
         }
         .meeting-details {
           background-color: white;
@@ -83,7 +79,6 @@ export const exportMeetingsToPDF = (
           border-radius: 6px;
           margin-bottom: 12px;
           border-right: 4px solid #1565c0;
-          page-break-inside: avoid;
         }
         .meeting-details .detail-row {
           font-size: 12px;
@@ -91,6 +86,7 @@ export const exportMeetingsToPDF = (
           line-height: 1.6;
           display: flex;
           align-items: flex-start;
+          page-break-inside: avoid;
         }
         .meeting-details .detail-row:last-child {
           margin-bottom: 0;
@@ -113,7 +109,6 @@ export const exportMeetingsToPDF = (
           padding-right: 8px;
           border-right: 3px solid #1565c0;
           page-break-after: avoid;
-          page-break-inside: avoid;
         }
         .description {
           font-size: 12px;
@@ -124,7 +119,6 @@ export const exportMeetingsToPDF = (
           background-color: white;
           border-radius: 6px;
           color: #333;
-          page-break-inside: avoid;
         }
         .action-item {
           font-size: 11px;
@@ -168,17 +162,12 @@ export const exportMeetingsToPDF = (
           height: 2px;
           background: linear-gradient(to left, #e0e0e0, transparent);
           margin: 20px 0;
-          page-break-before: avoid;
-          page-break-after: avoid;
         }
         @media print {
-          .meeting {
-            page-break-inside: avoid;
-          }
           .section-title {
             page-break-after: avoid;
           }
-          .action-item, .decision-item, .description, .meeting-details {
+          .action-item, .decision-item, .detail-row {
             page-break-inside: avoid;
           }
         }
@@ -271,10 +260,8 @@ export const exportMeetingsToPDF = (
       compress: true,
     },
     pagebreak: {
-      mode: ['avoid-all', 'css', 'legacy'] as any,
-      before: '.meeting',
-      after: '.separator',
-      avoid: ['.meeting', '.meeting-details', '.action-item', '.decision-item', '.description', '.section-title']
+      mode: ['css', 'legacy'] as any,
+      avoid: ['.action-item', '.decision-item', '.detail-row']
     }
   };
 
