@@ -79,6 +79,7 @@ export default function TasksPage() {
     'גבס': '🧱',
     'דלתות': '🚪',
     'מיקלחונים': '🚿',
+    'אלומיניום': '🪟',
   };
 
   // Room icon mapping
@@ -116,6 +117,7 @@ export default function TasksPage() {
     { name: 'ריצוף', emoji: '⬛' },
     { name: 'תקרה', emoji: '🔺' },
     { name: 'מיקלחונים', emoji: '🚿' },
+    { name: 'אלומיניום', emoji: '🪟' },
     { name: 'אחר', emoji: '📝' },
   ].sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
