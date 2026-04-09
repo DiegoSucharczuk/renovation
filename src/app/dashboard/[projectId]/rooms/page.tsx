@@ -166,6 +166,7 @@ export default function RoomsPage() {
     progress: 0,
     startDate: '',
     endDate: '',
+    category: '',
   });
   const [formData, setFormData] = useState({
     name: '',
@@ -350,6 +351,7 @@ export default function RoomsPage() {
         progress: task.progress || 0,
         startDate: task.startDate || '',
         endDate: task.endDate || '',
+        category: task.category || taskTypeName,
       });
       setAutoUpdateStatus(task.autoUpdateStatus !== undefined ? task.autoUpdateStatus : true);
     } else {
@@ -358,6 +360,7 @@ export default function RoomsPage() {
         progress: 0,
         startDate: '',
         endDate: '',
+        category: taskTypeName,
       });
       setAutoUpdateStatus(true);
     }
@@ -372,6 +375,7 @@ export default function RoomsPage() {
       progress: 0,
       startDate: '',
       endDate: '',
+      category: '',
     });
     setAutoUpdateStatus(true);
   };
@@ -441,9 +445,11 @@ export default function RoomsPage() {
         t => t.roomId === editingTask.roomId && t.category === editingTask.taskTypeName
       );
 
+      const finalCategory = taskFormData.category || editingTask.taskTypeName;
+
       const taskData = {
-        title: editingTask.taskTypeName,
-        category: editingTask.taskTypeName,
+        title: finalCategory,
+        category: finalCategory,
         status: finalStatus,
         roomId: editingTask.roomId,
         projectId,
@@ -1405,6 +1411,20 @@ export default function RoomsPage() {
           </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="קטגוריה"
+                fullWidth
+                select
+                value={taskFormData.category}
+                onChange={(e) => setTaskFormData({ ...taskFormData, category: e.target.value })}
+              >
+                {taskCategories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {taskCategoryIcons[cat] || '📝'} {cat}
+                  </MenuItem>
+                ))}
+              </TextField>
+
               <TextField
                 label="סטטוס"
                 fullWidth
