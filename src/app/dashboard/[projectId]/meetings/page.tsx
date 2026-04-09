@@ -427,7 +427,7 @@ export default function MeetingsPage() {
                           <Typography variant="caption" color="textSecondary" sx={{ whiteSpace: 'pre-line' }}>{meeting.description}</Typography>
                         )}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd', maxWidth: 120 }}>
                         {(() => {
                           const vendorNames = meeting.actionItems
                             ?.map(a => a.assigneeVendorId ? vendors.find(v => v.id === a.assigneeVendorId)?.name : null)
@@ -440,7 +440,7 @@ export default function MeetingsPage() {
                           ) : '—';
                         })()}
                       </TableCell>
-                      <TableCell sx={{ borderRight: '1px solid #ddd' }}>
+                      <TableCell sx={{ borderRight: '1px solid #ddd', maxWidth: 120 }}>
                         {(() => {
                           const names = meeting.actionItems
                             ?.map(a => a.assigneeName)
