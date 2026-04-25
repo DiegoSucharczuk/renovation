@@ -211,6 +211,7 @@ export type BudgetCategory =
   | 'DEMOLITION'
   | 'LIGHTING'
   | 'SHOWER_ENCLOSURES'
+  | 'DECK'
   | 'OTHER';
 
 export interface BudgetItem {

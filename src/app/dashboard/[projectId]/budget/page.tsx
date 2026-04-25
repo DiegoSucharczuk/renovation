@@ -52,6 +52,7 @@ const budgetCategories: { value: BudgetCategory; label: string; icon: string }[]
   { value: 'DEMOLITION', label: 'הריסה / פינוי', icon: '🔨' },
   { value: 'LIGHTING', label: 'תאורה', icon: '💡' },
   { value: 'SHOWER_ENCLOSURES', label: 'מיקלחונים', icon: '🚿' },
+  { value: 'DECK', label: 'דק', icon: '🪵' },
   { value: 'OTHER', label: 'אחר', icon: '📦' },
 ];
 
