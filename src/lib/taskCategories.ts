@@ -22,6 +22,7 @@ export const defaultTaskCategories: TaskCategory[] = [
   { id: '11', name: 'תאורה', icon: '💡', description: 'גופי תאורה ותכנון תאורה', startDate: '', endDate: '' },
   { id: '12', name: 'מיקלחונים', icon: '🚿', description: 'מקלחונים ומחיצות זכוכית', startDate: '', endDate: '' },
   { id: '13', name: 'הריסות', icon: '🔨', description: 'עבודות הריסה ופינוי', startDate: '', endDate: '' },
+  { id: '14', name: 'דלתות', icon: '🚪', description: 'דלתות פנים וכניסה', startDate: '', endDate: '' },
 ];
 
 // Simply return default categories (no localStorage)
