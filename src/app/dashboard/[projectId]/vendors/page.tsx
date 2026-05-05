@@ -2213,12 +2213,33 @@ export default function VendorsPage() {
                         }}
                       >
                         <Typography variant="caption" color="text.secondary" gutterBottom display="block">
-                          שולם בפועל
+                          ירד בפועל
                         </Typography>
                         <Typography variant="h5" fontWeight="bold" color="success.main">
-                          {formatCurrency(getTotalPaid(selectedVendor))}
+                          {formatCurrency(getTotalEffectivePaid(selectedVendor))}
                         </Typography>
                       </Box>
+
+                      {/* נשאר לרדת מאשראי */}
+                      {getTotalPaid(selectedVendor) > getTotalEffectivePaid(selectedVendor) && (
+                        <Box 
+                          sx={{ 
+                            p: 2, 
+                            border: 2, 
+                            borderColor: 'warning.main', 
+                            borderRadius: 2,
+                            backgroundColor: 'warning.50',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                            נשאר לרדת מאשראי
+                          </Typography>
+                          <Typography variant="h5" fontWeight="bold" color="warning.main">
+                            {formatCurrency(getTotalPaid(selectedVendor) - getTotalEffectivePaid(selectedVendor))}
+                          </Typography>
+                        </Box>
+                      )}
 
                       {/* מתוכנן */}
                       <Box 
@@ -2522,13 +2543,13 @@ export default function VendorsPage() {
                     </Box>
                     <Box>
                       <Typography variant="caption" color="text.secondary" display="block">
-                        שולם בפועל
+                        ירד בפועל
                       </Typography>
                       <Typography variant="h6" fontWeight="bold" color="success.main">
                         {formatCurrency(
                           selectedVendor.payments
                             .filter(p => p.id !== editingPayment?.id && p.status === 'שולם')
-                            .reduce((sum, p) => sum + p.amount, 0)
+                            .reduce((sum, p) => sum + getEffectivePaidAmount(p), 0)
                         )}
                       </Typography>
                     </Box>
@@ -2541,7 +2562,7 @@ export default function VendorsPage() {
                           selectedVendor.contractAmount - 
                           selectedVendor.payments
                             .filter(p => p.id !== editingPayment?.id && p.status === 'שולם')
-                            .reduce((sum, p) => sum + p.amount, 0)
+                            .reduce((sum, p) => sum + getEffectivePaidAmount(p), 0)
                         )}
                       </Typography>
                     </Box>
