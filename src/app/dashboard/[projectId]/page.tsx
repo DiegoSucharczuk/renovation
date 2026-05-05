@@ -308,8 +308,23 @@ export default function DashboardPage() {
     const vendorTotal = Math.max(contractAmount, totalPaid + totalPending);
     return sum + vendorTotal;
   }, 0);
-  
-  const totalPaid = payments.filter(p => p.status === 'שולם').reduce((sum, p) => sum + (p.amount || 0), 0);
+
+  // Calculate effective paid amount considering credit installments
+  const getEffectivePaidAmount = (payment: Payment): number => {
+    if (payment.status !== 'שולם') return 0;
+    if (payment.method !== 'אשראי' || !payment.installments || payment.installments <= 1) {
+      return payment.amount;
+    }
+    const paymentDate = payment.date ? new Date(payment.date) : null;
+    if (!paymentDate) return payment.amount;
+    const now = new Date();
+    const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+    const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), payment.installments);
+    const monthlyAmount = payment.amount / payment.installments;
+    return Math.round(monthlyAmount * installmentsPaid * 100) / 100;
+  };
+
+  const totalPaid = payments.filter(p => p.status === 'שולם').reduce((sum, p) => sum + getEffectivePaidAmount(p), 0);
   const totalPending = payments.filter(p => p.status === 'ממתין').reduce((sum, p) => sum + (p.amount || 0), 0);
   const totalPlanned = payments.filter(p => p.status === 'מתוכנן' || p.status === 'ממתין').reduce((sum, p) => sum + (p.amount || 0), 0);
   const budgetRemaining = budgetPlanned - totalPaid;
@@ -319,7 +334,7 @@ export default function DashboardPage() {
     const category = vendor.category || 'אחר';
     const vendorPaymentsPaid = payments.filter(p => p.vendorId === vendor.id && p.status === 'שולם');
     const vendorPaymentsPending = payments.filter(p => p.vendorId === vendor.id && p.status === 'ממתין');
-    const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + getEffectivePaidAmount(p), 0);
     const totalPending = vendorPaymentsPending.reduce((sum, p) => sum + (p.amount || 0), 0);
     const contractAmount = vendor.contractAmount || 0;
     // Use the maximum of contract amount or actual payments to avoid double-counting
@@ -343,7 +358,7 @@ export default function DashboardPage() {
     .map(vendor => {
       const vendorPaymentsPaid = payments.filter(p => p.vendorId === vendor.id && p.status === 'שולם');
       const vendorPaymentsPending = payments.filter(p => p.vendorId === vendor.id && p.status === 'ממתין');
-      const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalPaid = vendorPaymentsPaid.reduce((sum, p) => sum + getEffectivePaidAmount(p), 0);
       const totalPending = vendorPaymentsPending.reduce((sum, p) => sum + (p.amount || 0), 0);
       const contractAmount = vendor.contractAmount || 0;
       return { 
