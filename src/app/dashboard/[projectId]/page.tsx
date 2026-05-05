@@ -298,16 +298,8 @@ export default function DashboardPage() {
 
   const budgetPlanned = project?.budgetPlanned || 0;
   
-  // Calculate total contracts using max of contract amount or actual payments
-  const totalContracts = vendors.reduce((sum, vendor) => {
-    const vendorPaymentsPaid = payments.filter(p => p.vendorId === vendor.id && p.status === 'שולם');
-    const vendorPaymentsPending = payments.filter(p => p.vendorId === vendor.id && p.status === 'ממתין');
-    const totalPaid = vendorPaymentsPaid.reduce((s, p) => s + (p.amount || 0), 0);
-    const totalPending = vendorPaymentsPending.reduce((s, p) => s + (p.amount || 0), 0);
-    const contractAmount = vendor.contractAmount || 0;
-    const vendorTotal = Math.max(contractAmount, totalPaid + totalPending);
-    return sum + vendorTotal;
-  }, 0);
+  // Calculate total contracts - same as payments page
+  const totalContracts = vendors.reduce((sum, vendor) => sum + (vendor.contractAmount || 0), 0);
 
   // Calculate effective paid amount considering credit installments
   const getEffectivePaidAmount = (payment: Payment): number => {
