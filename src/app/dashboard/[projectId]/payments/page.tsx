@@ -227,13 +227,13 @@ export default function PaymentsPage() {
                   </Typography>
                 </Box>
               </Tooltip>
-              <Tooltip title="סכום כספי שכבר שולם לספקים (סטטוס: שולם)">
+              <Tooltip title="סכום שבפועל ירד מהחשבון/כרטיס (כולל חישוב תשלומי אשראי)">
                 <Box textAlign="center">
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    שולם
+                    ירד בפועל
                   </Typography>
                   <Typography variant="h4" fontWeight="bold" color="success.main">
-                    {formatCurrency(totalPaid)}
+                    {formatCurrency(totalEffectivePaid)}
                   </Typography>
                 </Box>
               </Tooltip>
@@ -267,13 +267,13 @@ export default function PaymentsPage() {
                   </Typography>
                 </Box>
               </Tooltip>
-              <Tooltip title="אחוז מהחוזים שכבר שולם = (סכום שולם / סה״כ חוזים) × 100">
+              <Tooltip title="אחוז מהחוזים שבפועל ירד = (ירד בפועל / סה״כ חוזים) × 100">
                 <Box textAlign="center">
                   <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                    אחוז ששולם
+                    אחוז שירד
                   </Typography>
                   <Typography variant="h4" fontWeight="bold">
-                    {totalContract > 0 ? Math.round((totalPaid / totalContract) * 100) : 0}%
+                    {totalContract > 0 ? Math.round((totalEffectivePaid / totalContract) * 100) : 0}%
                   </Typography>
                 </Box>
               </Tooltip>

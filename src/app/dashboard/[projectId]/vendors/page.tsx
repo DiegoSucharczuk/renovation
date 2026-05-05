@@ -1352,14 +1352,14 @@ export default function VendorsPage() {
                   </Box>
                   <Box textAlign="center">
                     <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                      שולם
+                      ירד בפועל
                     </Typography>
                     <Typography variant="h4" fontWeight="bold" color="success.main">
                       {new Intl.NumberFormat('he-IL', {
                         style: 'currency',
                         currency: 'ILS',
                         minimumFractionDigits: 0,
-                      }).format(vendors.reduce((sum, v) => sum + getTotalPaid(v), 0))}
+                      }).format(vendors.reduce((sum, v) => sum + getTotalEffectivePaid(v), 0))}
                     </Typography>
                   </Box>
                   <Box textAlign="center">
