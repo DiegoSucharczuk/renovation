@@ -1409,7 +1409,7 @@ export default function VendorsPage() {
                 </TableHead>
                 <TableBody>
                   {vendors.map((vendor) => {
-                    const totalPaid = getTotalPaid(vendor);
+                    const totalPaid = getTotalEffectivePaid(vendor);
                     const balance = getBalance(vendor);
                     const isExpanded = expandedVendorId === vendor.id;
                     

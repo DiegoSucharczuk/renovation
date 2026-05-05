@@ -310,7 +310,6 @@ export default function PaymentsPage() {
                   </TableRow>
                 ) : (
                   filteredVendors.map((vendor) => {
-                    const totalPaid = getTotalPaid(vendor);
                     const totalEffPaid = getTotalEffectivePaid(vendor);
                     const totalPending = vendor.payments
                       .filter(p => p.status === 'ממתין')
@@ -360,7 +359,7 @@ export default function PaymentsPage() {
                           <TableCell align="center">
                             <Box>
                               <Typography color="success.main" fontWeight={600} variant="h6">
-                                {formatCurrency(totalPaid)}
+                                {formatCurrency(totalEffPaid)}
                               </Typography>
                               {paidCount > 0 && (
                                 <Typography variant="caption" color="text.secondary">
