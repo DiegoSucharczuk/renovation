@@ -327,8 +327,8 @@ export default function DashboardPage() {
   const totalPaid = payments.filter(p => p.status === 'שולם').reduce((sum, p) => sum + getEffectivePaidAmount(p), 0);
   const totalPending = payments.filter(p => p.status === 'ממתין').reduce((sum, p) => sum + (p.amount || 0), 0);
   const totalPlanned = payments.filter(p => p.status === 'מתוכנן' || p.status === 'ממתין').reduce((sum, p) => sum + (p.amount || 0), 0);
-  const budgetRemaining = budgetPlanned - totalPaid;
-  const budgetUsedPercent = budgetPlanned > 0 ? (totalPaid / budgetPlanned) * 100 : 0;
+  const budgetRemaining = totalContracts - totalPaid;
+  const budgetUsedPercent = totalContracts > 0 ? (totalPaid / totalContracts) * 100 : 0;
 
   const budgetByCategory = vendors.reduce((acc, vendor) => {
     const category = vendor.category || 'אחר';
@@ -499,9 +499,9 @@ export default function DashboardPage() {
               <CardContent sx={{ p: 2 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                   <Box>
-                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>תקציב מתוכנן</Typography>
+                    <Typography variant="caption" color="text.secondary" fontWeight="600" sx={{ fontSize: '0.75rem' }}>סה"כ חוזים</Typography>
                     <Typography variant="h5" fontWeight="800" sx={{ mt: 0.5, color: '#333' }}>
-                      ₪{budgetPlanned.toLocaleString()}
+                      ₪{totalContracts.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box sx={{ p: 1, backgroundColor: 'grey.100', borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -527,7 +527,7 @@ export default function DashboardPage() {
                   </Box>
                 </Box>
                 <Typography variant="caption" color="text.secondary" fontWeight="500" sx={{ fontSize: '0.7rem' }}>
-                  {budgetUsedPercent.toFixed(0)}% מהתקציב
+                  {budgetUsedPercent.toFixed(0)}% מהחוזים
                 </Typography>
               </CardContent>
             </Card>
