@@ -58,7 +58,23 @@ export default function VendorDrawer({
 
   // Normalize vendor fields for the drawer
   const totalPaid = vendor.payments?.filter(p => p.status === 'שולם').reduce((sum, p) => sum + p.amount, 0) || 0;
+  
+  // Calculate effective paid (considering credit installments)
+  const totalEffectivePaid = vendor.payments?.filter(p => p.status === 'שולם').reduce((sum, p) => {
+    if (p.method !== 'אשראי' || !p.installments || p.installments <= 1) {
+      return sum + p.amount;
+    }
+    const paymentDate = p.date ? new Date(p.date) : null;
+    if (!paymentDate) return sum + p.amount;
+    const now = new Date();
+    const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+    const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), p.installments);
+    const monthlyAmount = p.amount / p.installments;
+    return sum + Math.round(monthlyAmount * installmentsPaid * 100) / 100;
+  }, 0) || 0;
+  
   const balance = (vendor.contractAmount || 0) - totalPaid;
+  const effectiveBalance = (vendor.contractAmount || 0) - totalEffectivePaid;
   const paymentsCount = vendor.payments?.length || 0;
   
   const normalized = {
@@ -179,9 +195,9 @@ export default function VendorDrawer({
           {[
             { label: "חוזה", value: normalized.contractTotal ? formatCurrency(normalized.contractTotal) : '—' },
             { label: "שולם", value: formatCurrency(normalized.paid) },
-            { label: "יתרה", value: normalized.contractTotal ? formatCurrency(normalized.balance) : '—' },
+            { label: "ירד מהכרטיס", value: normalized.contractTotal ? formatCurrency(totalEffectivePaid) : '—' },
+            { label: "יתרה", value: normalized.contractTotal ? formatCurrency(effectiveBalance) : '—' },
             { label: "תשלומים", value: normalized.paymentsCount },
-            { label: "דירוג", value: vendor.rating ? `${vendor.rating} ⭐` : '—' },
             { label: "סטטוס", value: normalized.status }
           ].map((item, i) => (
             <Grid size={{ xs: 4 }} key={i}>

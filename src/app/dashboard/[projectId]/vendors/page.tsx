@@ -234,6 +234,7 @@ export default function VendorsPage() {
     receiptDescription: '',
     progressPercentage: '',
     estimatedDate: '',
+    installments: '',
   });
 
   useEffect(() => {
@@ -769,6 +770,7 @@ export default function VendorsPage() {
         receiptDescription: payment.receiptDescription || '',
         progressPercentage: payment.progressPercentage?.toString() || '',
         estimatedDate: payment.estimatedDate || (payment.status !== 'שולם' && !payment.estimatedDate && payment.date ? payment.date : ''),
+        installments: payment.installments?.toString() || '',
       });
     } else {
       setEditingPayment(null);
@@ -785,6 +787,7 @@ export default function VendorsPage() {
         receiptDescription: '',
         progressPercentage: '',
         estimatedDate: '',
+        installments: '',
       });
     }
     setOpenPaymentDialog(true);
@@ -806,6 +809,7 @@ export default function VendorsPage() {
       receiptDescription: '',
       progressPercentage: '',
       estimatedDate: '',
+      installments: '',
     });
   };
 
@@ -828,6 +832,8 @@ export default function VendorsPage() {
       date: paymentFormData.date || (paymentFormData.status === 'שולם' ? new Date().toISOString().split('T')[0] : null),
       // Clear estimatedDate when status is שולם
       estimatedDate: paymentFormData.status !== 'שולם' ? paymentFormData.estimatedDate : null,
+      // Save installments only for credit payments
+      installments: paymentFormData.method === 'אשראי' && paymentFormData.installments ? parseInt(paymentFormData.installments) : null,
     };
 
     try {
@@ -870,15 +876,39 @@ export default function VendorsPage() {
     }
   };
 
+  // Calculate effective paid amount for a payment, considering credit installments
+  const getEffectivePaidAmount = (payment: Payment): number => {
+    if (payment.status !== 'שולם') return 0;
+    if (payment.method !== 'אשראי' || !payment.installments || payment.installments <= 1) {
+      return payment.amount;
+    }
+    // Calculate how many installments have been charged
+    const paymentDate = payment.date ? new Date(payment.date) : null;
+    if (!paymentDate) return payment.amount;
+    
+    const now = new Date();
+    const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+    const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), payment.installments);
+    const monthlyAmount = payment.amount / payment.installments;
+    return Math.round(monthlyAmount * installmentsPaid * 100) / 100;
+  };
+
   const getTotalPaid = (vendor: Vendor) => {
     return vendor.payments
       .filter(p => p.status === 'שולם')
       .reduce((sum, p) => sum + p.amount, 0);
   };
 
+  // Total effectively charged (considering credit installments)
+  const getTotalEffectivePaid = (vendor: Vendor) => {
+    return vendor.payments
+      .filter(p => p.status === 'שולם')
+      .reduce((sum, p) => sum + getEffectivePaidAmount(p), 0);
+  };
+
   const getBalance = (vendor: Vendor) => {
     if (!vendor.contractAmount) return null;
-    return vendor.contractAmount - getTotalPaid(vendor);
+    return vendor.contractAmount - getTotalEffectivePaid(vendor);
   };
 
   // File upload handlers
@@ -2133,11 +2163,14 @@ export default function VendorsPage() {
                         <Typography variant="h3" fontWeight="bold" color="primary.main">
                           {formatCurrency(
                             selectedVendor.contractAmount - 
-                            selectedVendor.payments.filter(p => p.status === 'שולם').reduce((sum, p) => sum + p.amount, 0)
+                            getTotalEffectivePaid(selectedVendor)
                           )}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          סכום חוזה: {formatCurrency(selectedVendor.contractAmount)} | שולם בפועל: {formatCurrency(selectedVendor.payments.filter(p => p.status === 'שולם').reduce((sum, p) => sum + p.amount, 0))}
+                          סכום חוזה: {formatCurrency(selectedVendor.contractAmount)} | ירד בפועל: {formatCurrency(getTotalEffectivePaid(selectedVendor))}
+                          {getTotalEffectivePaid(selectedVendor) !== getTotalPaid(selectedVendor) && (
+                            <> | סה״כ רכישות באשראי: {formatCurrency(getTotalPaid(selectedVendor))}</>
+                          )}
                         </Typography>
                       </Box>
                     </Box>
@@ -2339,8 +2372,29 @@ export default function VendorsPage() {
                               <Typography fontWeight={500}>
                                 {formatCurrency(payment.amount)}
                               </Typography>
+                              {payment.method === 'אשראי' && payment.installments && payment.installments > 1 && (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  {payment.installments} תשלומים × {formatCurrency(payment.amount / payment.installments)}
+                                </Typography>
+                              )}
                             </TableCell>
-                            <TableCell>{payment.method}</TableCell>
+                            <TableCell>
+                              {payment.method}
+                              {payment.method === 'אשראי' && payment.installments && payment.installments > 1 && payment.date && (
+                                (() => {
+                                  const paymentDate = new Date(payment.date);
+                                  const now = new Date();
+                                  const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+                                  const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), payment.installments);
+                                  const remaining = payment.installments - installmentsPaid;
+                                  return (
+                                    <Typography variant="caption" display="block" color={remaining > 0 ? 'warning.main' : 'success.main'}>
+                                      {installmentsPaid}/{payment.installments} ירדו
+                                    </Typography>
+                                  );
+                                })()
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Chip
                                 label={payment.status}
@@ -2510,7 +2564,7 @@ export default function VendorsPage() {
                 required
                 select
                 value={paymentFormData.method}
-                onChange={(e) => setPaymentFormData({ ...paymentFormData, method: e.target.value })}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, method: e.target.value, installments: e.target.value !== 'אשראי' ? '' : paymentFormData.installments })}
               >
                 {paymentMethods.map((method) => (
                   <MenuItem key={method} value={method}>
@@ -2518,6 +2572,22 @@ export default function VendorsPage() {
                   </MenuItem>
                 ))}
               </TextField>
+
+              {paymentFormData.method === 'אשראי' && (
+                <TextField
+                  label="כמות תשלומים"
+                  fullWidth
+                  type="number"
+                  value={paymentFormData.installments}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, installments: e.target.value })}
+                  inputProps={{ min: 1 }}
+                  helperText={
+                    paymentFormData.installments && paymentFormData.amount
+                      ? `${formatCurrency(parseFloat(paymentFormData.amount) / parseInt(paymentFormData.installments))} לתשלום`
+                      : ''
+                  }
+                />
+              )}
 
               <TextField
                 label="סטטוס"

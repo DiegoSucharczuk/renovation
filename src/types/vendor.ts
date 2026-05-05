@@ -13,6 +13,7 @@ export interface Payment {
   notes?: string;
   progressPercentage?: number; // אחוז התקדמות צפוי (לתשלומים מתוכננים/ממתינים)
   estimatedDate?: string; // תאריך משוער (לתשלומים מתוכננים/ממתינים)
+  installments?: number; // כמות תשלומים (רלוונטי לאשראי)
 }
 
 export interface Vendor {

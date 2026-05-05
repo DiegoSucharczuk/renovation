@@ -3,6 +3,7 @@ import { collection, query, where, getDocs, getDocsFromServer } from 'firebase/f
 import { db } from '@/lib/firebase';
 import { ProjectRole, RolePermissions } from '@/types';
 import { getRolePermissions } from '@/lib/permissions';
+import { isSuperAdmin } from '@/lib/adminConfig';
 
 export function useProjectRole(projectId: string | null, userId: string | null) {
   const [role, setRole] = useState<ProjectRole | null>(null);
@@ -22,6 +23,19 @@ export function useProjectRole(projectId: string | null, userId: string | null) 
       }
 
       try {
+        // בדיקה אם המשתמש הוא Super Admin
+        const usersQuery = query(collection(db, 'users'), where('__name__', '==', userId));
+        const userSnapshot = await getDocsFromServer(usersQuery);
+        if (!userSnapshot.empty) {
+          const userEmail = userSnapshot.docs[0].data().email;
+          if (isSuperAdmin(userEmail)) {
+            setRole('OWNER');
+            setIsOwner(true);
+            setLoading(false);
+            return;
+          }
+        }
+
         // בדיקה אם המשתמש הוא הבעלים של הפרויקט
         const projectDoc = await getDocsFromServer(
           query(collection(db, 'projects'), where('__name__', '==', projectId))

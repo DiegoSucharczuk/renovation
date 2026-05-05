@@ -485,7 +485,8 @@ export default function AdminPage() {
                 <TableCell>סטטוס</TableCell>
                 <TableCell>שם</TableCell>
                 <TableCell>אימייל</TableCell>
-                <TableCell>תאריך</TableCell>
+                <TableCell>תאריך הרשמה</TableCell>
+                <TableCell>כניסה אחרונה</TableCell>
                 <TableCell>פרויקטים</TableCell>
               </TableRow>
             </TableHead>
@@ -523,6 +524,11 @@ export default function AdminPage() {
                       <TableCell>
                         <Typography variant="caption">
                           {formatDateMedium(user.createdAt)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption">
+                          {user.lastLoginAt ? formatDateMedium(user.lastLoginAt) : 'אף פעם'}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -577,6 +583,9 @@ export default function AdminPage() {
                         <Typography variant="caption">
                           {formatDateMedium(invitation.createdAt)}
                         </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="caption" color="text.secondary">-</Typography>
                       </TableCell>
                       <TableCell>
                         {project && (

@@ -128,10 +128,32 @@ export default function PaymentsPage() {
     }).format(amount);
   };
 
+  // Calculate effective paid amount for a payment, considering credit installments
+  const getEffectivePaidAmount = (payment: Payment): number => {
+    if (payment.status !== 'שולם') return 0;
+    if (payment.method !== 'אשראי' || !payment.installments || payment.installments <= 1) {
+      return payment.amount;
+    }
+    const paymentDate = payment.date ? new Date(payment.date) : null;
+    if (!paymentDate) return payment.amount;
+    
+    const now = new Date();
+    const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+    const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), payment.installments);
+    const monthlyAmount = payment.amount / payment.installments;
+    return Math.round(monthlyAmount * installmentsPaid * 100) / 100;
+  };
+
   const getTotalPaid = (vendor: Vendor) => {
     return vendor.payments
       .filter(p => p.status === 'שולם')
       .reduce((sum, p) => sum + p.amount, 0);
+  };
+
+  const getTotalEffectivePaid = (vendor: Vendor) => {
+    return vendor.payments
+      .filter(p => p.status === 'שולם')
+      .reduce((sum, p) => sum + getEffectivePaidAmount(p), 0);
   };
 
   const getPaymentProgress = (vendor: Vendor) => {
@@ -150,11 +172,12 @@ export default function PaymentsPage() {
   // Calculate totals from ALL vendors (not filtered)
   const totalContract = vendors.reduce((sum, v) => sum + (v.contractAmount || 0), 0);
   const totalPaid = vendors.reduce((sum, v) => sum + getTotalPaid(v), 0);
+  const totalEffectivePaid = vendors.reduce((sum, v) => sum + getTotalEffectivePaid(v), 0);
   const totalPending = vendors.reduce((sum, v) => 
     sum + v.payments.filter(p => p.status === 'ממתין').reduce((s, p) => s + p.amount, 0), 0);
   const totalPlanned = vendors.reduce((sum, v) => 
     sum + v.payments.filter(p => p.status === 'מתוכנן').reduce((s, p) => s + p.amount, 0), 0);
-  const totalBalance = totalContract - totalPaid;
+  const totalBalance = totalContract - totalEffectivePaid;
   
   // Calculate total payments count
   const totalPaymentsCount = vendors.reduce((sum, v) => sum + v.payments.length, 0);
@@ -288,13 +311,14 @@ export default function PaymentsPage() {
                 ) : (
                   filteredVendors.map((vendor) => {
                     const totalPaid = getTotalPaid(vendor);
+                    const totalEffPaid = getTotalEffectivePaid(vendor);
                     const totalPending = vendor.payments
                       .filter(p => p.status === 'ממתין')
                       .reduce((sum, p) => sum + p.amount, 0);
                     const totalPlanned = vendor.payments
                       .filter(p => p.status === 'מתוכנן')
                       .reduce((sum, p) => sum + p.amount, 0);
-                    const balance = vendor.contractAmount ? vendor.contractAmount - totalPaid : null;
+                    const balance = vendor.contractAmount ? vendor.contractAmount - totalEffPaid : null;
                     const paidCount = vendor.payments.filter(p => p.status === 'שולם').length;
                     const pendingCount = vendor.payments.filter(p => p.status === 'ממתין').length;
                     const plannedCount = vendor.payments.filter(p => p.status === 'מתוכנן').length;
@@ -428,6 +452,7 @@ export default function PaymentsPage() {
                                     <TableRow>
                                       <TableCell>תאריך</TableCell>
                                       <TableCell align="center">סכום</TableCell>
+                                      <TableCell align="center">אמצעי תשלום</TableCell>
                                       <TableCell align="center">סטטוס</TableCell>
                                       <TableCell>הערות</TableCell>
                                     </TableRow>
@@ -452,7 +477,31 @@ export default function PaymentsPage() {
                                           }}
                                         >
                                           <TableCell>{formatDateShort(payment.status === 'שולם' ? (payment.date || '') : (payment.estimatedDate || ''))}</TableCell>
-                                          <TableCell align="center">{formatCurrency(payment.amount)}</TableCell>
+                                          <TableCell align="center">
+                                            {formatCurrency(payment.amount)}
+                                            {payment.method === 'אשראי' && payment.installments && payment.installments > 1 && (
+                                              <Typography variant="caption" display="block" color="text.secondary">
+                                                {payment.installments} תשלומים × {formatCurrency(payment.amount / payment.installments)}
+                                              </Typography>
+                                            )}
+                                          </TableCell>
+                                          <TableCell align="center">
+                                            {payment.method}
+                                            {payment.method === 'אשראי' && payment.installments && payment.installments > 1 && payment.date && (
+                                              (() => {
+                                                const paymentDate = new Date(payment.date);
+                                                const now = new Date();
+                                                const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+                                                const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), payment.installments);
+                                                const remaining = payment.installments - installmentsPaid;
+                                                return (
+                                                  <Typography variant="caption" display="block" color={remaining > 0 ? 'warning.main' : 'success.main'}>
+                                                    {installmentsPaid}/{payment.installments} תשלומים ירדו
+                                                  </Typography>
+                                                );
+                                              })()
+                                            )}
+                                          </TableCell>
                                           <TableCell align="center">
                                             <Chip 
                                               label={payment.status} 
