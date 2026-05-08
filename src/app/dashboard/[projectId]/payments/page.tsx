@@ -394,12 +394,34 @@ export default function PaymentsPage() {
                           </TableCell>
                           <TableCell align="center">
                             {balance !== null ? (
-                              <Typography 
-                                color={balance > 0 ? 'warning.main' : 'success.main'}
-                                fontWeight={600}
-                              >
-                                {formatCurrency(balance)}
-                              </Typography>
+                              <>
+                                <Typography 
+                                  color={balance > 0 ? 'warning.main' : 'success.main'}
+                                  fontWeight={600}
+                                >
+                                  {formatCurrency(balance)}
+                                </Typography>
+                                {(() => {
+                                  const creditInstallments = vendor.payments.filter(
+                                    p => p.status === 'שולם' && p.method === 'אשראי' && p.installments && p.installments > 1 && p.date
+                                  );
+                                  if (creditInstallments.length === 0) return null;
+                                  const now = new Date();
+                                  let totalRemaining = 0;
+                                  creditInstallments.forEach(p => {
+                                    const paymentDate = new Date(p.date!);
+                                    const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+                                    const paid = Math.min(Math.max(monthsDiff + 1, 0), p.installments!);
+                                    totalRemaining += p.installments! - paid;
+                                  });
+                                  if (totalRemaining <= 0) return null;
+                                  return (
+                                    <Typography variant="caption" display="block" color="warning.main">
+                                      ({totalRemaining} תשלומי אשראי נותרו)
+                                    </Typography>
+                                  );
+                                })()}
+                              </>
                             ) : '—'}
                           </TableCell>
                           <TableCell align="center">
