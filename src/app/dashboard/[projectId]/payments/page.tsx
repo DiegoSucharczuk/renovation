@@ -181,19 +181,25 @@ export default function PaymentsPage() {
 
   // Breakdown by payment method
   const allPayments = vendors.flatMap(v => v.payments);
-  const paidPayments = allPayments.filter(p => p.status === 'שולם');
-  const methodBreakdown = paidPayments.reduce((acc, p) => {
+  const unpaidPayments = allPayments.filter(p => p.status === 'ממתין' || p.status === 'מתוכנן');
+  const methodBreakdown = unpaidPayments.reduce((acc, p) => {
     const method = p.method || 'אחר';
     if (!acc[method]) acc[method] = 0;
     acc[method] += p.amount;
     return acc;
   }, {} as Record<string, number>);
-  const methodEffectiveBreakdown = paidPayments.reduce((acc, p) => {
-    const method = p.method || 'אחר';
-    if (!acc[method]) acc[method] = 0;
-    acc[method] += getEffectivePaidAmount(p);
-    return acc;
-  }, {} as Record<string, number>);
+
+  // Credit installments remaining from paid payments
+  const paidCreditPayments = allPayments.filter(p => p.status === 'שולם' && p.method === 'אשראי' && p.installments && p.installments > 1 && p.date);
+  const creditRemaining = paidCreditPayments.reduce((sum, p) => {
+    const paymentDate = new Date(p.date!);
+    const now = new Date();
+    const monthsDiff = (now.getFullYear() - paymentDate.getFullYear()) * 12 + (now.getMonth() - paymentDate.getMonth());
+    const installmentsPaid = Math.min(Math.max(monthsDiff + 1, 0), p.installments!);
+    const remaining = p.installments! - installmentsPaid;
+    const monthlyAmount = p.amount / p.installments!;
+    return sum + (remaining * monthlyAmount);
+  }, 0);
 
   const methodColors: Record<string, string> = {
     'מזומן': '#4caf50',
@@ -306,35 +312,36 @@ export default function PaymentsPage() {
           </Card>
         </Box>
 
-        {/* Payment Method Breakdown */}
-        {Object.keys(methodBreakdown).length > 0 && (
+        {/* Payment Method Breakdown - remaining to pay */}
+        {(Object.keys(methodBreakdown).length > 0 || creditRemaining > 0) && (
           <Box sx={{ px: 3, mb: 3 }}>
             <Card sx={{ p: 3, backgroundColor: '#fafafa' }}>
-              <Typography variant="subtitle1" fontWeight="bold" mb={2}>פירוט לפי אמצעי תשלום</Typography>
+              <Typography variant="subtitle1" fontWeight="bold" mb={2}>נותר לשלם לפי אמצעי תשלום</Typography>
               <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
                 {Object.entries(methodBreakdown)
                   .sort((a, b) => b[1] - a[1])
-                  .map(([method, amount]) => {
-                    const effectiveAmount = methodEffectiveBreakdown[method] || 0;
-                    const hasInstallmentDiff = method === 'אשראי' && effectiveAmount < amount;
-                    return (
-                      <Tooltip key={method} title={hasInstallmentDiff ? `סה"כ רכישות: ${formatCurrency(amount)} | ירד בפועל: ${formatCurrency(effectiveAmount)}` : ''}>
-                        <Box textAlign="center" sx={{ minWidth: 120 }}>
-                          <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                            {method}
-                          </Typography>
-                          <Typography variant="h5" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
-                            {formatCurrency(hasInstallmentDiff ? effectiveAmount : amount)}
-                          </Typography>
-                          {hasInstallmentDiff && (
-                            <Typography variant="caption" color="warning.main" display="block">
-                              נותר: {formatCurrency(amount - effectiveAmount)}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Tooltip>
-                    );
-                  })}
+                  .map(([method, amount]) => (
+                    <Box key={method} textAlign="center" sx={{ minWidth: 120 }}>
+                      <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                        {method}
+                      </Typography>
+                      <Typography variant="h5" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
+                        {formatCurrency(amount)}
+                      </Typography>
+                    </Box>
+                  ))}
+                {creditRemaining > 0 && (
+                  <Tooltip title="תשלומי אשראי שעוד לא ירדו מתוך תשלומים ששולמו">
+                    <Box textAlign="center" sx={{ minWidth: 120 }}>
+                      <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                        אשראי (נותר לרדת)
+                      </Typography>
+                      <Typography variant="h5" fontWeight="bold" sx={{ color: '#ff9800' }}>
+                        {formatCurrency(creditRemaining)}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
+                )}
               </Box>
             </Card>
           </Box>
