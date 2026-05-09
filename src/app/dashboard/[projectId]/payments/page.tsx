@@ -14,6 +14,7 @@ import {
   TableHead,
   TableRow,
   Chip,
+  Divider,
   LinearProgress,
   MenuItem,
   TextField,
@@ -245,102 +246,99 @@ export default function PaymentsPage() {
         </Box>
 
         {/* Summary Cards */}
-        <Box sx={{ px: 3, mb: 3 }}>
-          <Card sx={{ p: 3, backgroundColor: '#f5f5f5' }}>
-            <Box display="flex" justifyContent="space-around" gap={2}>
+        <Box sx={{ px: 3, mb: 2 }}>
+          <Card sx={{ p: 2, backgroundColor: '#f5f5f5' }}>
+            <Box display="flex" justifyContent="space-around" gap={1} flexWrap="wrap">
               <Tooltip title="סכום כולל של כל החוזים עם הספקים">
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                     סה"כ חוזים
                   </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="primary.main">
+                  <Typography variant="h6" fontWeight="bold" color="primary.main">
                     {formatCurrency(totalContract)}
                   </Typography>
                 </Box>
               </Tooltip>
               <Tooltip title="סכום שבפועל ירד מהחשבון/כרטיס (כולל חישוב תשלומי אשראי)">
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                     ירד בפועל
                   </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="success.main">
+                  <Typography variant="h6" fontWeight="bold" color="success.main">
                     {formatCurrency(totalEffectivePaid)}
                   </Typography>
                 </Box>
               </Tooltip>
               <Tooltip title="סכום כספי של תשלומים המתינים לביצוע (סטטוס: ממתין)">
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                     ממתין
                   </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="warning.main">
+                  <Typography variant="h6" fontWeight="bold" color="warning.main">
                     {formatCurrency(totalPending)}
                   </Typography>
                 </Box>
               </Tooltip>
               <Tooltip title="סכום כספי של תשלומים מתוכננים לעתיד (סטטוס: מתוכנן)">
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                     מתוכנן
                   </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="info.main">
+                  <Typography variant="h6" fontWeight="bold" color="info.main">
                     {formatCurrency(totalPlanned)}
                   </Typography>
                 </Box>
               </Tooltip>
               <Tooltip title="הסכום שנותר לתשלום = סה״כ חוזים פחות סכום שולם">
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                     יתרה לתשלום
                   </Typography>
-                  <Typography variant="h4" fontWeight="bold" color="error.main">
+                  <Typography variant="h6" fontWeight="bold" color="error.main">
                     {formatCurrency(totalBalance)}
                   </Typography>
                 </Box>
               </Tooltip>
               <Tooltip title="אחוז מהחוזים שבפועל ירד = (ירד בפועל / סה״כ חוזים) × 100">
                 <Box textAlign="center">
-                  <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                  <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                     אחוז שירד
                   </Typography>
-                  <Typography variant="h4" fontWeight="bold">
+                  <Typography variant="h6" fontWeight="bold">
                     {totalContract > 0 ? Math.round((totalEffectivePaid / totalContract) * 100) : 0}%
                   </Typography>
                 </Box>
               </Tooltip>
             </Box>
+            {/* Payment Method Breakdown */}
+            {(Object.keys(methodBreakdown).length > 0 || creditRemaining > 0) && (
+              <>
+                <Divider sx={{ my: 1.5 }} />
+                <Typography variant="caption" fontWeight="bold" color="text.secondary" mb={1} display="block">נותר לשלם לפי אמצעי תשלום</Typography>
+                <Box display="flex" justifyContent="space-around" gap={1} flexWrap="wrap">
+                  {(() => {
+                    const merged = { ...methodBreakdown };
+                    if (creditRemaining > 0) {
+                      merged['אשראי'] = (merged['אשראי'] || 0) + creditRemaining;
+                    }
+                    return Object.entries(merged)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([method, amount]) => (
+                        <Box key={method} textAlign="center" sx={{ minWidth: 80 }}>
+                          <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
+                            {method}
+                          </Typography>
+                          <Typography variant="body2" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
+                            {formatCurrency(amount)}
+                          </Typography>
+                        </Box>
+                      ));
+                  })()}
+                </Box>
+              </>
+            )}
           </Card>
         </Box>
-
-        {/* Payment Method Breakdown - remaining to pay */}
-        {(Object.keys(methodBreakdown).length > 0 || creditRemaining > 0) && (
-          <Box sx={{ px: 3, mb: 3 }}>
-            <Card sx={{ p: 2, backgroundColor: '#fafafa' }}>
-              <Typography variant="body2" fontWeight="bold" mb={1}>נותר לשלם לפי אמצעי תשלום</Typography>
-              <Box display="flex" justifyContent="space-around" gap={1} flexWrap="wrap">
-                {(() => {
-                  // Merge credit installments remaining into the method breakdown
-                  const merged = { ...methodBreakdown };
-                  if (creditRemaining > 0) {
-                    merged['אשראי'] = (merged['אשראי'] || 0) + creditRemaining;
-                  }
-                  return Object.entries(merged)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([method, amount]) => (
-                      <Box key={method} textAlign="center" sx={{ minWidth: 80 }}>
-                        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
-                          {method}
-                        </Typography>
-                        <Typography variant="body1" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
-                          {formatCurrency(amount)}
-                        </Typography>
-                      </Box>
-                    ));
-                })()}
-              </Box>
-            </Card>
-          </Box>
-        )}
 
         {/* Payments Table */}
         <Card sx={{ mx: 3, direction: 'ltr' }}>
