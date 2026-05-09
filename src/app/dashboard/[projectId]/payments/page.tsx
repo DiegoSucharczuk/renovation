@@ -315,9 +315,9 @@ export default function PaymentsPage() {
         {/* Payment Method Breakdown - remaining to pay */}
         {(Object.keys(methodBreakdown).length > 0 || creditRemaining > 0) && (
           <Box sx={{ px: 3, mb: 3 }}>
-            <Card sx={{ p: 3, backgroundColor: '#fafafa' }}>
-              <Typography variant="subtitle1" fontWeight="bold" mb={2}>נותר לשלם לפי אמצעי תשלום</Typography>
-              <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
+            <Card sx={{ p: 2, backgroundColor: '#fafafa' }}>
+              <Typography variant="body2" fontWeight="bold" mb={1}>נותר לשלם לפי אמצעי תשלום</Typography>
+              <Box display="flex" justifyContent="space-around" gap={1} flexWrap="wrap">
                 {(() => {
                   // Merge credit installments remaining into the method breakdown
                   const merged = { ...methodBreakdown };
@@ -327,11 +327,11 @@ export default function PaymentsPage() {
                   return Object.entries(merged)
                     .sort((a, b) => b[1] - a[1])
                     .map(([method, amount]) => (
-                      <Box key={method} textAlign="center" sx={{ minWidth: 120 }}>
-                        <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                      <Box key={method} textAlign="center" sx={{ minWidth: 80 }}>
+                        <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                           {method}
                         </Typography>
-                        <Typography variant="h5" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
+                        <Typography variant="body1" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
                           {formatCurrency(amount)}
                         </Typography>
                       </Box>
