@@ -178,6 +178,31 @@ export default function PaymentsPage() {
   const totalPlanned = vendors.reduce((sum, v) => 
     sum + v.payments.filter(p => p.status === 'מתוכנן').reduce((s, p) => s + p.amount, 0), 0);
   const totalBalance = totalContract - totalEffectivePaid;
+
+  // Breakdown by payment method
+  const allPayments = vendors.flatMap(v => v.payments);
+  const paidPayments = allPayments.filter(p => p.status === 'שולם');
+  const methodBreakdown = paidPayments.reduce((acc, p) => {
+    const method = p.method || 'אחר';
+    if (!acc[method]) acc[method] = 0;
+    acc[method] += p.amount;
+    return acc;
+  }, {} as Record<string, number>);
+  const methodEffectiveBreakdown = paidPayments.reduce((acc, p) => {
+    const method = p.method || 'אחר';
+    if (!acc[method]) acc[method] = 0;
+    acc[method] += getEffectivePaidAmount(p);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const methodColors: Record<string, string> = {
+    'מזומן': '#4caf50',
+    'אשראי': '#ff9800',
+    'העברה בנקאית': '#2196f3',
+    'צ׳ק': '#9c27b0',
+    'ביט': '#00bcd4',
+    'פייבוקס': '#e91e63',
+  };
   
   // Calculate total payments count
   const totalPaymentsCount = vendors.reduce((sum, v) => sum + v.payments.length, 0);
@@ -280,6 +305,40 @@ export default function PaymentsPage() {
             </Box>
           </Card>
         </Box>
+
+        {/* Payment Method Breakdown */}
+        {Object.keys(methodBreakdown).length > 0 && (
+          <Box sx={{ px: 3, mb: 3 }}>
+            <Card sx={{ p: 3, backgroundColor: '#fafafa' }}>
+              <Typography variant="subtitle1" fontWeight="bold" mb={2}>פירוט לפי אמצעי תשלום</Typography>
+              <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
+                {Object.entries(methodBreakdown)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([method, amount]) => {
+                    const effectiveAmount = methodEffectiveBreakdown[method] || 0;
+                    const hasInstallmentDiff = method === 'אשראי' && effectiveAmount < amount;
+                    return (
+                      <Tooltip key={method} title={hasInstallmentDiff ? `סה"כ רכישות: ${formatCurrency(amount)} | ירד בפועל: ${formatCurrency(effectiveAmount)}` : ''}>
+                        <Box textAlign="center" sx={{ minWidth: 120 }}>
+                          <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                            {method}
+                          </Typography>
+                          <Typography variant="h5" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
+                            {formatCurrency(hasInstallmentDiff ? effectiveAmount : amount)}
+                          </Typography>
+                          {hasInstallmentDiff && (
+                            <Typography variant="caption" color="warning.main" display="block">
+                              נותר: {formatCurrency(amount - effectiveAmount)}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
+              </Box>
+            </Card>
+          </Box>
+        )}
 
         {/* Payments Table */}
         <Card sx={{ mx: 3, direction: 'ltr' }}>
