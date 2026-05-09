@@ -1391,7 +1391,7 @@ export default function VendorsPage() {
               direction: 'ltr',
             }}
           >
-            <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+            <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 200px)', overflow: 'auto' }}>
               <Box sx={{ direction: 'ltr' }}>
                 <Table stickyHeader>
                   <TableHead>
