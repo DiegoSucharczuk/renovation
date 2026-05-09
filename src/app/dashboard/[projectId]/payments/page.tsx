@@ -342,7 +342,7 @@ export default function PaymentsPage() {
 
         {/* Payments Table */}
         <Card sx={{ mx: 3, direction: 'ltr' }}>
-          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 350px)', minHeight: 300, overflow: 'auto' }}>
+          <TableContainer sx={{ direction: 'rtl', maxHeight: 'calc(100vh - 400px)', minHeight: 300, overflow: 'auto' }}>
             <Box sx={{ direction: 'ltr' }}>
               <Table stickyHeader>
                 <TableHead>
