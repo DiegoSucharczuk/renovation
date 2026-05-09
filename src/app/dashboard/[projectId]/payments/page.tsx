@@ -328,7 +328,7 @@ export default function PaymentsPage() {
                           <Typography variant="caption" color="text.secondary" display="block" fontWeight={600}>
                             {method}
                           </Typography>
-                          <Typography variant="body2" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
+                          <Typography variant="h6" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
                             {formatCurrency(amount)}
                           </Typography>
                         </Box>
