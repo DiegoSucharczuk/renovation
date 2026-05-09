@@ -190,6 +190,29 @@ export default function PaymentsPage() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Subtract vendor overpayments from the method breakdown
+  vendors.forEach(vendor => {
+    if (!vendor.contractAmount) return;
+    const effectivePaid = getTotalEffectivePaid(vendor);
+    const overpayment = effectivePaid - vendor.contractAmount;
+    if (overpayment <= 0) return;
+    // Attribute overpayment to the methods used for paid payments
+    const paidPayments = vendor.payments.filter(p => p.status === 'שולם');
+    const totalPaidAmount = paidPayments.reduce((s, p) => s + getEffectivePaidAmount(p), 0);
+    if (totalPaidAmount === 0) return;
+    paidPayments.forEach(p => {
+      const method = p.method || 'אחר';
+      const proportion = getEffectivePaidAmount(p) / totalPaidAmount;
+      if (!methodBreakdown[method]) methodBreakdown[method] = 0;
+      methodBreakdown[method] -= overpayment * proportion;
+    });
+  });
+
+  // Remove methods with zero or negative amounts
+  Object.keys(methodBreakdown).forEach(method => {
+    if (methodBreakdown[method] <= 0) delete methodBreakdown[method];
+  });
+
   // Credit installments remaining from paid payments
   const paidCreditPayments = allPayments.filter(p => p.status === 'שולם' && p.method === 'אשראי' && p.installments && p.installments > 1 && p.date);
   const creditRemaining = paidCreditPayments.reduce((sum, p) => {
