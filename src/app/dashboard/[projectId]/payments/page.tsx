@@ -318,30 +318,25 @@ export default function PaymentsPage() {
             <Card sx={{ p: 3, backgroundColor: '#fafafa' }}>
               <Typography variant="subtitle1" fontWeight="bold" mb={2}>נותר לשלם לפי אמצעי תשלום</Typography>
               <Box display="flex" justifyContent="space-around" gap={2} flexWrap="wrap">
-                {Object.entries(methodBreakdown)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([method, amount]) => (
-                    <Box key={method} textAlign="center" sx={{ minWidth: 120 }}>
-                      <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                        {method}
-                      </Typography>
-                      <Typography variant="h5" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
-                        {formatCurrency(amount)}
-                      </Typography>
-                    </Box>
-                  ))}
-                {creditRemaining > 0 && (
-                  <Tooltip title="תשלומי אשראי שעוד לא ירדו מתוך תשלומים ששולמו">
-                    <Box textAlign="center" sx={{ minWidth: 120 }}>
-                      <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
-                        אשראי (נותר לרדת)
-                      </Typography>
-                      <Typography variant="h5" fontWeight="bold" sx={{ color: '#ff9800' }}>
-                        {formatCurrency(creditRemaining)}
-                      </Typography>
-                    </Box>
-                  </Tooltip>
-                )}
+                {(() => {
+                  // Merge credit installments remaining into the method breakdown
+                  const merged = { ...methodBreakdown };
+                  if (creditRemaining > 0) {
+                    merged['אשראי'] = (merged['אשראי'] || 0) + creditRemaining;
+                  }
+                  return Object.entries(merged)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([method, amount]) => (
+                      <Box key={method} textAlign="center" sx={{ minWidth: 120 }}>
+                        <Typography variant="body2" color="text.secondary" display="block" fontWeight={600}>
+                          {method}
+                        </Typography>
+                        <Typography variant="h5" fontWeight="bold" sx={{ color: methodColors[method] || '#666' }}>
+                          {formatCurrency(amount)}
+                        </Typography>
+                      </Box>
+                    ));
+                })()}
               </Box>
             </Card>
           </Box>
